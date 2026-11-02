@@ -1,111 +1,132 @@
+@import "tailwindcss";
+
+/* Class-based dark mode: <html class="dark"> */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ---------- Theme tokens ---------- */
 :root {
-  --text: #6b6375;
-  --text-h: #08060d;
-  --bg: #fff;
-  --border: #e5e4e7;
-  --code-bg: #f4f3ec;
-  --accent: #aa3bff;
-  --accent-bg: rgba(170, 59, 255, 0.1);
-  --accent-border: rgba(170, 59, 255, 0.5);
-  --social-bg: rgba(244, 243, 236, 0.5);
-  --shadow:
-    rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
+  --page: #edf0ee;
+  --glow: #f7f9f8;
+  --surface: #f6f8f7;
+  --field: #ffffff;
+  --ink: #2e3b3a;
+  --muted: #6b7a78;
+  --line: #d9e0de;
+  --sage: #86a39e;
+  --sage-deep: #5f8079;
+  --sage-wash: #dfe9e6;
+  --btn: #2e3b3a;
+  --btn-ink: #f2f5f4;
+  --btn-hover: #3d4f4d;
+  --card-shadow: rgba(46, 59, 58, 0.35);
+}
 
-  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --mono: ui-monospace, Consolas, monospace;
+.dark {
+  --page: #131918;
+  --glow: #1e2827;
+  --surface: #1a2221;
+  --field: #151c1b;
+  --ink: #e6edeb;
+  --muted: #92a3a0;
+  --line: #2a3634;
+  --sage: #8fb0aa;
+  --sage-deep: #a9c7c1;
+  --sage-wash: #243230;
+  --btn: #dfe9e6;
+  --btn-ink: #1a2221;
+  --btn-hover: #cddbd7;
+  --card-shadow: rgba(0, 0, 0, 0.6);
+}
 
-  font: 18px/145% var(--sans);
-  letter-spacing: 0.18px;
-  color-scheme: light dark;
-  color: var(--text);
-  background: var(--bg);
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+/* Expose tokens as Tailwind utilities: bg-page, text-ink, border-line ... */
+@theme inline {
+  --color-page: var(--page);
+  --color-glow: var(--glow);
+  --color-surface: var(--surface);
+  --color-field: var(--field);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-sage: var(--sage);
+  --color-sage-deep: var(--sage-deep);
+  --color-sage-wash: var(--sage-wash);
+  --color-btn: var(--btn);
+  --color-btn-ink: var(--btn-ink);
+  --color-btn-hover: var(--btn-hover);
+}
 
-  @media (max-width: 1024px) {
-    font-size: 16px;
+@theme {
+  --font-sans: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-serif: "Cormorant Garamond", Georgia, serif;
+  --font-display: "Antonio", "Arial Narrow", sans-serif;
+
+  --animate-fade: fade-in 1.2s ease both;
+  --animate-jelly-drop: jelly-drop 2.1s both;
+  --animate-ground-pulse: ground-pulse 2.1s ease both;
+
+  @keyframes fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  @keyframes jelly-drop {
+    0% {
+      transform: translateY(-85vh) scale(1, 1);
+      opacity: 0;
+      animation-timing-function: cubic-bezier(0.55, 0, 0.9, 0.5);
+    }
+    6% { opacity: 1; }
+    40% {
+      transform: translateY(0) scale(1, 1);
+      animation-timing-function: ease-out;
+    }
+    47% {
+      transform: translateY(0) scale(1.28, 0.55);
+      animation-timing-function: ease-out;
+    }
+    58% {
+      transform: translateY(-9%) scale(0.86, 1.14) skewX(-2deg);
+      animation-timing-function: ease-in-out;
+    }
+    68% {
+      transform: translateY(0) scale(1.12, 0.84) skewX(1.5deg);
+      animation-timing-function: ease-in-out;
+    }
+    78% {
+      transform: translateY(-2%) scale(0.96, 1.05) skewX(-1deg);
+      animation-timing-function: ease-in-out;
+    }
+    88% {
+      transform: translateY(0) scale(1.03, 0.97);
+      animation-timing-function: ease-in-out;
+    }
+    100% {
+      transform: translateY(0) scale(1, 1);
+      opacity: 1;
+    }
+  }
+
+  @keyframes ground-pulse {
+    0% { opacity: 0; transform: scaleX(0.4); }
+    40% { opacity: 0.2; transform: scaleX(0.7); }
+    47% { opacity: 1; transform: scaleX(1.12); }
+    60% { opacity: 0.6; transform: scaleX(0.92); }
+    100% { opacity: 0.75; transform: scaleX(1); }
   }
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --text: #9ca3af;
-    --text-h: #f3f4f6;
-    --bg: #16171d;
-    --border: #2e303a;
-    --code-bg: #1f2028;
-    --accent: #c084fc;
-    --accent-bg: rgba(192, 132, 252, 0.15);
-    --accent-border: rgba(192, 132, 252, 0.5);
-    --social-bg: rgba(47, 48, 58, 0.5);
-    --shadow:
-      rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
+@layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+    margin: 0;
+    overflow: hidden; /* the page always fits the viewport, never scrolls */
   }
-
-  #social .button-icon {
-    filter: invert(1) brightness(2);
+  body {
+    background: var(--page);
+    color: var(--ink);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
   }
-}
-
-body {
-  margin: 0;
-}
-
-#root {
-  width: 1126px;
-  max-width: 100%;
-  margin: 0 auto;
-  text-align: center;
-  border-inline: 1px solid var(--border);
-  min-height: 100svh;
-  display: flex;
-  flex-direction: column;
-  box-sizing: border-box;
-}
-
-h1,
-h2 {
-  font-family: var(--heading);
-  font-weight: 500;
-  color: var(--text-h);
-}
-
-h1 {
-  font-size: 56px;
-  letter-spacing: -1.68px;
-  margin: 32px 0;
-  @media (max-width: 1024px) {
-    font-size: 36px;
-    margin: 20px 0;
-  }
-}
-h2 {
-  font-size: 24px;
-  line-height: 118%;
-  letter-spacing: -0.24px;
-  margin: 0 0 8px;
-  @media (max-width: 1024px) {
-    font-size: 20px;
-  }
-}
-p {
-  margin: 0;
-}
-
-code,
-.counter {
-  font-family: var(--mono);
-  display: inline-flex;
-  border-radius: 4px;
-  color: var(--text-h);
-}
-
-code {
-  font-size: 15px;
-  line-height: 135%;
-  padding: 4px 8px;
-  background: var(--code-bg);
 }
