@@ -22,3 +22,11 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# md Files needed for development
+THEME.md
+DESIGN.md
+
+
+# txt files
+*.txt

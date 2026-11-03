@@ -1,132 +1,178 @@
 @import "tailwindcss";
 
-/* Class-based dark mode: <html class="dark"> */
-@custom-variant dark (&:where(.dark, .dark *));
+/* Lets `dark:` utilities follow the manual toggle: <html data-theme="dark"> */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
-/* ---------- Theme tokens ---------- */
+/* ---------- Fonts (self-hosted, put files in /public/fonts) ---------- */
+@font-face {
+  font-family: "Barlow Condensed";
+  src: url("../public/fonts/BarlowCondensed-SemiBold.ttf") format("ttf");
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Barlow Condensed";
+  src: url("../public/fonts/BarlowCondensed-Bold.ttf") format("ttf");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Inter";
+  src: url("../public/fonts/Inter-VariableFont_opsz\,wght.ttf") format("ttf");
+  font-weight: 400 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* ---------- Theme variables: LIGHT (default) ---------- */
 :root {
-  --page: #edf0ee;
-  --glow: #f7f9f8;
-  --surface: #f6f8f7;
-  --field: #ffffff;
-  --ink: #2e3b3a;
-  --muted: #6b7a78;
-  --line: #d9e0de;
-  --sage: #86a39e;
-  --sage-deep: #5f8079;
-  --sage-wash: #dfe9e6;
-  --btn: #2e3b3a;
-  --btn-ink: #f2f5f4;
-  --btn-hover: #3d4f4d;
-  --card-shadow: rgba(46, 59, 58, 0.35);
+  --bg: #fafaf9;
+  --surface: #ffffff;
+  --surface-alt: #f3f4f6;
+  --border: #e5e7eb;
+  --text: #111827;
+  --text-muted: #5b6472;
+  --accent: #2f5bea;
+  --accent-hover: #2448c4;
+  --on-accent: #ffffff;
+  --success: #16a34a;
+  --warning: #d97706;
+  --error: #dc2626;
+  --shadow: 0 1px 2px rgba(16, 24, 40, 0.06), 0 4px 12px rgba(16, 24, 40, 0.06);
 }
 
-.dark {
-  --page: #131918;
-  --glow: #1e2827;
-  --surface: #1a2221;
-  --field: #151c1b;
-  --ink: #e6edeb;
-  --muted: #92a3a0;
-  --line: #2a3634;
-  --sage: #8fb0aa;
-  --sage-deep: #a9c7c1;
-  --sage-wash: #243230;
-  --btn: #dfe9e6;
-  --btn-ink: #1a2221;
-  --btn-hover: #cddbd7;
-  --card-shadow: rgba(0, 0, 0, 0.6);
+/* ---------- DARK: follows system unless user forced light ---------- */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0b0d10;
+    --surface: #14171c;
+    --surface-alt: #1b1f26;
+    --border: #262b33;
+    --text: #f1f3f5;
+    --text-muted: #9aa3b0;
+    --accent: #7c9bff;
+    --accent-hover: #9db4ff;
+    --on-accent: #0b0d10;
+    --success: #4ade80;
+    --warning: #fbbf24;
+    --error: #f87171;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 4px 12px rgba(0, 0, 0, 0.35);
+  }
 }
 
-/* Expose tokens as Tailwind utilities: bg-page, text-ink, border-line ... */
+/* ---------- DARK: manual toggle ---------- */
+:root[data-theme="dark"] {
+  --bg: #0b0d10;
+  --surface: #14171c;
+  --surface-alt: #1b1f26;
+  --border: #262b33;
+  --text: #f1f3f5;
+  --text-muted: #9aa3b0;
+  --accent: #7c9bff;
+  --accent-hover: #9db4ff;
+  --on-accent: #0b0d10;
+  --success: #4ade80;
+  --warning: #fbbf24;
+  --error: #f87171;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 4px 12px rgba(0, 0, 0, 0.35);
+}
+
+/* ---------- Expose variables to Tailwind utilities ----------
+   `inline` makes utilities reference the live var(), so they
+   switch automatically when the theme changes. */
 @theme inline {
-  --color-page: var(--page);
-  --color-glow: var(--glow);
+  --color-bg: var(--bg);
   --color-surface: var(--surface);
-  --color-field: var(--field);
-  --color-ink: var(--ink);
-  --color-muted: var(--muted);
-  --color-line: var(--line);
-  --color-sage: var(--sage);
-  --color-sage-deep: var(--sage-deep);
-  --color-sage-wash: var(--sage-wash);
-  --color-btn: var(--btn);
-  --color-btn-ink: var(--btn-ink);
-  --color-btn-hover: var(--btn-hover);
+  --color-surface-alt: var(--surface-alt);
+  --color-border: var(--border);
+  --color-text: var(--text);
+  --color-muted: var(--text-muted);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-on-accent: var(--on-accent);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-error: var(--error);
+
+  --shadow-soft: var(--shadow);
 }
 
+/* Static tokens (same in both themes) */
 @theme {
-  --font-sans: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
-  --font-serif: "Cormorant Garamond", Georgia, serif;
-  --font-display: "Antonio", "Arial Narrow", sans-serif;
+  --font-display: "Barlow Condensed", "Arial Narrow", sans-serif;
+  --font-body: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-sans: var(--font-body);
 
-  --animate-fade: fade-in 1.2s ease both;
-  --animate-jelly-drop: jelly-drop 2.1s both;
-  --animate-ground-pulse: ground-pulse 2.1s ease both;
-
-  @keyframes fade-in {
-    from { opacity: 0; }
-    to { opacity: 1; }
-  }
-
-  @keyframes jelly-drop {
-    0% {
-      transform: translateY(-85vh) scale(1, 1);
-      opacity: 0;
-      animation-timing-function: cubic-bezier(0.55, 0, 0.9, 0.5);
-    }
-    6% { opacity: 1; }
-    40% {
-      transform: translateY(0) scale(1, 1);
-      animation-timing-function: ease-out;
-    }
-    47% {
-      transform: translateY(0) scale(1.28, 0.55);
-      animation-timing-function: ease-out;
-    }
-    58% {
-      transform: translateY(-9%) scale(0.86, 1.14) skewX(-2deg);
-      animation-timing-function: ease-in-out;
-    }
-    68% {
-      transform: translateY(0) scale(1.12, 0.84) skewX(1.5deg);
-      animation-timing-function: ease-in-out;
-    }
-    78% {
-      transform: translateY(-2%) scale(0.96, 1.05) skewX(-1deg);
-      animation-timing-function: ease-in-out;
-    }
-    88% {
-      transform: translateY(0) scale(1.03, 0.97);
-      animation-timing-function: ease-in-out;
-    }
-    100% {
-      transform: translateY(0) scale(1, 1);
-      opacity: 1;
-    }
-  }
-
-  @keyframes ground-pulse {
-    0% { opacity: 0; transform: scaleX(0.4); }
-    40% { opacity: 0.2; transform: scaleX(0.7); }
-    47% { opacity: 1; transform: scaleX(1.12); }
-    60% { opacity: 0.6; transform: scaleX(0.92); }
-    100% { opacity: 0.75; transform: scaleX(1); }
-  }
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
 }
 
+/* ---------- Base styles ---------- */
 @layer base {
-  html,
-  body,
-  #root {
-    height: 100%;
-    margin: 0;
-    overflow: hidden; /* the page always fits the viewport, never scrolls */
+  html {
+    scroll-behavior: smooth;
   }
+
   body {
-    background: var(--page);
-    color: var(--ink);
-    font-family: var(--font-sans);
+    font-family: var(--font-body);
+    font-size: 1rem;
+    line-height: 1.65;
+    background-color: var(--bg);
+    color: var(--text);
     -webkit-font-smoothing: antialiased;
   }
+
+  h1, h2, h3, .display {
+    font-family: var(--font-display);
+    font-weight: 700;
+    line-height: 1.05;
+    letter-spacing: 0.01em;
+    text-transform: uppercase;
+  }
+  h1 { font-size: clamp(3rem, 8vw, 6rem); }
+  h2 { font-size: clamp(2rem, 4vw, 3.25rem); }
+  h3 { font-size: 1.75rem; font-weight: 600; }
+  h4, h5 { font-weight: 600; }
+
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  *, ::before, ::after { border-color: var(--border); }
+
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; animation: none !important; }
+  }
+}
+
+/* ---------- Optional reusable components ---------- */
+@layer components {
+  .btn {
+    font-weight: 500;
+    font-size: 0.95rem;
+    padding: 0.75rem 1.5rem;
+    border-radius: var(--radius-sm);
+    border: 1px solid transparent;
+    transition: background-color 0.2s, transform 0.2s;
+  }
+  .btn-primary { background: var(--accent); color: var(--on-accent); }
+  .btn-primary:hover { background: var(--accent-hover); transform: translateY(-1px); text-decoration: none; }
+  .btn-ghost { background: transparent; color: var(--text); border-color: var(--border); }
+  .btn-ghost:hover { background: var(--surface-alt); text-decoration: none; }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 1.5rem;
+    transition: box-shadow 0.2s, transform 0.2s;
+  }
+  .card:hover { box-shadow: var(--shadow); }
 }
