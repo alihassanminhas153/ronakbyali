@@ -40,12 +40,11 @@ export class CartService {
         }
     }
 
-    // profile: the user's profile row (from authService / userService).
-    async getOrCreateCart({ profile }) {
+    // Creates the user's cart row. userService calls this ONCE, when the
+    // account is first created (not on login). rowId = the user's id.
+    // profile: the user's profile row.
+    async createCart({ profile }) {
         try {
-            const existing = await this.getCart({ userId: profile.$id });
-            if (existing) return existing;
-
             return await this.table.createRow({
                 databaseId: this.databaseId,
                 tableId: this.tableId,
@@ -64,9 +63,18 @@ export class CartService {
                 ],
             });
         } catch (error) {
+            // 409 = the cart already exists, which is fine.
+            if (error.code === 409) return await this.getCart({ userId: profile.$id });
             console.error(error.message);
             return false;
         }
+    }
+
+    // Safety net for old accounts that somehow have no cart row yet.
+    // Normal accounts never need this: their cart is made at signup.
+    async getOrCreateCart({ profile }) {
+        const existing = await this.getCart({ userId: profile.$id });
+        return existing || (await this.createCart({ profile }));
     }
 
     // Refresh the copied user details (call after the profile changes).

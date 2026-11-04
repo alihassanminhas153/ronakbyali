@@ -1,5 +1,7 @@
 import envVars from '../../envVars/vars';
 import { Client, Storage, TablesDB, Query, ID, Permission, Role } from 'appwrite';
+import cartService from './cart';
+import wishlistService from './wishlist';
 
 // ---------- Roles ----------
 export const ROLES = {
@@ -69,8 +71,8 @@ export class UserService {
                             isBlocked: false,
                             lastAddress: null,
                             lastCity: null,
-                            cartId: userId,        // cart row id = user id
-                            wishlistId: userId,    // wishlist row id = user id
+                            cartId: null,          // filled right after, see _createCartAndWishlist
+                            wishlistId: null,
                             ordersCount: 0,
                             totalSpent: 0,
                             authProvider: 'email',
@@ -83,7 +85,9 @@ export class UserService {
                             Permission.delete(Role.user(userId)),
                         ],
                     });
-                    if (profile) return profile;
+                    // Brand-new account only: make its cart + wishlist rows
+                    // and store their ids on the profile.
+                    if (profile) return await this._createCartAndWishlist(profile);
                 } catch (error) {
                     if (error.code !== 409) throw error;
                     // Row for this user already exists? Then just return it.
@@ -99,10 +103,36 @@ export class UserService {
         }
     }
 
+    // Runs ONCE per account, right after its profile row is first created
+    // (never on login/logout). Creates the cart and wishlist rows and saves
+    // their ids in users.cartId and users.wishlistId. If one of them fails the
+    // account still works: cart/wishlist services create a missing row on
+    // first use.
+    async _createCartAndWishlist(profile) {
+        try {
+            const [cart, wishlist] = await Promise.all([
+                cartService.createCart({ profile }),
+                wishlistService.createWishlist({ profile }),
+            ]);
+
+            const links = {};
+            if (cart) links.cartId = cart.$id;
+            if (wishlist) links.wishlistId = wishlist.$id;
+            if (!Object.keys(links).length) return profile;
+
+            const linked = await this.updateProfile({ userId: profile.$id, data: links });
+            return linked || { ...profile, ...links };
+        } catch (error) {
+            console.error(error.message);
+            return profile;
+        }
+    }
+
     // Use after ANY login (email or Google).
     //  1. profile with the same id exists   -> return it (previous values)
     //  2. profile with the same email exists -> return it
-    //  3. otherwise create a new profile with role "new" and a random username
+    //  3. otherwise create a new profile with role "new", a random username,
+    //     and (only this once) a cart row + wishlist row linked to it
     // `user` is the object from authService.getCurrentUser().
     async ensureProfile({ user, defaults = {} }) {
         try {

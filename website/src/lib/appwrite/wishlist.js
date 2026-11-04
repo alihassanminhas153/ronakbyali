@@ -37,11 +37,10 @@ export class WishlistService {
         }
     }
 
-    async getOrCreateWishlist({ profile }) {
+    // Creates the user's wishlist row. userService calls this ONCE, when the
+    // account is first created (not on login). rowId = the user's id.
+    async createWishlist({ profile }) {
         try {
-            const existing = await this.getWishlist({ userId: profile.$id });
-            if (existing) return existing;
-
             return await this.table.createRow({
                 databaseId: this.databaseId,
                 tableId: this.tableId,
@@ -59,9 +58,17 @@ export class WishlistService {
                 ],
             });
         } catch (error) {
+            // 409 = the wishlist already exists, which is fine.
+            if (error.code === 409) return await this.getWishlist({ userId: profile.$id });
             console.error(error.message);
             return false;
         }
+    }
+
+    // Safety net for old accounts that somehow have no wishlist row yet.
+    async getOrCreateWishlist({ profile }) {
+        const existing = await this.getWishlist({ userId: profile.$id });
+        return existing || (await this.createWishlist({ profile }));
     }
 
     async syncProfile({ profile }) {

@@ -22,7 +22,9 @@ const vars = {
 
     ronakByAliLayout: String(import.meta.env.RONAK_BY_ALI_LAYOUT_TABLE_ID),
 
-    ronakByAliAlerts: String(import.meta.env.RONAK_BY_ALI_ALERTS_TABLE_ID)
+    ronakByAliAlerts: String(import.meta.env.RONAK_BY_ALI_ALERTS_TABLE_ID),
+
+    ronakByAliReviews: String(import.meta.env.RONAK_BY_ALI_REVIEWS_TABLE_ID)
 }
 
 export default vars;
