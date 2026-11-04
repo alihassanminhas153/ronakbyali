@@ -1,10 +1,11 @@
 import envVars from '../../envVars/vars';
 import { Client, Storage, TablesDB, Query, ID } from 'appwrite';
 
+export const PRODUCT_STATUS = { IN_STOCK: 'inStock', OUT_OF_STOCK: 'outOfStock' };
+
 // Everything for the PRODUCTS table (+ product images in the bucket).
-// Rule used across this file: functions never name individual columns.
-// They take the whole `data` object that the frontend has already
-// arranged and pass it straight to Appwrite. Column list: see detail.txt
+// Functions never name individual columns: they take the whole `data`
+// object the frontend arranged and pass it to Appwrite. Column list: detail.txt
 export class ProductService {
     client = new Client();
     table;
@@ -22,16 +23,45 @@ export class ProductService {
         this.bucket = new Storage(this.client);
     }
 
+    // ---------- Data helpers ----------
+
+    // "Rs 2,500"
+    formatPrice(value, currency = 'Rs') {
+        return `${currency} ${Number(value || 0).toLocaleString('en-PK')}`;
+    }
+
+    // Fills the calculated columns so the admin form only enters the basics:
+    //   price           = originalPrice minus discountPercentage (if not given)
+    //   priceFormat     = "Rs 2,500" (if not given)
+    //   remaining       = totalAvailable - sold
+    //   status          = inStock / outOfStock from `remaining`
+    prepareProductData(data = {}) {
+        const out = { ...data };
+        const original = Number(out.originalPrice) || 0;
+        const pct = Number(out.discountPercentage) || 0;
+
+        if (out.price == null || out.price === '') {
+            out.price = pct > 0 ? Math.round(original * (1 - pct / 100)) : original;
+        }
+        if (!out.priceFormat) out.priceFormat = this.formatPrice(out.price);
+
+        if (out.totalAvailable != null && out.totalAvailable !== '') {
+            out.sold = Number(out.sold) || 0;
+            out.remaining = Math.max(0, Number(out.totalAvailable) - out.sold);
+            out.status = out.remaining > 0 ? PRODUCT_STATUS.IN_STOCK : PRODUCT_STATUS.OUT_OF_STOCK;
+        }
+        return out;
+    }
+
     // ---------- Create ----------
 
-    // data: the full product object from the frontend
     async addProduct(data) {
         try {
             const product = await this.table.createRow({
                 databaseId: this.databaseId,
                 tableId: this.tableId,
                 rowId: ID.unique(),
-                data,
+                data: this.prepareProductData(data),
             });
             return product ? product : false;
         } catch (error) {
@@ -40,10 +70,7 @@ export class ProductService {
         }
     }
 
-    // items: array of product objects (bulk / folder upload).
-    // Runs 10 at a time to stay under Appwrite's rate limits.
-    // Returns the created rows, or false if any row fails (nothing is
-    // rolled back, so check with getProducts if cleanup is needed).
+    // items: array of product objects (bulk upload), 10 at a time.
     async addProducts(items) {
         try {
             return await this._inChunks(items, 10, (data) =>
@@ -51,7 +78,7 @@ export class ProductService {
                     databaseId: this.databaseId,
                     tableId: this.tableId,
                     rowId: ID.unique(),
-                    data,
+                    data: this.prepareProductData(data),
                 })
             );
         } catch (error) {
@@ -62,7 +89,7 @@ export class ProductService {
 
     // ---------- Update ----------
 
-    // data: only the fields that changed (partial object is fine)
+    // data: only the fields that changed
     async updateProduct(rowId, data) {
         try {
             const product = await this.table.updateRow({
@@ -78,7 +105,7 @@ export class ProductService {
         }
     }
 
-    // updates: [{ id, data }, ...]  (bulk edit, e.g. mark many out of stock)
+    // updates: [{ id, data }, ...]
     async updateProducts(updates) {
         try {
             await this._inChunks(updates, 10, ({ id, data }) =>
@@ -97,16 +124,46 @@ export class ProductService {
     }
 
     // updates: [{ id, order }, ...]  (drag-and-drop reordering)
-    // Needs an integer `order` column on the table.
     async updateProductOrder(updates) {
-        return this.updateProducts(
-            updates.map(({ id, order }) => ({ id, data: { order } }))
-        );
+        return this.updateProducts(updates.map(({ id, order }) => ({ id, data: { order } })));
+    }
+
+    // Set stock numbers and keep remaining + status in sync.
+    async updateStock(rowId, { totalAvailable, sold }) {
+        try {
+            const current = await this.getProduct(rowId);
+            if (!current) return false;
+            const total = totalAvailable != null ? Number(totalAvailable) : Number(current.totalAvailable) || 0;
+            const soldNow = sold != null ? Number(sold) : Number(current.sold) || 0;
+            const remaining = Math.max(0, total - soldNow);
+            return await this.updateProduct(rowId, {
+                totalAvailable: total,
+                sold: soldNow,
+                remaining,
+                status: remaining > 0 ? PRODUCT_STATUS.IN_STOCK : PRODUCT_STATUS.OUT_OF_STOCK,
+            });
+        } catch (error) {
+            console.error(error.message);
+            return false;
+        }
+    }
+
+    // Add (+) or remove (-) sold units, e.g. adjustStock(id, 2) after 2 are sold.
+    // Used by orderService when an admin confirms / cancels an order.
+    async adjustStock(rowId, soldDelta) {
+        try {
+            const current = await this.getProduct(rowId);
+            if (!current) return false;
+            const sold = Math.max(0, (Number(current.sold) || 0) + Number(soldDelta || 0));
+            return await this.updateStock(rowId, { sold });
+        } catch (error) {
+            console.error(error.message);
+            return false;
+        }
     }
 
     // ---------- Delete ----------
 
-    // Deletes the row and, by default, its image files too.
     async deleteProduct(rowId, deleteFiles = true) {
         try {
             const product = deleteFiles ? await this.getProduct(rowId) : null;
@@ -123,7 +180,6 @@ export class ProductService {
         }
     }
 
-    // rowIds: array of ids. Returns true only if every delete worked.
     async deleteProducts(rowIds, deleteFiles = true) {
         try {
             const results = await this._inChunks(rowIds, 10, (rowId) =>
@@ -166,7 +222,7 @@ export class ProductService {
         }
     }
 
-    // Fetch many products by id (hydrate cart / wishlist / order items).
+    // Hydrate cart / wishlist / order items.
     async getProductsByIds(ids) {
         try {
             const unique = [...new Set(ids || [])].filter(Boolean);
@@ -191,8 +247,7 @@ export class ProductService {
 
     // ---------- Read: lists ----------
 
-    // filters: any { column: value } pairs, e.g. { category: 'Lawn', status: true }.
-    // Empty / null values are ignored. Returns ALL matching rows.
+    // filters: { category: 'Lawn', status: 'inStock' }. Empty values ignored.
     async getProducts(filters = {}) {
         try {
             return await this._listAllRows(this._filterQueries(filters));
@@ -216,7 +271,6 @@ export class ProductService {
         }
     }
 
-    // One page + total count, for the catalog grid.
     // options: { filters, minPrice, maxPrice, sortBy, limit, offset }
     // sortBy: 'name-asc' | 'name-desc' | 'price-asc' | 'price-desc' | 'newest' | 'order'
     async getProductsPage(options = {}) {
@@ -250,10 +304,7 @@ export class ProductService {
         }
     }
 
-    // Text search over name, description, category and group, plus the same
-    // options as getProductsPage() and a `term`.
-    // Matching is done in memory, so no fulltext indexes are needed.
-    // Fine for a few thousand products; not built to scale past that.
+    // In-memory text search over name, description, category, group, tags.
     async searchProducts(options = {}) {
         try {
             const {
@@ -277,7 +328,7 @@ export class ProductService {
             ]);
 
             const matched = rows.filter((r) =>
-                [r.name, r.description, r.category, r.group].some((v) =>
+                [r.name, r.description, r.category, r.group, ...(r.tags || [])].some((v) =>
                     String(v || '').toLowerCase().includes(trimmed)
                 )
             );
@@ -290,7 +341,6 @@ export class ProductService {
         }
     }
 
-    // Needs a boolean `featured` column.
     async getFeaturedProducts(limit = 8) {
         try {
             const res = await this.table.listRows({
@@ -309,7 +359,6 @@ export class ProductService {
         }
     }
 
-    // product: the product object currently being viewed.
     async getRelatedProducts(product, limit = 8) {
         try {
             if (!product?.category) return [];
@@ -350,7 +399,7 @@ export class ProductService {
         }
     }
 
-    // { groupName: count }, optionally scoped, e.g. listGroups({ category: 'Lawn' })
+    // { groupName: count }
     async listGroups(filters = {}) {
         try {
             const rows = await this._listAllRows([
@@ -369,12 +418,13 @@ export class ProductService {
         }
     }
 
-    // [{ name, count, sampleFileId }] for picture tiles on the browse page.
+    // [{ name, count, sampleFileId }] for picture tiles. sampleFileId is the
+    // first image id of the first product in that category.
     async listCategoriesWithSample(filters = {}) {
         try {
             const rows = await this._listAllRows([
                 ...this._filterQueries(filters),
-                Query.select(['$id', 'category', 'fileId']),
+                Query.select(['$id', 'category', 'imageIds']),
             ]);
             return this._tally(rows, 'category');
         } catch (error) {
@@ -383,12 +433,12 @@ export class ProductService {
         }
     }
 
-    // Same, one level down: [{ name, count, sampleFileId, sampleCategory }]
+    // One level down: [{ name, count, sampleFileId, sampleCategory }]
     async listGroupsWithSample(filters = {}) {
         try {
             const rows = await this._listAllRows([
                 ...this._filterQueries(filters),
-                Query.select(['$id', 'category', 'group', 'fileId']),
+                Query.select(['$id', 'category', 'group', 'imageIds']),
             ]);
             return this._tally(rows, 'group');
         } catch (error) {
@@ -397,7 +447,6 @@ export class ProductService {
         }
     }
 
-    // { min, max } price in the current scope, for a price slider.
     async getPriceRange(filters = {}) {
         try {
             const rows = await this._listAllRows([
@@ -415,8 +464,6 @@ export class ProductService {
 
     // ---------- Slugs ----------
 
-    // true if `slug` is not used by another row. Pass excludeRowId while
-    // editing so a product's own slug doesn't count as taken.
     async isSlugAvailable(slug, excludeRowId) {
         try {
             const res = await this.table.listRows({
@@ -430,12 +477,10 @@ export class ProductService {
             return false;
         } catch (error) {
             console.error(error.message);
-            // Fail closed so a network error can't create a duplicate slug.
-            return false;
+            return false; // fail closed
         }
     }
 
-    // Set of every slug in use, for bulk uploads that dedupe many at once.
     async getAllSlugs() {
         try {
             const rows = await this._listAllRows([Query.select(['$id', 'slug'])]);
@@ -446,7 +491,6 @@ export class ProductService {
         }
     }
 
-    // Turns any text (usually the product name) into a free slug:
     // "Rose Lawn Suit" -> "rose-lawn-suit", then "-2", "-3"... if taken.
     async generateUniqueSlug(text, excludeRowId) {
         try {
@@ -470,8 +514,9 @@ export class ProductService {
     }
 
     // ---------- Images ----------
+    // A product keeps ALL its image ids in the `imageIds` array.
+    // imageIds[0] is the main image.
 
-    // file: a File object from an <input type="file">
     async uploadImage(file) {
         try {
             const uploaded = await this.bucket.createFile({
@@ -486,18 +531,16 @@ export class ProductService {
         }
     }
 
-    // files: array of File objects. Returns the uploaded files in order,
-    // or false if any upload fails (already-uploaded ones are removed).
+    // files: array of File objects -> uploaded files in order, or false.
     async uploadImages(files) {
         try {
-            const uploaded = await this._inChunks(files, 5, (file) =>
+            return await this._inChunks(files, 5, (file) =>
                 this.bucket.createFile({
                     bucketId: this.bucketId,
                     fileId: ID.unique(),
                     file,
                 })
             );
-            return uploaded;
         } catch (error) {
             console.error(error.message);
             return false;
@@ -508,10 +551,7 @@ export class ProductService {
         try {
             const id = this._extractFileId(fileId);
             if (!id) return false;
-            await this.bucket.deleteFile({
-                bucketId: this.bucketId,
-                fileId: id,
-            });
+            await this.bucket.deleteFile({ bucketId: this.bucketId, fileId: id });
             return true;
         } catch (error) {
             console.error(error.message);
@@ -529,42 +569,76 @@ export class ProductService {
         }
     }
 
-    // Synchronous, so it is safe to use directly in JSX:
-    //   <img src={productService.getImageUrl(product.fileId)} />
-    // Uses getFileView() because image transformations (getFilePreview)
-    // are a paid-plan feature and return 403 on the free plan.
+    // Synchronous, safe in JSX: <img src={productService.getImageUrl(id)} />
     getImageUrl(fileId) {
         try {
             const id = this._extractFileId(fileId);
             if (!id) return null;
-            return this.bucket.getFileView({
-                bucketId: this.bucketId,
-                fileId: id,
-            });
+            return this.bucket.getFileView({ bucketId: this.bucketId, fileId: id });
         } catch (error) {
             console.error(error.message);
             return null;
         }
     }
 
-    // Replace a product's main image: upload the new file, save its id on
-    // the row, then delete the old file. Rolls back the upload on failure.
-    async changeImage(rowId, file) {
+    // Main image url of a product row.
+    getMainImageUrl(product) {
+        return this.getImageUrl(product?.imageIds?.[0]);
+    }
+
+    // All image urls of a product row.
+    getImageUrls(product) {
+        return (product?.imageIds || []).map((id) => this.getImageUrl(id)).filter(Boolean);
+    }
+
+    // Upload files and append their ids to the product's imageIds.
+    async addImages(rowId, files) {
         try {
             const current = await this.getProduct(rowId);
             if (!current) return false;
 
-            const uploaded = await this.uploadImage(file);
+            const uploaded = await this.uploadImages(files);
             if (!uploaded) return false;
 
-            const product = await this.updateProduct(rowId, { fileId: uploaded.$id });
+            const product = await this.updateProduct(rowId, {
+                imageIds: [...(current.imageIds || []), ...uploaded.map((f) => f.$id)],
+            });
             if (!product) {
-                await this.deleteImage(uploaded.$id);
+                await this.deleteImages(uploaded.map((f) => f.$id)); // roll back
                 return false;
             }
-
-            if (current.fileId) await this.deleteImage(current.fileId);
             return product;
+        } catch (error) {
+            console.error(error.message);
+            return false;
+        }
+    }
+
+    // Remove one image from the product and from the bucket.
+    async removeImage(rowId, fileId) {
+        try {
+            const current = await this.getProduct(rowId);
+            if (!current) return false;
+            const product = await this.updateProduct(rowId, {
+                imageIds: (current.imageIds || []).filter((id) => id !== fileId),
+            });
+            if (!product) return false;
+            await this.deleteImage(fileId);
+            return product;
+        } catch (error) {
+            console.error(error.message);
+            return false;
+        }
+    }
+
+    // Make an existing image the main one (moves it to the front).
+    async setMainImage(rowId, fileId) {
+        try {
+            const current = await this.getProduct(rowId);
+            if (!current || !(current.imageIds || []).includes(fileId)) return false;
+            return await this.updateProduct(rowId, {
+                imageIds: [fileId, ...current.imageIds.filter((id) => id !== fileId)],
+            });
         } catch (error) {
             console.error(error.message);
             return false;
@@ -573,8 +647,6 @@ export class ProductService {
 
     // ---------- Internal helpers ----------
 
-    // { column: value } -> Query.equal list. Skips empty values.
-    // An array value means "any of these".
     _filterQueries(filters = {}) {
         const queries = [];
         Object.entries(filters || {}).forEach(([key, value]) => {
@@ -634,7 +706,6 @@ export class ProductService {
         return sorted;
     }
 
-    // Count rows per value of `key` and remember one image as a sample.
     _tally(rows, key) {
         const map = new Map();
         rows.forEach((r) => {
@@ -645,12 +716,11 @@ export class ProductService {
             }
             const entry = map.get(name);
             entry.count += 1;
-            if (!entry.sampleFileId && r.fileId) entry.sampleFileId = r.fileId;
+            if (!entry.sampleFileId && r.imageIds?.length) entry.sampleFileId = r.imageIds[0];
         });
         return Array.from(map.entries()).map(([name, v]) => ({ name, ...v }));
     }
 
-    // Cursor pagination so results beyond 25 rows are never dropped.
     async _listAllRows(extraQueries = []) {
         const rows = [];
         const pageSize = 100;
@@ -667,17 +737,13 @@ export class ProductService {
             });
 
             if (!res?.rows?.length) break;
-
             rows.push(...res.rows);
-
             if (res.rows.length < pageSize) break;
             cursor = res.rows[res.rows.length - 1].$id;
         }
-
         return rows;
     }
 
-    // Run `fn` over `items` a few at a time instead of all at once.
     async _inChunks(items, size, fn) {
         const results = [];
         for (let i = 0; i < items.length; i += size) {
@@ -688,12 +754,12 @@ export class ProductService {
     }
 
     async _deleteProductFiles(product) {
-        const ids = [product.fileId, ...(product.galleryIds || [])].filter(Boolean);
+        const ids = (product.imageIds || []).filter(Boolean);
         await Promise.all(ids.map((id) => this.deleteImage(id)));
     }
 
-    // Safety net: if a row ever stores a full file URL instead of the raw
-    // id, pull the id back out of ".../files/<id>/view?..." so it still works.
+    // If a row ever stores a full file URL instead of the raw id, pull the
+    // id back out of ".../files/<id>/view?...".
     _extractFileId(fileId) {
         if (!fileId) return null;
         if (!fileId.includes('/')) return fileId;
