@@ -1,6 +1,6 @@
 import { Loader2 } from 'lucide-react';
 
-import GlowBorder from './GlowBorder';
+import GlowBorder from './Glowborder';
 
 // Primary full-width submit button with a loading state and a glowing accent border.
 export default function AuthButton({ loading = false, disabled = false, children, ...props }) {
