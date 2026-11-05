@@ -10,7 +10,7 @@ export default function AuthField({ label, type = 'text', error, hint, className
 
   return (
     <div className={className}>
-      <label htmlFor={id} className="mb-1.5 block text-sm font-medium text-text">
+      <label htmlFor={id} className="mb-1.5 block text-[0.8rem] font-medium text-muted">
         {label}
       </label>
 
@@ -20,7 +20,7 @@ export default function AuthField({ label, type = 'text', error, hint, className
           type={isPassword && visible ? 'text' : type}
           aria-invalid={error ? true : undefined}
           aria-describedby={messageId}
-          className={`h-11 w-full rounded-sm border bg-surface px-3.5 text-base text-text outline-none transition-colors placeholder:text-muted focus:border-accent focus:ring-2 focus:ring-accent/30 disabled:opacity-60 ${
+          className={`h-11 w-full rounded-md border bg-bg px-3.5 text-base text-text outline-none transition-colors placeholder:text-muted/60 focus:border-accent disabled:opacity-60 ${
             isPassword ? 'pr-11' : ''
           } ${error ? 'border-error' : 'border-border'}`}
           {...props}
@@ -31,7 +31,7 @@ export default function AuthField({ label, type = 'text', error, hint, className
             type="button"
             onClick={() => setVisible((v) => !v)}
             aria-label={visible ? 'Hide password' : 'Show password'}
-            className="absolute inset-y-0 right-0 flex w-11 items-center justify-center rounded-sm text-muted transition-colors hover:text-text focus-visible:outline-2 focus-visible:outline-accent"
+            className="absolute inset-y-0 right-0 flex w-11 items-center justify-center rounded-md text-muted transition-colors hover:text-text focus-visible:outline-2 focus-visible:outline-accent"
           >
             {visible ? <EyeOff size={18} /> : <Eye size={18} />}
           </button>

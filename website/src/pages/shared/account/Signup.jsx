@@ -1,38 +1,49 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router';
-import { CheckCircle2 } from 'lucide-react';
 
 import { useAppDispatch, useAppSelector } from '../../../store/slices/hooks';
 import {
   registerWithEmail,
-  saveName,
   continueWithGoogle,
   clearAuthError,
   selectAuthError,
   selectAuthStatus,
   selectPendingProfile,
 } from '../../../store/slices/authSlice';
-import AuthShell, { FormError, OrDivider } from '../auth/AuthShell';
+import AuthShell, { EmailChip, FormError, OrDivider } from '../auth/AuthShell';
 import AuthField from '../auth/AuthField';
 import AuthButton from '../auth/AuthButton';
 import GoogleButton from '../auth/GoogleButton';
+import ProfileStep from '../auth/ProfileStep';
 import { homePathFor } from './authRedirect';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-// Step 1 -> email + password (or Google). Step 2 -> name, once the account exists.
+// Step 1 -> Google, or an email. Step 2 -> choose a password.
+// Once the account exists the slice sets pendingProfile and the small profile popup opens.
 export default function Signup() {
+  const navigate = useNavigate();
   const pendingProfile = useAppSelector(selectPendingProfile);
-  return pendingProfile ? <NameStep profile={pendingProfile} /> : <CredentialsStep />;
-}
 
-/* ---------------- step 1 ---------------- */
+  return (
+    <>
+      <CredentialsStep />
+      {pendingProfile && (
+        <ProfileStep
+          profile={pendingProfile}
+          onDone={(saved) => navigate(homePathFor(saved), { replace: true })}
+        />
+      )}
+    </>
+  );
+}
 
 function CredentialsStep() {
   const dispatch = useAppDispatch();
   const authError = useAppSelector(selectAuthError);
   const status = useAppSelector(selectAuthStatus);
 
+  const [step, setStep] = useState('email'); // 'email' | 'password'
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fieldErrors, setFieldErrors] = useState({});
@@ -44,128 +55,108 @@ function CredentialsStep() {
     dispatch(clearAuthError());
   }, [dispatch]);
 
-  const onSubmit = (e) => {
+  const onEmailSubmit = (e) => {
     e.preventDefault();
-    const cleanEmail = email.trim();
-    const errors = {};
-    if (!EMAIL_RE.test(cleanEmail)) errors.email = 'Enter a valid email address.';
-    if (password.length < 8) errors.password = 'Use at least 8 characters.';
-    setFieldErrors(errors);
-    if (Object.keys(errors).length) return;
+    const clean = email.trim();
+    if (!EMAIL_RE.test(clean)) {
+      setFieldErrors({ email: 'Enter a valid email address.' });
+      return;
+    }
+    setEmail(clean);
+    setFieldErrors({});
+    dispatch(clearAuthError());
+    setStep('password');
+  };
 
-    // On success the slice stores pendingProfile and this component swaps to <NameStep />.
-    dispatch(registerWithEmail({ email: cleanEmail, password }));
+  const onChangeEmail = () => {
+    setStep('email');
+    setPassword('');
+    setFieldErrors({});
+    dispatch(clearAuthError());
+  };
+
+  const onPasswordSubmit = (e) => {
+    e.preventDefault();
+    if (password.length < 8) {
+      setFieldErrors({ password: 'Use at least 8 characters.' });
+      return;
+    }
+    setFieldErrors({});
+
+    // On success the slice stores pendingProfile and <ProfileStep /> opens.
+    dispatch(registerWithEmail({ email, password }));
   };
 
   const onGoogle = () => {
     setGoogleBusy(true);
-    dispatch(continueWithGoogle()); // Google creates the account if it is new; name comes from Google
+    dispatch(continueWithGoogle()); // Google creates the account if it is new; name + photo come from Google
   };
 
   return (
     <AuthShell
       title="Create account"
-      subtitle="Sign up with your email, or continue with Google."
+      subtitle={step === 'email' ? 'Sign up to get started.' : 'Choose a password.'}
       footer={
         <>
           Already have an account?{' '}
-          <Link to="/welcome-back" className="font-medium text-accent hover:underline">
+          <Link to="/welcome-back" className="font-medium text-accent hover:text-accent-hover hover:underline">
             Log in
           </Link>
         </>
       }
     >
-      <GoogleButton onClick={onGoogle} loading={googleBusy} disabled={busy} label="Sign up with Google" />
-      <OrDivider />
+      {step === 'email' ? (
+        <>
+          <GoogleButton onClick={onGoogle} loading={googleBusy} disabled={busy} />
+          <OrDivider />
 
-      <form onSubmit={onSubmit} noValidate className="flex flex-col gap-4">
-        <AuthField
-          label="Email"
-          type="email"
-          name="email"
-          autoComplete="email"
-          inputMode="email"
-          placeholder="you@example.com"
-          value={email}
-          onChange={(e) => { setEmail(e.target.value); setFieldErrors((f) => ({ ...f, email: '' })); }}
-          error={fieldErrors.email}
-          disabled={busy}
-        />
-        <AuthField
-          label="Password"
-          type="password"
-          name="password"
-          autoComplete="new-password"
-          placeholder="At least 8 characters"
-          value={password}
-          onChange={(e) => { setPassword(e.target.value); setFieldErrors((f) => ({ ...f, password: '' })); }}
-          error={fieldErrors.password}
-          disabled={busy}
-        />
+          <form onSubmit={onEmailSubmit} noValidate className="flex flex-col gap-4">
+            <AuthField
+              label="Email"
+              type="email"
+              name="email"
+              autoComplete="email"
+              inputMode="email"
+              placeholder="you@example.com"
+              value={email}
+              onChange={(e) => { setEmail(e.target.value); setFieldErrors({}); }}
+              error={fieldErrors.email}
+              disabled={busy}
+            />
 
-        <FormError message={authError} />
+            <FormError message={authError} />
 
-        <AuthButton loading={status === 'loading' && !googleBusy} disabled={busy}>
-          Create account
-        </AuthButton>
-      </form>
-    </AuthShell>
-  );
-}
+            <AuthButton disabled={busy}>Continue with email</AuthButton>
+          </form>
+        </>
+      ) : (
+        <>
+          <EmailChip email={email} onChange={onChangeEmail} disabled={busy} />
 
-/* ---------------- step 2 ---------------- */
+          <form onSubmit={onPasswordSubmit} noValidate className="flex flex-col gap-4">
+            {/* lets password managers pair the new password with this email */}
+            <input type="email" name="email" value={email} autoComplete="username" readOnly tabIndex={-1} className="sr-only" aria-hidden="true" />
 
-function NameStep({ profile }) {
-  const dispatch = useAppDispatch();
-  const navigate = useNavigate();
-  const authError = useAppSelector(selectAuthError);
-  const status = useAppSelector(selectAuthStatus);
+            <AuthField
+              label="Password"
+              type="password"
+              name="password"
+              autoComplete="new-password"
+              placeholder="Create a password"
+              hint="At least 8 characters."
+              autoFocus
+              value={password}
+              onChange={(e) => { setPassword(e.target.value); setFieldErrors({}); }}
+              error={fieldErrors.password}
+              disabled={busy}
+            />
 
-  const [name, setName] = useState('');
-  const [nameError, setNameError] = useState('');
-  const busy = status === 'loading';
+            <FormError message={authError} />
 
-  useEffect(() => {
-    dispatch(clearAuthError());
-  }, [dispatch]);
-
-  const onSubmit = async (e) => {
-    e.preventDefault();
-    const clean = name.trim().replace(/\s+/g, ' ');
-    if (clean.length < 2) return setNameError('Enter your name (at least 2 characters).');
-    if (clean.length > 128) return setNameError('That name is too long.');
-    setNameError('');
-
-    const result = await dispatch(saveName({ name: clean }));
-    if (saveName.fulfilled.match(result)) {
-      navigate(homePathFor(result.payload), { replace: true });
-    }
-  };
-
-  return (
-    <AuthShell title="One last thing" subtitle="What should we call you? This name shows on your orders and profile.">
-      <p className="flex items-center gap-2 text-sm text-success">
-        <CheckCircle2 size={18} aria-hidden="true" />
-        Account created for <span className="font-medium text-text">{profile.email}</span>
-      </p>
-
-      <form onSubmit={onSubmit} noValidate className="flex flex-col gap-4">
-        <AuthField
-          label="Your name"
-          name="name"
-          autoComplete="name"
-          placeholder="Full name"
-          autoFocus
-          value={name}
-          onChange={(e) => { setName(e.target.value); setNameError(''); }}
-          error={nameError}
-          disabled={busy}
-        />
-
-        <FormError message={authError} />
-
-        <AuthButton loading={busy}>Save and continue</AuthButton>
-      </form>
+            <AuthButton loading={status === 'loading'} disabled={busy}>Create account</AuthButton>
+          </form>
+        </>
+      )}
     </AuthShell>
   );
 }

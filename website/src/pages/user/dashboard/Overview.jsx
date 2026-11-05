@@ -1,8 +1,11 @@
-import React from 'react'
+import LogoutButton from '../../shared/auth/LogoutButton';
 
 function Overview() {
   return (
-    <div>Overview</div>
+    <div className="flex items-center justify-between">
+      <h1>Overview</h1>
+      <LogoutButton />
+    </div>
   )
 }
 

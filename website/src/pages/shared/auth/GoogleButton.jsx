@@ -18,7 +18,7 @@ export default function GoogleButton({ onClick, loading = false, disabled = fals
       type="button"
       onClick={onClick}
       disabled={disabled || loading}
-      className="flex h-11 w-full items-center justify-center gap-3 rounded-sm border border-border bg-surface px-4 text-[0.95rem] font-medium text-text transition-colors hover:bg-surface-alt focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-60"
+      className="flex h-11 w-full items-center justify-center gap-3 rounded-md border border-border bg-surface-alt px-4 text-[0.95rem] font-medium text-text transition-colors hover:bg-border focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-60"
     >
       {loading ? <Loader2 size={18} className="animate-spin" aria-hidden="true" /> : <GoogleMark />}
       {label}
