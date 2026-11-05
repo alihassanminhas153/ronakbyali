@@ -1,4 +1,4 @@
-import envVars from '../../envVars/vars';
+import envVars from '../../../env/var';
 import { Client, Storage, TablesDB, Query, ID } from 'appwrite';
 
 export const PRODUCT_STATUS = { IN_STOCK: 'inStock', OUT_OF_STOCK: 'outOfStock' };

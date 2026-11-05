@@ -5,8 +5,8 @@
 //   const subtotal = useAppSelector(selectCartSubtotal);
 //   // guests: the thunk opens the login modal and does not call the service
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
-import { cartService, settingsService } from '../services';
-import { LOGIN_REQUIRED, fail, getUserId, stripToast } from '../utils';
+import { cartService, settingsService } from './services';
+import { LOGIN_REQUIRED, fail, getUserId, stripToast } from './utils';
 import { isSessionEnded } from './authSlice';
 import { openLoginModal } from './uiSlice';
 

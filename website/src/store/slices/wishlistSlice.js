@@ -5,8 +5,8 @@
 //   dispatch(fetchWishlist());
 //   // toggle is optimistic: it flips instantly and rolls back if the service fails
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
-import { wishlistService } from '../services';
-import { LOGIN_REQUIRED, fail, getUserId, stripToast } from '../utils';
+import { wishlistService } from './services';
+import { LOGIN_REQUIRED, fail, getUserId, stripToast } from './utils';
 import { isSessionEnded } from './authSlice';
 import { openLoginModal } from './uiSlice';
 

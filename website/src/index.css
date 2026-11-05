@@ -26,24 +26,26 @@
   font-display: swap;
 }
 
-/* ---------- Theme variables: LIGHT (default) ---------- */
+/* ---------- Theme variables: DARK (default) ---------- */
 :root {
-  --bg: #fafaf9;
-  --surface: #ffffff;
-  --surface-alt: #f3f4f6;
-  --border: #e5e7eb;
-  --text: #111827;
-  --text-muted: #5b6472;
-  --accent: #2f5bea;
-  --accent-hover: #2448c4;
+  color-scheme: dark;
+
+  --bg: #0a0a0b;
+  --surface: #111113;
+  --surface-alt: #18181b;
+  --border: #27272a;
+  --text: #ededee;
+  --text-muted: #8b8b93;
+  --accent: #3d6df2;
+  --accent-hover: #5a85f5;
   --on-accent: #ffffff;
-  --success: #16a34a;
-  --warning: #d97706;
-  --error: #dc2626;
-  --shadow: 0 1px 2px rgba(16, 24, 40, 0.06), 0 4px 12px rgba(16, 24, 40, 0.06);
+  --success: #3fb27f;
+  --warning: #e0a030;
+  --error: #e5484d;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
 
   /* Coming-soon page shadow colour (used as var(--card-shadow)) */
-  --card-shadow: rgba(16, 24, 40, 0.35);
+  --card-shadow: rgba(0, 0, 0, 0.5);
 
   /* Legacy names used by the coming-soon page. They only point at the
      variables above, so they follow the theme automatically. */
@@ -55,29 +57,29 @@
   --line: var(--border);
   --sage: var(--accent);
   --sage-deep: var(--accent-hover);
-  --sage-wash: color-mix(in srgb, var(--accent) 12%, var(--bg));
+  --sage-wash: color-mix(in srgb, var(--accent) 8%, var(--bg));
   --btn: var(--text);
   --btn-ink: var(--bg);
   --btn-hover: color-mix(in srgb, var(--text) 85%, var(--bg));
 }
 
-/* ---------- DARK ---------- */
+/* ---------- DARK (explicit, same values) ---------- */
 :root[data-theme="dark"],
 .dark {
-  --bg: #0b0d10;
-  --surface: #14171c;
-  --surface-alt: #1b1f26;
-  --border: #262b33;
-  --text: #f1f3f5;
-  --text-muted: #9aa3b0;
-  --accent: #7c9bff;
-  --accent-hover: #9db4ff;
-  --on-accent: #0b0d10;
-  --success: #4ade80;
-  --warning: #fbbf24;
-  --error: #f87171;
-  --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 4px 12px rgba(0, 0, 0, 0.35);
-  --card-shadow: rgba(0, 0, 0, 0.6);
+  --bg: #0a0a0b;
+  --surface: #111113;
+  --surface-alt: #18181b;
+  --border: #27272a;
+  --text: #ededee;
+  --text-muted: #8b8b93;
+  --accent: #3d6df2;
+  --accent-hover: #5a85f5;
+  --on-accent: #ffffff;
+  --success: #3fb27f;
+  --warning: #e0a030;
+  --error: #e5484d;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+  --card-shadow: rgba(0, 0, 0, 0.5);
 }
 
 /* ---------- Expose variables to Tailwind utilities ----------
@@ -108,7 +110,7 @@
   --color-line: var(--border);
   --color-sage: var(--accent);
   --color-sage-deep: var(--accent-hover);
-  --color-sage-wash: color-mix(in srgb, var(--accent) 12%, var(--bg));
+  --color-sage-wash: color-mix(in srgb, var(--accent) 8%, var(--bg));
   --color-btn: var(--text);
   --color-btn-ink: var(--bg);
   --color-btn-hover: color-mix(in srgb, var(--text) 85%, var(--bg));

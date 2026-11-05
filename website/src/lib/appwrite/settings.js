@@ -1,4 +1,4 @@
-import envVars from '../../envVars/vars';
+import envVars from '../../../env/var';
 import { Client, Storage, TablesDB, Query, ID } from 'appwrite';
 
 // Store-wide options as key / value rows. Plain Appwrite database calls only.

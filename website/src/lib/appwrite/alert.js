@@ -1,4 +1,4 @@
-import envVars from '../../envVars/vars';
+import envVars from '../../../env/var';
 import { Client, TablesDB, Query, ID } from 'appwrite';
 
 export const ALERT_TYPES = ['info', 'success', 'warning', 'error', 'promo'];

@@ -1,4 +1,4 @@
-import envVars from '../../envVars/vars';
+import envVars from '../../../env/var';
 import { Client, Storage, TablesDB, Query, ID } from 'appwrite';
 
 // Controls the HOMEPAGE: which sections exist, in what order, with which

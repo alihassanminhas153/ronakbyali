@@ -1,4 +1,4 @@
-import envVars from '../../envVars/vars';
+import envVars from '../../../env/var';
 import { Client, TablesDB, Permission, Role } from 'appwrite';
 import productService from './product';
 

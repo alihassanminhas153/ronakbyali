@@ -5,8 +5,8 @@
 //   dispatch(fetchMyOrders({ limit: 10, offset: 0 }));
 //   const orders = useAppSelector(selectMyOrders);
 import { createAsyncThunk, createEntityAdapter, createSlice } from '@reduxjs/toolkit';
-import { orderService } from '../services';
-import { LOGIN_REQUIRED, fail, getUserId, stripToast } from '../utils';
+import { orderService } from './services';
+import { LOGIN_REQUIRED, fail, getUserId, stripToast } from './utils';
 import { isSessionEnded, refreshProfile } from './authSlice';
 import { fetchCart } from './cartSlice';
 import { fetchWishlist } from './wishlistSlice';

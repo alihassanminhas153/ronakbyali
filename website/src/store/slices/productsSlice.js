@@ -9,8 +9,8 @@
 // method arguments, e.g. dispatch(updateProduct([rowId, data])).
 // The FIRST argument of deleteProduct must be the product row id.
 import { createAsyncThunk, createEntityAdapter, createSelector, createSlice, isAnyOf } from '@reduxjs/toolkit';
-import { productService } from '../services';
-import { fail, isRow, serviceThunk, stripToast } from '../utils';
+import { productService } from './services';
+import { fail, isRow, serviceThunk, stripToast } from './utils';
 
 const adapter = createEntityAdapter({ selectId: (p) => p.$id });
 

@@ -1,4 +1,4 @@
-import envVars from '../../envVars/vars';
+import envVars from '../../../env/var';
 import { Client, Account, ID, OAuthProvider } from 'appwrite';
 import userService from './user';
 
