@@ -19,6 +19,7 @@ import AllProducts from "./pages/shared/products/AllProducts";
 import Product from "./pages/shared/products/Product";
 import Signin from "./pages/shared/account/Signin";
 import Signup from "./pages/shared/account/Signup";
+import AuthCallback from "./pages/shared/account/AuthCallback";
 
 // user dashboard
 import UserProfile from "./pages/user/dashboard/Profile";
@@ -60,8 +61,13 @@ export default function App() {
           <Route path="*" element={<NotFound />} />
         </Route>
 
-        {/* ---------- Accounts (logged-out only) ---------- */}
+        {/* ---------- Accounts ---------- */}
         <Route element={<AuthLayout />}>
+          {/* Google sends people back here. Kept OUTSIDE GuestRoute so the page is not
+              redirected away while completeLogin is still creating/loading the profile. */}
+          <Route path="auth/callback" element={<AuthCallback />} />
+
+          {/* logged-out only */}
           <Route element={<GuestRoute />}>
             <Route path="create-account" element={<Signup />} />
             <Route path="welcome-back" element={<Signin />} />

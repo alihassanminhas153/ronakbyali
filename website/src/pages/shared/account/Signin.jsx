@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router';
+import { Lock, Mail } from 'lucide-react';
 
 import { useAppDispatch, useAppSelector } from '../../../store/slices/hooks';
 import {
@@ -17,6 +18,12 @@ import { homePathFor } from './authRedirect';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+// After this many failed password attempts the visitor is sent to /create-account.
+const MAX_ATTEMPTS = 3;
+
+// Problems that are not the person's fault (no internet, rate limit) do not use up an attempt.
+const NOT_A_PASSWORD_PROBLEM = /network|fetch|timeout|offline|too many|rate limit/i;
+
 // Step 1 -> Google, or an email. Step 2 -> password for that email.
 export default function Signin() {
   const dispatch = useAppDispatch();
@@ -33,14 +40,28 @@ export default function Signin() {
   // starts with the error sent back by /auth/callback when Google login fails
   const [localError, setLocalError] = useState(location.state?.error || '');
   const [googleBusy, setGoogleBusy] = useState(false);
+  const [attempts, setAttempts] = useState(0);
 
   const from = location.state?.from?.pathname;
   const busy = status === 'loading' || googleBusy;
   const error = localError || authError || '';
+  const attemptsLeft = MAX_ATTEMPTS - attempts;
 
   useEffect(() => {
     dispatch(clearAuthError());
   }, [dispatch]);
+
+  // Counts one failed attempt. On the last one, move the visitor to the signup page.
+  const registerFailure = (message) => {
+    const used = attempts + 1;
+    setAttempts(used);
+
+    if (used >= MAX_ATTEMPTS) {
+      navigate('/create-account', { replace: true, state: { email, reason: 'attempts' } });
+      return;
+    }
+    if (message) setLocalError(message);
+  };
 
   const onEmailSubmit = (e) => {
     e.preventDefault();
@@ -59,14 +80,17 @@ export default function Signin() {
   const onChangeEmail = () => {
     setStep('email');
     setPassword('');
+    setAttempts(0); // a different email starts a fresh count
     setLocalError('');
     dispatch(clearAuthError());
   };
 
   const onPasswordSubmit = async (e) => {
     e.preventDefault();
+    if (busy) return;
+
     if (!password) {
-      setLocalError('Enter your password.');
+      registerFailure('Enter your password.');
       return;
     }
     setLocalError('');
@@ -75,7 +99,11 @@ export default function Signin() {
     if (signIn.fulfilled.match(result)) {
       // the profile (all columns of the users row) is now in state.auth.profile
       navigate(homePathFor(result.payload, from), { replace: true });
+      return;
     }
+
+    const message = typeof result.payload === 'string' ? result.payload : result.error?.message || '';
+    if (!NOT_A_PASSWORD_PROBLEM.test(message)) registerFailure();
   };
 
   const onGoogle = () => {
@@ -88,9 +116,11 @@ export default function Signin() {
     <AuthShell
       title="Welcome back"
       subtitle={step === 'email' ? 'Log in to continue.' : 'Enter your password.'}
+      imageTitle="Good to see you again."
+      imageText="Pick up where you left off: your cart, wishlist and orders are waiting."
       footer={
         <>
-          New to Ronak By Ali?{' '}
+          New here?{' '}
           <Link to="/create-account" className="font-medium text-accent hover:text-accent-hover hover:underline">
             Create an account
           </Link>
@@ -102,11 +132,12 @@ export default function Signin() {
           <GoogleButton onClick={onGoogle} loading={googleBusy} disabled={busy} />
           <OrDivider />
 
-          <form onSubmit={onEmailSubmit} noValidate className="flex flex-col gap-4">
+          <form onSubmit={onEmailSubmit} noValidate className="flex flex-col gap-5">
             <AuthField
               label="Email"
               type="email"
               name="email"
+              icon={Mail}
               autoComplete="email"
               inputMode="email"
               placeholder="you@example.com"
@@ -125,7 +156,7 @@ export default function Signin() {
         <>
           <EmailChip email={email} onChange={onChangeEmail} disabled={busy} />
 
-          <form onSubmit={onPasswordSubmit} noValidate className="flex flex-col gap-4">
+          <form onSubmit={onPasswordSubmit} noValidate className="flex flex-col gap-5">
             {/* lets password managers pair the password with this email */}
             <input type="email" name="email" value={email} autoComplete="username" readOnly tabIndex={-1} className="sr-only" aria-hidden="true" />
 
@@ -133,6 +164,7 @@ export default function Signin() {
               label="Password"
               type="password"
               name="password"
+              icon={Lock}
               autoComplete="current-password"
               placeholder="Your password"
               autoFocus
@@ -142,6 +174,12 @@ export default function Signin() {
             />
 
             <FormError message={error} />
+
+            {attempts > 0 && (
+              <p className="-mt-2 text-sm text-muted" role="status">
+                {attemptsLeft} {attemptsLeft === 1 ? 'attempt' : 'attempts'} left. After that we will take you to create an account.
+              </p>
+            )}
 
             <AuthButton loading={status === 'loading'} disabled={busy}>Log in</AuthButton>
           </form>

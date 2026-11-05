@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router';
+import { Link, useLocation, useNavigate } from 'react-router';
+import { Lock, Mail } from 'lucide-react';
 
 import { useAppDispatch, useAppSelector } from '../../../store/slices/hooks';
 import {
@@ -10,7 +11,7 @@ import {
   selectAuthStatus,
   selectPendingProfile,
 } from '../../../store/slices/authSlice';
-import AuthShell, { EmailChip, FormError, OrDivider } from '../auth/AuthShell';
+import AuthShell, { EmailChip, FormError, Notice, OrDivider } from '../auth/AuthShell';
 import AuthField from '../auth/AuthField';
 import AuthButton from '../auth/AuthButton';
 import GoogleButton from '../auth/GoogleButton';
@@ -38,13 +39,48 @@ export default function Signup() {
   );
 }
 
+// 0 = too short, 1-4 = weak .. strong
+function passwordScore(pw) {
+  if (pw.length < 8) return 0;
+  let score = 1;
+  if (pw.length >= 12) score++;
+  if (/[a-z]/.test(pw) && /[A-Z]/.test(pw)) score++;
+  if (/\d/.test(pw) && /[^A-Za-z0-9]/.test(pw)) score++;
+  return score;
+}
+
+const SCORE_LABELS = ['Too short', 'Weak', 'Fair', 'Good', 'Strong'];
+
+function PasswordMeter({ password }) {
+  if (!password) return null;
+  const score = passwordScore(password);
+
+  return (
+    <div className="-mt-2" aria-live="polite">
+      <div className="flex gap-1.5">
+        {[1, 2, 3, 4].map((n) => (
+          <span
+            key={n}
+            className={`h-1 flex-1 rounded-full transition-colors ${n <= score ? 'bg-accent' : 'bg-border'}`}
+          />
+        ))}
+      </div>
+      <p className="mt-1.5 text-xs text-muted">Password strength: {SCORE_LABELS[score]}</p>
+    </div>
+  );
+}
+
 function CredentialsStep() {
   const dispatch = useAppDispatch();
+  const location = useLocation();
   const authError = useAppSelector(selectAuthError);
   const status = useAppSelector(selectAuthStatus);
 
+  // Sent here by Signin after 3 failed log-ins: keep the email they typed.
+  const fromFailedLogin = location.state?.reason === 'attempts';
+
   const [step, setStep] = useState('email'); // 'email' | 'password'
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState(location.state?.email || '');
   const [password, setPassword] = useState('');
   const [fieldErrors, setFieldErrors] = useState({});
   const [googleBusy, setGoogleBusy] = useState(false);
@@ -96,6 +132,8 @@ function CredentialsStep() {
     <AuthShell
       title="Create account"
       subtitle={step === 'email' ? 'Sign up to get started.' : 'Choose a password.'}
+      imageTitle="Make it yours."
+      imageText="Save your favourites, track every order and check out faster."
       footer={
         <>
           Already have an account?{' '}
@@ -105,16 +143,27 @@ function CredentialsStep() {
         </>
       }
     >
+      {fromFailedLogin && (
+        <Notice>
+          We could not log you in after 3 tries. Create a new account below, or{' '}
+          <Link to="/welcome-back" className="font-medium text-accent hover:underline">
+            try logging in again
+          </Link>
+          .
+        </Notice>
+      )}
+
       {step === 'email' ? (
         <>
           <GoogleButton onClick={onGoogle} loading={googleBusy} disabled={busy} />
           <OrDivider />
 
-          <form onSubmit={onEmailSubmit} noValidate className="flex flex-col gap-4">
+          <form onSubmit={onEmailSubmit} noValidate className="flex flex-col gap-5">
             <AuthField
               label="Email"
               type="email"
               name="email"
+              icon={Mail}
               autoComplete="email"
               inputMode="email"
               placeholder="you@example.com"
@@ -133,7 +182,7 @@ function CredentialsStep() {
         <>
           <EmailChip email={email} onChange={onChangeEmail} disabled={busy} />
 
-          <form onSubmit={onPasswordSubmit} noValidate className="flex flex-col gap-4">
+          <form onSubmit={onPasswordSubmit} noValidate className="flex flex-col gap-5">
             {/* lets password managers pair the new password with this email */}
             <input type="email" name="email" value={email} autoComplete="username" readOnly tabIndex={-1} className="sr-only" aria-hidden="true" />
 
@@ -141,6 +190,7 @@ function CredentialsStep() {
               label="Password"
               type="password"
               name="password"
+              icon={Lock}
               autoComplete="new-password"
               placeholder="Create a password"
               hint="At least 8 characters."
@@ -150,6 +200,8 @@ function CredentialsStep() {
               error={fieldErrors.password}
               disabled={busy}
             />
+
+            <PasswordMeter password={password} />
 
             <FormError message={authError} />
 

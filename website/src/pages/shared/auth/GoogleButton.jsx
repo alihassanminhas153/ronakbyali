@@ -1,5 +1,7 @@
 import { Loader2 } from 'lucide-react';
 
+import GlowBorder from './GlowBorder';
+
 function GoogleMark() {
   return (
     <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true">
@@ -11,17 +13,21 @@ function GoogleMark() {
   );
 }
 
-// Full-row "Continue with Google" button.
+// Full-row "Continue with Google" button with a glowing accent border.
 export default function GoogleButton({ onClick, loading = false, disabled = false, label = 'Continue with Google' }) {
+  const off = disabled || loading;
+
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled || loading}
-      className="flex h-11 w-full items-center justify-center gap-3 rounded-md border border-border bg-surface-alt px-4 text-[0.95rem] font-medium text-text transition-colors hover:bg-border focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-60"
-    >
-      {loading ? <Loader2 size={18} className="animate-spin" aria-hidden="true" /> : <GoogleMark />}
-      {label}
-    </button>
+    <GlowBorder active={!off}>
+      <button
+        type="button"
+        onClick={onClick}
+        disabled={off}
+        className="flex h-11 w-full items-center justify-center gap-3 rounded-[4px] bg-surface-alt px-4 text-[0.95rem] font-semibold text-text transition-colors hover:bg-border focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed lg:h-12 lg:text-base"
+      >
+        {loading ? <Loader2 size={18} className="animate-spin" aria-hidden="true" /> : <GoogleMark />}
+        {label}
+      </button>
+    </GlowBorder>
   );
 }
