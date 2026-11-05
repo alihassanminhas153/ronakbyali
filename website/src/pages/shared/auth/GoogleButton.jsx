@@ -1,6 +1,6 @@
 import { Loader2 } from 'lucide-react';
 
-import GlowBorder from './GlowBorder';
+import GlowBorder from './Glowborder';
 
 function GoogleMark() {
   return (

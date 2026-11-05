@@ -1,3 +1,4 @@
+// 
 // A light that travels around the border of whatever it wraps, in the theme accent colour.
 //
 // `text-accent` makes `currentColor` equal the accent variable from your theme, so no CSS
