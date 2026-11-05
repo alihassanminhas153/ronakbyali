@@ -30,3 +30,6 @@ DESIGN.md
 
 # all txt files
 *.txt
+
+.env
+.env.sample
