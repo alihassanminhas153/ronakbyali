@@ -43,16 +43,39 @@ const adminLinks = (u) => [
 ];
 
 const itemClass = ({ isActive }) =>
-  `flex items-center gap-3 rounded-sm px-3 py-2.5 text-sm transition-colors focus-visible:outline-2 focus-visible:outline-accent ${
+  `flex items-center rounded-sm px-3 py-2.5 text-sm transition-colors focus-visible:outline-2 focus-visible:outline-accent ${
     isActive ? 'bg-accent/10 font-medium text-accent' : 'text-muted hover:bg-surface-alt hover:text-text'
   }`;
 
-function Item({ to, icon: Icon, label, end }) {
+// A label that folds away when the sidebar is collapsed (width + fade, same speed as the sidebar).
+function Fold({ collapsed, children, className = '' }) {
+  return (
+    <span
+      aria-hidden={collapsed || undefined}
+      className={`block overflow-hidden whitespace-nowrap transition-[max-width,margin,opacity] duration-300 ease-out motion-reduce:transition-none ${
+        collapsed ? 'ml-0 max-w-0 opacity-0' : 'ml-3 max-w-48 opacity-100'
+      } ${className}`}
+    >
+      {children}
+    </span>
+  );
+}
+
+function Item({ to, icon: Icon, label, end, collapsed, onNavigate }) {
   return (
     <li>
-      <NavLink to={to} end={end} className={itemClass}>
-        <Icon size={18} aria-hidden="true" />
-        <span className="truncate">{label}</span>
+      <NavLink
+        to={to}
+        end={end}
+        onClick={onNavigate}
+        title={collapsed ? label : undefined}
+        aria-label={collapsed ? label : undefined}
+        className={itemClass}
+      >
+        <Icon size={18} className="shrink-0" aria-hidden="true" />
+        <Fold collapsed={collapsed} className="truncate">
+          {label}
+        </Fold>
       </NavLink>
     </li>
   );
@@ -90,7 +113,9 @@ function Avatar({ profile }) {
 const capitalise = (s = '') => s.charAt(0).toUpperCase() + s.slice(1);
 
 // One sidebar for both dashboards:  <Sidebar area="user" />  or  <Sidebar area="admin" />
-export default function Sidebar({ area = 'user' }) {
+//   collapsed  : icon-only rail (DashboardShell sets this on large screens only)
+//   onNavigate : called when a link is clicked (the phone drawer closes itself with it)
+export default function Sidebar({ area = 'user', collapsed = false, onNavigate }) {
   const { user, username, isStaff } = useSession();
   const isAdminArea = area === 'admin';
 
@@ -102,34 +127,34 @@ export default function Sidebar({ area = 'user' }) {
       {/* who is logged in */}
       <Link
         to={profileTo}
-        className="flex items-center gap-3 border-b border-border p-4 transition-colors hover:bg-surface-alt focus-visible:outline-2 focus-visible:outline-accent"
+        onClick={onNavigate}
+        title={collapsed ? user?.name || username : undefined}
+        className={`flex items-center border-b border-border py-4 transition-[padding,background-color] duration-300 ease-out hover:bg-surface-alt focus-visible:outline-2 focus-visible:outline-accent motion-reduce:transition-none ${
+          collapsed ? 'px-[13px]' : 'px-4'
+        }`}
       >
         <Avatar profile={user} />
-        <span className="min-w-0">
-          <span className="block truncate text-sm font-semibold text-text">
-            {user?.name || username}
-          </span>
-          <span className="block truncate text-xs text-muted">
-            {isStaff ? capitalise(user?.role) : user?.email}
-          </span>
-        </span>
+        <Fold collapsed={collapsed} className="min-w-0">
+          <span className="block truncate text-sm font-semibold text-text">{user?.name || username}</span>
+          <span className="block truncate text-xs text-muted">{isStaff ? capitalise(user?.role) : user?.email}</span>
+        </Fold>
       </Link>
 
       {/* main links */}
-      <nav aria-label={isAdminArea ? 'Admin panel' : 'My account'} className="flex-1 overflow-y-auto p-3">
+      <nav aria-label={isAdminArea ? 'Admin panel' : 'My account'} className="flex-1 overflow-y-auto overflow-x-hidden p-3">
         <ul className="flex flex-col gap-1">
           {links.map((l) => (
-            <Item key={l.to} {...l} />
+            <Item key={l.to} {...l} collapsed={collapsed} onNavigate={onNavigate} />
           ))}
         </ul>
       </nav>
 
-      {/* shop, switch panel, log out */}
+      {/* shop, log out */}
       <div className="border-t border-border p-3">
         <ul className="flex flex-col gap-1">
-          <Item to={PATHS.products} icon={Store} label="Browse shop" />
-          <li>
-            <LogoutButton className="flex w-full items-center gap-3 rounded-sm px-3 py-2.5 text-sm text-muted transition-colors hover:bg-error/10 hover:text-error focus-visible:outline-2 focus-visible:outline-error disabled:cursor-not-allowed disabled:opacity-60" />
+          <Item to={PATHS.products} icon={Store} label="Browse shop" collapsed={collapsed} onNavigate={onNavigate} />
+          <li className="overflow-hidden" title={collapsed ? 'Log out' : undefined}>
+            <LogoutButton className="flex w-full items-center gap-3 whitespace-nowrap rounded-sm px-3 py-2.5 text-sm text-muted transition-colors hover:bg-error/10 hover:text-error focus-visible:outline-2 focus-visible:outline-error disabled:cursor-not-allowed disabled:opacity-60" />
           </li>
         </ul>
       </div>

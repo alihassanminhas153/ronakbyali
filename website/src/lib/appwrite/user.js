@@ -17,6 +17,13 @@ export const STAFF_ROLES = [ROLES.ADMIN, ROLES.SUPPORT, ROLES.MANAGER];
 // A customer becomes "loyal" once they have placed this many orders.
 export const LOYAL_AFTER_ORDERS = 2;
 
+// true for admin / support / manager ("team" accounts).
+export const isStaffRole = (role) => STAFF_ROLES.includes(role);
+
+// The ONLY columns a signed-in user may change on their own profile.
+// role, isBlocked, ordersCount, totalSpent, cartId... are never in this list.
+export const SELF_EDITABLE_FIELDS = ['name', 'phone', 'lastAddress', 'lastCity', 'avatarFileId'];
+
 // Profile data that lives in YOUR database. Login, email and password stay
 // in Appwrite Auth (see auth.js). Each profile row uses the auth user's $id
 // as its rowId, so lookups are direct.
@@ -195,6 +202,19 @@ export class UserService {
         }
     }
 
+    // Profile edits made by the signed-in user. Unknown / protected fields are
+    // dropped so the UI can never send role, isBlocked, totals, etc.
+    // (Client-side guard only; see the note about server enforcement in the
+    // setBlocked comment below.)
+    async updateOwnProfile({ userId, data = {} }) {
+        const safe = {};
+        for (const key of SELF_EDITABLE_FIELDS) {
+            if (key in data) safe[key] = data[key];
+        }
+        if (!Object.keys(safe).length) return false;
+        return this.updateProfile({ userId, data: safe });
+    }
+
     async deleteProfile({ userId }) {
         try {
             await this.table.deleteRow({
@@ -285,7 +305,7 @@ export class UserService {
 
     // staff roles stay as they are; others depend on how many orders were placed.
     computeRole(currentRole, ordersCount) {
-        if (STAFF_ROLES.includes(currentRole)) return currentRole;
+        if (isStaffRole(currentRole)) return currentRole;
         if (ordersCount >= LOYAL_AFTER_ORDERS) return ROLES.LOYAL;
         if (ordersCount >= 1) return ROLES.CUSTOMER;
         return ROLES.NEW;
@@ -319,6 +339,12 @@ export class UserService {
         return this.updateProfile({ userId, data: { role } });
     }
 
+    // Admin only (needs table permission for the admin label).
+    // NOTE: a profile row is updatable by its owner (see createProfile
+    // permissions), so a blocked user could in theory flip isBlocked back with a
+    // hand-made API call. For hard enforcement also disable the account
+    // server-side (Appwrite Function calling Users.updateStatus) or drop the
+    // owner's update permission on this column.
     async setBlocked({ userId, isBlocked }) {
         return this.updateProfile({ userId, data: { isBlocked: !!isBlocked } });
     }

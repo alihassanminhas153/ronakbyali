@@ -6,11 +6,24 @@
 //   useEffect(() => { dispatch(fetchProductBySlug(slug)); }, [slug]);
 //
 // ADMIN thunks (addProduct, updateProduct, ...) take an ARRAY of the productService
-// method arguments, e.g. dispatch(updateProduct([rowId, data])).
+// method arguments, e.g. dispatch(updateProduct([rowId, data])).unwrap().
 // The FIRST argument of deleteProduct must be the product row id.
+// When the service fails the thunk rejects with a plain message string, so
+//   try { await dispatch(addProduct([data])).unwrap(); } catch (message) { ... }
+// This file only depends on lib/appwrite/product.js (no services.js / utils.js).
 import { createAsyncThunk, createEntityAdapter, createSelector, createSlice, isAnyOf } from '@reduxjs/toolkit';
-import { productService } from './services';
-import { fail, isRow, serviceThunk, stripToast } from './utils';
+import productService from '../../lib/appwrite/product';
+
+const isRow = (v) => Boolean(v) && typeof v === 'object' && typeof v.$id === 'string';
+
+// Builds an admin thunk that calls productService[method](...args).
+// A falsy result (the service returns false on error) rejects with `message`.
+const adminThunk = (type, method, message) =>
+  createAsyncThunk(type, async (args, { rejectWithValue }) => {
+    const list = Array.isArray(args) ? args : args === undefined ? [] : [args];
+    const result = await productService[method](...list);
+    return result ? result : rejectWithValue(message);
+  });
 
 const adapter = createEntityAdapter({ selectId: (p) => p.$id });
 
@@ -56,7 +69,7 @@ const serviceFilters = (f) => {
 /* ---------- list ---------- */
 
 export const fetchProducts = createAsyncThunk('products/fetchList', async (arg, { getState, rejectWithValue }) => {
-  const { append = false } = stripToast(arg);
+  const { append = false } = arg || {};
   const { filters, list } = getState().products;
   const query = {
     filters: serviceFilters(filters),
@@ -70,7 +83,7 @@ export const fetchProducts = createAsyncThunk('products/fetchList', async (arg, 
   const result = term
     ? await productService.searchProducts({ term, ...query })
     : await productService.getProductsPage(query);
-  if (!result) return fail(rejectWithValue, 'Could not load products.', arg);
+  if (!result) return rejectWithValue('Could not load products.');
   return { rows: result.rows || [], total: result.total || 0, append };
 });
 
@@ -115,15 +128,15 @@ export const fetchPriceRange = createAsyncThunk('products/fetchPriceRange', asyn
 
 /* ---------- admin (arguments are passed straight to productService) ---------- */
 
-export const addProduct = serviceThunk('products/addProduct', productService, 'addProduct', { message: 'Could not add the product.' });
-export const updateProduct = serviceThunk('products/updateProduct', productService, 'updateProduct', { message: 'Could not update the product.' });
-export const deleteProduct = serviceThunk('products/deleteProduct', productService, 'deleteProduct', { message: 'Could not delete the product.' });
-export const updateStock = serviceThunk('products/updateStock', productService, 'updateStock', { message: 'Could not update the stock.' });
-export const updateProductOrder = serviceThunk('products/updateProductOrder', productService, 'updateProductOrder', { message: 'Could not update the product order.' });
-export const addImages = serviceThunk('products/addImages', productService, 'addImages', { message: 'Could not upload the images.' });
-export const removeImage = serviceThunk('products/removeImage', productService, 'removeImage', { message: 'Could not remove the image.' });
-export const setMainImage = serviceThunk('products/setMainImage', productService, 'setMainImage', { message: 'Could not set the main image.' });
-export const generateUniqueSlug = serviceThunk('products/generateUniqueSlug', productService, 'generateUniqueSlug', { message: 'Could not generate a slug.' });
+export const addProduct = adminThunk('products/addProduct', 'addProduct', 'Could not add the product.');
+export const updateProduct = adminThunk('products/updateProduct', 'updateProduct', 'Could not update the product.');
+export const deleteProduct = adminThunk('products/deleteProduct', 'deleteProduct', 'Could not delete the product.');
+export const updateStock = adminThunk('products/updateStock', 'updateStock', 'Could not update the stock.');
+export const updateProductOrder = adminThunk('products/updateProductOrder', 'updateProductOrder', 'Could not update the product order.');
+export const addImages = adminThunk('products/addImages', 'addImages', 'Could not upload the images.');
+export const removeImage = adminThunk('products/removeImage', 'removeImage', 'Could not remove the image.');
+export const setMainImage = adminThunk('products/setMainImage', 'setMainImage', 'Could not set the main image.');
+export const generateUniqueSlug = adminThunk('products/generateUniqueSlug', 'generateUniqueSlug', 'Could not generate a slug.');
 
 const adminThunks = [addProduct, updateProduct, deleteProduct, updateStock, updateProductOrder, addImages, removeImage, setMainImage, generateUniqueSlug];
 const rowReturning = [addProduct, updateProduct, updateStock, addImages, removeImage, setMainImage];

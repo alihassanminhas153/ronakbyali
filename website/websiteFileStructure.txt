@@ -29,11 +29,18 @@ website/
 │   ├── App.jsx
 │   ├── components/
 │   │   ├── admin/
-│   │   ├── shared/
-│   │   │   ├── index.js
 │   │   │   └── products/
-│   │   │       ├── FeaturedCard.jsx
-│   │   │       └── ProductCard.jsx
+│   │   │       ├── index.js
+│   │   │       ├── productFields.js
+│   │   │       ├── ProductForm.jsx
+│   │   │       └── ProductTable.jsx
+│   │   ├── shared/
+│   │   │   ├── DashboardShell.jsx
+│   │   │   ├── index.js
+│   │   │   ├── products/
+│   │   │   │   ├── FeaturedCard.jsx
+│   │   │   │   └── ProductCard.jsx
+│   │   │   └── Sidebar.jsx
 │   │   └── user/
 │   ├── context/
 │   │   └── ThemeContext.jsx
@@ -41,7 +48,8 @@ website/
 │   ├── layouts/
 │   │   ├── AccountLayout.jsx
 │   │   ├── AuthLayout.jsx
-│   │   └── MainLayout.jsx
+│   │   ├── MainLayout.jsx
+│   │   └── PlainLayout.jsx
 │   ├── lib/
 │   │   └── appwrite/
 │   │       ├── alert.js
@@ -118,8 +126,10 @@ website/
 │   │       │   └── Wishlist.jsx
 │   │       └── index.js
 │   ├── router/
+│   │   ├── CatchAllRoute.jsx
 │   │   ├── GuestRoute.jsx
 │   │   ├── path.js
+│   │   ├── productLookup.js
 │   │   ├── ProtecteRoute.jsx
 │   │   ├── SlugRoute.jsx
 │   │   ├── useProductId.js
@@ -141,13 +151,20 @@ website/
 │   └── ui/
 │       ├── custom/
 │       │   ├── button/
+│       │   │   ├── ActionButton.jsx
 │       │   │   ├── DualCombination.jsx
 │       │   │   ├── RoundedWithIcon.jsx
 │       │   │   └── SimpleButton.jsx
 │       │   ├── input/
-│       │   │   ├── Input.jsx
-│       │   │   ├── Search.jsx
-│       │   │   └── Selection.jsx
+│       │   │   ├── ImageUploader.jsx
+│       │   │   ├── SearchInput.jsx
+│       │   │   ├── SelectInput.jsx
+│       │   │   ├── SwitchInput.jsx
+│       │   │   ├── TagInput.jsx
+│       │   │   └── TextInput.jsx
+│       │   ├── modal/
+│       │   │   ├── ConfirmDialog.jsx
+│       │   │   └── Modal.jsx
 │       │   └── toggles/
 │       │       ├── ThemeToggle.jsx
 │       │       ├── Toogle.jsx
