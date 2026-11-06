@@ -1,9 +1,6 @@
-import React from 'react'
+import DashboardShell from "../../../components/shared/DashboardShell";
 
-function Layout() {
-  return (
-    <div>Layout</div>
-  )
+// Admin panel (admin, support, manager): the same shared sidebar, admin links.
+export default function AdminLayout() {
+  return <DashboardShell area="admin" />;
 }
-
-export default Layout

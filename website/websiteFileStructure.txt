@@ -1,0 +1,164 @@
+WEBSITE FILE STRUCTURE
+Root: website/
+
+Complete project tree, including root configuration, documentation, source,
+and public assets. Generated dist/ output and installed node_modules/
+dependencies are excluded.
+
+website/
+├── .env
+├── .env.sample
+├── .gitignore
+├── appwrite.config.json
+├── DESIGN.md
+├── env/
+│   └── var.js
+├── eslint.config.js
+├── index.html
+├── package-lock.json
+├── package.json
+├── public/
+│   ├── favicon.svg
+│   ├── fonts/
+│   │   ├── BarlowCondensed-Bold.ttf
+│   │   ├── BarlowCondensed-SemiBold.ttf
+│   │   └── Inter-VariableFont_opsz,wght.ttf
+│   └── icons.svg
+├── README.md
+├── src/
+│   ├── App.jsx
+│   ├── components/
+│   │   ├── admin/
+│   │   ├── shared/
+│   │   │   ├── index.js
+│   │   │   └── products/
+│   │   │       ├── FeaturedCard.jsx
+│   │   │       └── ProductCard.jsx
+│   │   └── user/
+│   ├── context/
+│   │   └── ThemeContext.jsx
+│   ├── index.css
+│   ├── layouts/
+│   │   ├── AccountLayout.jsx
+│   │   ├── AuthLayout.jsx
+│   │   └── MainLayout.jsx
+│   ├── lib/
+│   │   └── appwrite/
+│   │       ├── alert.js
+│   │       ├── auth.js
+│   │       ├── cart.js
+│   │       ├── Detail.md
+│   │       ├── index.js
+│   │       ├── layout.js
+│   │       ├── order.js
+│   │       ├── product.js
+│   │       ├── review.js
+│   │       ├── settings.js
+│   │       ├── user.js
+│   │       └── wishlist.js
+│   ├── main.jsx
+│   ├── pages/
+│   │   ├── admin/
+│   │   │   ├── dashboard/
+│   │   │   │   ├── AdminPannel.jsx
+│   │   │   │   ├── Alerts.jsx
+│   │   │   │   ├── CartAndWishlist.jsx
+│   │   │   │   ├── Finance.jsx
+│   │   │   │   ├── index.js
+│   │   │   │   ├── Layout.jsx
+│   │   │   │   ├── Orders.jsx
+│   │   │   │   ├── Overview.jsx
+│   │   │   │   ├── Products.jsx
+│   │   │   │   ├── Settings.jsx
+│   │   │   │   └── Users.jsx
+│   │   │   └── index.js
+│   │   ├── index.js
+│   │   ├── shared/
+│   │   │   ├── account/
+│   │   │   │   ├── AuthCallback.jsx
+│   │   │   │   ├── authRedirect.js
+│   │   │   │   ├── index.js
+│   │   │   │   ├── Signin.jsx
+│   │   │   │   └── Signup.jsx
+│   │   │   ├── auth/
+│   │   │   │   ├── AuthButton.jsx
+│   │   │   │   ├── AuthField.jsx
+│   │   │   │   ├── AuthShell.jsx
+│   │   │   │   ├── GlowBorder.jsx
+│   │   │   │   ├── GoogleButton.jsx
+│   │   │   │   ├── LogoutButton.jsx
+│   │   │   │   └── ProfileStep.jsx
+│   │   │   ├── index.js
+│   │   │   ├── other/
+│   │   │   │   ├── Detail.jsx
+│   │   │   │   └── index.js
+│   │   │   ├── products/
+│   │   │   │   ├── AllProducts.jsx
+│   │   │   │   ├── index.js
+│   │   │   │   └── Product.jsx
+│   │   │   └── structure/
+│   │   │       ├── Home.jsx
+│   │   │       ├── index.js
+│   │   │       └── NotFound.jsx
+│   │   ├── static/
+│   │   │   ├── Contact.jsx
+│   │   │   ├── Disclaimer.jsx
+│   │   │   ├── index.js
+│   │   │   ├── Privacy.jsx
+│   │   │   └── TermsAndConditions.jsx
+│   │   └── user/
+│   │       ├── dashboard/
+│   │       │   ├── Alerts.jsx
+│   │       │   ├── Cart.jsx
+│   │       │   ├── index.js
+│   │       │   ├── Orders.jsx
+│   │       │   ├── Overview.jsx
+│   │       │   ├── Profile.jsx
+│   │       │   ├── Reviews.jsx
+│   │       │   └── Wishlist.jsx
+│   │       └── index.js
+│   ├── router/
+│   │   ├── GuestRoute.jsx
+│   │   ├── path.js
+│   │   ├── ProtecteRoute.jsx
+│   │   ├── SlugRoute.jsx
+│   │   ├── useProductId.js
+│   │   └── useSession.js
+│   ├── store/
+│   │   ├── slices/
+│   │   │   ├── authSlice.js
+│   │   │   ├── cartSlice.js
+│   │   │   ├── hooks.js
+│   │   │   ├── index.js
+│   │   │   ├── ordersSlice.js
+│   │   │   ├── productsSlice.js
+│   │   │   ├── services.js
+│   │   │   ├── uiSlice.js
+│   │   │   ├── utils.js
+│   │   │   └── wishlistSlice.js
+│   │   └── store.js
+│   ├── THEME.md
+│   └── ui/
+│       ├── custom/
+│       │   ├── button/
+│       │   │   ├── DualCombination.jsx
+│       │   │   ├── RoundedWithIcon.jsx
+│       │   │   └── SimpleButton.jsx
+│       │   ├── input/
+│       │   │   ├── Input.jsx
+│       │   │   ├── Search.jsx
+│       │   │   └── Selection.jsx
+│       │   └── toggles/
+│       │       ├── ThemeToggle.jsx
+│       │       ├── Toogle.jsx
+│       │       └── TriInputToggle.jsx
+│       └── graphs/
+│           ├── BarChart.jsx
+│           ├── Donut.jsx
+│           ├── HeatmapCalendar.jsx
+│           ├── Histogram.jsx
+│           ├── index.js
+│           └── TrendGraph.jsx
+├── vercel.json
+├── vite.config.js
+└── websiteFileStructure.txt

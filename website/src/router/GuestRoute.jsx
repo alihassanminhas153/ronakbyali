@@ -1,16 +1,24 @@
-import { Navigate, Outlet, useLocation } from "react-router";
+import { useRef } from "react";
+import { Navigate, Outlet } from "react-router";
 import useSession from "./useSession";
-import { dashboardHome } from "./path";
 
 // Sign in / sign up are for logged-out people only.
+//
+//  - Someone who is ALREADY logged in when they open these pages (typed the URL,
+//    pressed back, followed an old link) is sent to their own panel:
+//    staff -> /team/:username, everyone else -> /:username.
+//  - Someone who logs in or signs up ON these pages is not redirected here.
+//    Signin / Signup / ProfileStep send them on themselves (staff -> admin panel,
+//    customers -> /products), so the two redirects can never fight each other.
 export default function GuestRoute() {
-  const { isReady, isLoggedIn, username, isAdmin } = useSession();
-  const location = useLocation();
+  const { isReady, isLoggedIn, panel } = useSession();
+  const arrivedLoggedIn = useRef(null);
 
   if (!isReady) return null;
-  if (isLoggedIn) {
-    const to = location.state?.from?.pathname || dashboardHome(username, isAdmin);
-    return <Navigate to={to} replace />;
+  if (arrivedLoggedIn.current === null) arrivedLoggedIn.current = isLoggedIn;
+
+  if (isLoggedIn && arrivedLoggedIn.current) {
+    return <Navigate to={panel} replace />;
   }
   return <Outlet />;
 }

@@ -1,6 +1,15 @@
 import { Loader2 } from 'lucide-react';
 
-import GlowBorder from './Glowborder';
+import GlowBorder from './GlowBorder';
+
+// Glow for the Google button. Edit these values and save: only this button changes.
+// Anything you leave out falls back to GLOW_DEFAULTS in GlowBorder.jsx.
+const GLOW = {
+  color: 'accent',        // 'accent' | '#22d3ee' | ['#f43f5e', '#f59e0b', '#22d3ee']
+  direction: 'counterclockwise', // 'clockwise' | 'counterclockwise'
+  duration: 5.2,          // seconds per lap, smaller = faster
+  // arc: 85, thickness: 2, halo: 0.6, haloBlur: 7, track: 28,
+};
 
 function GoogleMark() {
   return (
@@ -13,17 +22,17 @@ function GoogleMark() {
   );
 }
 
-// Full-row "Continue with Google" button with a glowing accent border.
-export default function GoogleButton({ onClick, loading = false, disabled = false, label = 'Continue with Google' }) {
+// Full-row "Continue with Google" button with a glowing border.
+export default function GoogleButton({ onClick, loading = false, disabled = false, glow, label = 'Continue with Google' }) {
   const off = disabled || loading;
 
   return (
-    <GlowBorder active={!off}>
+    <GlowBorder active={!off} {...GLOW} {...glow}>
       <button
         type="button"
         onClick={onClick}
         disabled={off}
-        className="flex h-11 w-full items-center justify-center gap-3 rounded-[4px] bg-surface-alt px-4 text-[0.95rem] font-semibold text-text transition-colors hover:bg-border focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed lg:h-12 lg:text-base"
+        className="flex cursor-pointer h-11 w-full items-center justify-center gap-3 rounded-[4px] bg-surface-alt px-4 text-[0.95rem] font-semibold text-text transition-colors hover:bg-border focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed lg:h-12 lg:text-base"
       >
         {loading ? <Loader2 size={18} className="animate-spin" aria-hidden="true" /> : <GoogleMark />}
         {label}

@@ -38,14 +38,17 @@ export const PATHS = {
   },
 };
 
-// Where a logged-in person lands by default.
-export const dashboardHome = (username, isAdmin) =>
-  isAdmin ? PATHS.admin.overview(username) : PATHS.user.overview(username);
+// A person's own dashboard: the admin panel for staff (admin, support,
+// manager), the user dashboard for everyone else. Not the post-login landing
+// page: that is homePathFor() in pages/shared/account/authRedirect.js.
+export const dashboardHome = (username, isStaff) =>
+  isStaff ? PATHS.admin.overview(username) : PATHS.user.overview(username);
 
 // These can never be usernames, because they are real top-level URLs.
 export const RESERVED_USERNAMES = [
   "products",
   "team",
+  "auth",
   "welcome-back",
   "create-account",
 ];

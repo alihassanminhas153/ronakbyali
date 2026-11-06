@@ -30,6 +30,7 @@ DESIGN.md
 
 # all txt files
 *.txt
+!websiteFileStructure.txt
 
 .env
 .env.sample

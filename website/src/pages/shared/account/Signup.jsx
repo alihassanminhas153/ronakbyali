@@ -16,7 +16,7 @@ import AuthField from '../auth/AuthField';
 import AuthButton from '../auth/AuthButton';
 import GoogleButton from '../auth/GoogleButton';
 import ProfileStep from '../auth/ProfileStep';
-import { homePathFor } from './authRedirect';
+import { PATHS } from '../../../router/path';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -32,7 +32,7 @@ export default function Signup() {
       {pendingProfile && (
         <ProfileStep
           profile={pendingProfile}
-          onDone={(saved) => navigate(homePathFor(saved), { replace: true })}
+          onDone={() => navigate(PATHS.products, { replace: true })}
         />
       )}
     </>

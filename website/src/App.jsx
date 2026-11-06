@@ -6,15 +6,16 @@ import { initAuth } from "./store/slices/authSlice";
 
 // layouts & guards
 import MainLayout from "./layouts/MainLayout";
+import PlainLayout from "./layouts/PlainLayout";
 import AuthLayout from "./layouts/AuthLayout";
 import AccountLayout from "./layouts/AccountLayout";
 import GuestRoute from "./router/GuestRoute";
 import ProtectedRoute from "./router/ProtecteRoute";
 import SlugRoute from "./router/SlugRoute";
+import CatchAllRoute from "./router/CatchAllRoute";
 
 // shared pages
 import Home from "./pages/shared/structure/Home";
-import NotFound from "./pages/shared/structure/NotFound";
 import AllProducts from "./pages/shared/products/AllProducts";
 import Product from "./pages/shared/products/Product";
 import Signin from "./pages/shared/account/Signin";
@@ -50,31 +51,35 @@ export default function App() {
 
   return (
       <Routes>
-        {/* ---------- Public: anyone can browse ---------- */}
+        {/* ---------- Home: the only page that keeps the site header ---------- */}
         <Route element={<MainLayout />}>
           <Route index element={<Home />} />                                   {/* /  */}
+        </Route>
+
+        {/* ---------- Public pages without the header ---------- */}
+        <Route element={<PlainLayout />}>
           <Route path="products" element={<AllProducts />} />                  {/* /products */}
           <Route
             path="products/:category/:group/:productId"
             element={<Product />}                                              /* long product URL */
           />
-          <Route path="*" element={<NotFound />} />
+          <Route path="*" element={<CatchAllRoute />} />        {/* unknown URL */}
         </Route>
 
         {/* ---------- Accounts ---------- */}
-        <Route element={<AuthLayout />}>
-          {/* Google sends people back here. Kept OUTSIDE GuestRoute so the page is not
-              redirected away while completeLogin is still creating/loading the profile. */}
-          <Route path="auth/callback" element={<AuthCallback />} />
+        {/* Google sends people back here. Standalone and OUTSIDE GuestRoute so the page
+            is not redirected away while completeLogin is still creating/loading the profile. */}
+        <Route path="auth/callback" element={<AuthCallback />} />
 
-          {/* logged-out only */}
+        {/* logged-out only */}
+        <Route element={<AuthLayout />}>
           <Route element={<GuestRoute />}>
             <Route path="create-account" element={<Signup />} />
             <Route path="welcome-back" element={<Signin />} />
           </Route>
         </Route>
 
-        {/* ---------- Admin: /team/:username/... ---------- */}
+        {/* ---------- Admin panel (admin, support, manager): /team/:username/... ---------- */}
         <Route path="team/:username" element={<ProtectedRoute area="admin" />}>
           <Route element={<AdminLayout />}>
             <Route index element={<AdminOverview />} />
