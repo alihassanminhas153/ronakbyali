@@ -1,4 +1,3 @@
-fdfad
 // A light that travels around the border of whatever it wraps.
 //
 // HOW TO CUSTOMISE (no other file needs to change)
