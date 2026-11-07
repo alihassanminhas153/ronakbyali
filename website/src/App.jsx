@@ -1,18 +1,23 @@
 import { useEffect } from "react";
 import { Routes, Route } from "react-router";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 
 import { initAuth } from "./store/slices/authSlice";
+import { fetchCart } from "./store/slices/cartSlice";
+import { fetchWishlist } from "./store/slices/wishlistSlice";
 
 // layouts & guards
 import MainLayout from "./layouts/MainLayout";
 import PlainLayout from "./layouts/PlainLayout";
 import AuthLayout from "./layouts/AuthLayout";
 import AccountLayout from "./layouts/AccountLayout";
+import BlockedGate from "./router/BlockedGate";
 import GuestRoute from "./router/GuestRoute";
 import ProtectedRoute from "./router/ProtecteRoute";
 import SlugRoute from "./router/SlugRoute";
 import CatchAllRoute from "./router/CatchAllRoute";
+import RedirectRoute from "./router/RedirectRoute";
+import { PATHS, PRODUCT_LIST_ALIASES } from "./router/path";
 
 // shared pages
 import Home from "./pages/shared/structure/Home";
@@ -43,26 +48,53 @@ import AdminSettings from "./pages/admin/dashboard/Settings";
 
 export default function App() {
   const dispatch = useDispatch();
+  const profileId = useSelector((s) => s.auth.profile?.$id);
 
   // Restore the profile before route guards decide where to send the visitor.
+  // (BlockedGate then loads the same account into the users slice, see useProfileSync.)
   useEffect(() => {
     dispatch(initAuth());
   }, [dispatch]);
 
+  // Once a user is signed in, load their cart and wishlist so the cart badge,
+  // the heart buttons and the product page know what they already have.
+  // Logging out clears both slices (isSessionEnded), so nothing to do here for that.
+  useEffect(() => {
+    if (!profileId) return;
+    dispatch(fetchCart());
+    dispatch(fetchWishlist());
+  }, [dispatch, profileId]);
+
   return (
-      <Routes>
+    <Routes>
+      {/* Pathless layout route ABOVE every other route: a blocked user sees only the
+          Blocked page, whatever URL they type. */}
+      <Route element={<BlockedGate />}>
         {/* ---------- Home: the only page that keeps the site header ---------- */}
         <Route element={<MainLayout />}>
           <Route index element={<Home />} />                                   {/* /  */}
         </Route>
 
+        {/* ---------- Product list: /products. Every other spelling redirects to it ----------
+            (product, allProducts, all-products ... see PRODUCT_LIST_ALIASES in path.js.
+            Matching ignores case, and ?q=&category= style filters are carried over.) */}
+        {PRODUCT_LIST_ALIASES.map((alias) => (
+          <Route key={alias} path={alias} element={<RedirectRoute to={PATHS.products} />} />
+        ))}
+        {/* old long link /products/:category/:group/:productId -> the new form */}
+        <Route
+          path="products/:category/:group/:productId"
+          element={<RedirectRoute to={(p) => PATHS.product(p.category, p.group, p.productId)} />}
+        />
+
         {/* ---------- Public pages without the header ---------- */}
         <Route element={<PlainLayout />}>
           <Route path="products" element={<AllProducts />} />                  {/* /products */}
-          <Route
-            path="products/:category/:group/:productId"
-            element={<Product />}                                              /* long product URL */
-          />
+          {/* One product: /:category/:group/:productId (productId is the slug).
+              The short form /:productId is resolved by SlugRoute below, next to /:username. */}
+          <Route path=":category/:group/:productId" element={<Product />} />
+          {/* Unknown /team/... URLs must not be mistaken for a product link. */}
+          <Route path="team/:username/*" element={<CatchAllRoute />} />
           <Route path="*" element={<CatchAllRoute />} />        {/* unknown URL */}
         </Route>
 
@@ -109,6 +141,7 @@ export default function App() {
             </Route>
           </Route>
         </Route>
-      </Routes>
+      </Route>
+    </Routes>
   );
 }

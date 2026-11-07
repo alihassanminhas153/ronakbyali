@@ -1,6 +1,17 @@
 // Single source of truth for every URL. Always build links with these helpers.
 const e = encodeURIComponent;
 
+// Every spelling that redirects to /products. Lowercase only: React Router
+// matching ignores case, so "allProducts" is covered by "allproducts".
+export const PRODUCT_LIST_ALIASES = [
+  "product",
+  "allproducts",
+  "all-products",
+  "all_products",
+  "all",
+  "shop",
+];
+
 export const PATHS = {
   home: "/",
 
@@ -12,7 +23,7 @@ export const PATHS = {
   products: "/products",
   productShort: (productId) => `/${e(productId)}`,
   product: (category, group, productId) =>
-    `/products/${e(category)}/${e(group)}/${e(productId)}`,
+    `/${e(category)}/${e(group)}/${e(productId)}`,
 
   // user dashboard  ->  /:username/...
   user: {
@@ -38,17 +49,17 @@ export const PATHS = {
   },
 };
 
-// A person's own dashboard: the admin panel for staff (admin, support,
-// manager), the user dashboard for everyone else. Not the post-login landing
-// page: that is homePathFor() in pages/shared/account/authRedirect.js.
 export const dashboardHome = (username, isStaff) =>
   isStaff ? PATHS.admin.overview(username) : PATHS.user.overview(username);
 
 // These can never be usernames, because they are real top-level URLs.
+// The product-list aliases are included so a user named "shop" can't be
+// hidden behind the redirect.
 export const RESERVED_USERNAMES = [
   "products",
   "team",
   "auth",
   "welcome-back",
   "create-account",
+  ...PRODUCT_LIST_ALIASES,
 ];

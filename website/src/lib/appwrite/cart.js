@@ -1,5 +1,5 @@
 import envVars from '../../../env/var';
-import { Client, TablesDB, Permission, Role } from 'appwrite';
+import { Client, TablesDB, Permission, Role, Query } from 'appwrite';
 import productService from './product';
 
 // ONE cart row per user. rowId = the user's $id (same value stored in
@@ -233,6 +233,21 @@ export class CartService {
                     itemCount: items.reduce((n, i) => n + i.quantity, 0),
                 },
             });
+        } catch (error) {
+            console.error(error.message);
+            return false;
+        }
+    }
+
+    // Admin: newest-changed carts first. Returns { rows, total } or false.
+    async listCarts({ limit = 50, offset = 0 } = {}) {
+        try {
+            const res = await this.table.listRows({
+                databaseId: this.databaseId,
+                tableId: this.tableId,
+                queries: [Query.orderDesc('$updatedAt'), Query.limit(limit), Query.offset(offset)],
+            });
+            return { rows: res?.rows || [], total: res?.total || 0 };
         } catch (error) {
             console.error(error.message);
             return false;

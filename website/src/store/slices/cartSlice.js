@@ -98,8 +98,7 @@ const cartSlice = createSlice({
         }
         state.status = 'failed';
         state.error = action.payload || action.error?.message || 'Could not load your cart.';
-      })
-      .addMatcher(isSessionEnded, () => initialState);
+      });
 
     mutations.forEach((thunk) => {
       builder
@@ -115,6 +114,9 @@ const cartSlice = createSlice({
           if (action.payload !== LOGIN_REQUIRED) state.error = action.payload || action.error?.message;
         });
     });
+
+    // addMatcher must come after every addCase
+    builder.addMatcher(isSessionEnded, () => initialState);
   },
 });
 

@@ -9,8 +9,10 @@ website/
 ├── .env
 ├── .env.sample
 ├── .gitignore
-├── appwrite.config.json
+├── CODEBASE_BRIEF.md
 ├── DESIGN.md
+├── README.md
+├── appwrite.config.json
 ├── env/
 │   └── var.js
 ├── eslint.config.js
@@ -19,32 +21,47 @@ website/
 ├── package.json
 ├── public/
 │   ├── favicon.svg
-│   ├── fonts/
-│   │   ├── BarlowCondensed-Bold.ttf
-│   │   ├── BarlowCondensed-SemiBold.ttf
-│   │   └── Inter-VariableFont_opsz,wght.ttf
-│   └── icons.svg
-├── README.md
+│   ├── icons.svg
+│   └── fonts/
+│       ├── BarlowCondensed-Bold.ttf
+│       ├── BarlowCondensed-SemiBold.ttf
+│       └── Inter-VariableFont_opsz,wght.ttf
 ├── src/
 │   ├── App.jsx
+│   ├── THEME.md
+│   ├── index.css
+│   ├── main.jsx
 │   ├── components/
 │   │   ├── admin/
-│   │   │   └── products/
-│   │   │       ├── index.js
-│   │   │       ├── productFields.js
-│   │   │       ├── ProductForm.jsx
-│   │   │       └── ProductTable.jsx
-│   │   ├── shared/
-│   │   │   ├── DashboardShell.jsx
 │   │   │   ├── index.js
 │   │   │   ├── products/
-│   │   │   │   ├── FeaturedCard.jsx
-│   │   │   │   └── ProductCard.jsx
-│   │   │   └── Sidebar.jsx
+│   │   │   │   ├── index.js
+│   │   │   │   ├── productFields.js
+│   │   │   │   ├── ProductForm.jsx
+│   │   │   │   └── ProductTable.jsx
+│   │   │   └── users/
+│   │   │       ├── index.js
+│   │   │       ├── userFields.js
+│   │   │       ├── UserBadges.jsx
+│   │   │       ├── UserErrorBanner.jsx
+│   │   │       ├── UserForm.jsx
+│   │   │       ├── UserStats.jsx
+│   │   │       └── UserTable.jsx
+│   │   ├── shared/
+│   │   │   ├── index.js
+│   │   │   ├── DashboardShell.jsx
+│   │   │   ├── Sidebar.jsx
+│   │   │   └── products/
+│   │   │       ├── FeaturedCard.jsx
+│   │   │       └── ProductCard.jsx
+│   │   ├── shop/
+│   │   │   ├── index.js
+│   │   │   ├── ProductCard.jsx
+│   │   │   ├── ProductFilters.jsx
+│   │   │   └── shopFilters.js
 │   │   └── user/
 │   ├── context/
 │   │   └── ThemeContext.jsx
-│   ├── index.css
 │   ├── layouts/
 │   │   ├── AccountLayout.jsx
 │   │   ├── AuthLayout.jsx
@@ -52,10 +69,10 @@ website/
 │   │   └── PlainLayout.jsx
 │   ├── lib/
 │   │   └── appwrite/
+│   │       ├── Detail.md
 │   │       ├── alert.js
 │   │       ├── auth.js
 │   │       ├── cart.js
-│   │       ├── Detail.md
 │   │       ├── index.js
 │   │       ├── layout.js
 │   │       ├── order.js
@@ -64,24 +81,24 @@ website/
 │   │       ├── settings.js
 │   │       ├── user.js
 │   │       └── wishlist.js
-│   ├── main.jsx
 │   ├── pages/
-│   │   ├── admin/
-│   │   │   ├── dashboard/
-│   │   │   │   ├── AdminPannel.jsx
-│   │   │   │   ├── Alerts.jsx
-│   │   │   │   ├── CartAndWishlist.jsx
-│   │   │   │   ├── Finance.jsx
-│   │   │   │   ├── index.js
-│   │   │   │   ├── Layout.jsx
-│   │   │   │   ├── Orders.jsx
-│   │   │   │   ├── Overview.jsx
-│   │   │   │   ├── Products.jsx
-│   │   │   │   ├── Settings.jsx
-│   │   │   │   └── Users.jsx
-│   │   │   └── index.js
 │   │   ├── index.js
+│   │   ├── admin/
+│   │   │   ├── index.js
+│   │   │   └── dashboard/
+│   │   │       ├── AdminPannel.jsx
+│   │   │       ├── Alerts.jsx
+│   │   │       ├── CartAndWishlist.jsx
+│   │   │       ├── Finance.jsx
+│   │   │       ├── Layout.jsx
+│   │   │       ├── Orders.jsx
+│   │   │       ├── Overview.jsx
+│   │   │       ├── Products.jsx
+│   │   │       ├── Settings.jsx
+│   │   │       ├── Users.jsx
+│   │   │       └── index.js
 │   │   ├── shared/
+│   │   │   ├── index.js
 │   │   │   ├── account/
 │   │   │   │   ├── AuthCallback.jsx
 │   │   │   │   ├── authRedirect.js
@@ -96,7 +113,6 @@ website/
 │   │   │   │   ├── GoogleButton.jsx
 │   │   │   │   ├── LogoutButton.jsx
 │   │   │   │   └── ProfileStep.jsx
-│   │   │   ├── index.js
 │   │   │   ├── other/
 │   │   │   │   ├── Detail.jsx
 │   │   │   │   └── index.js
@@ -105,49 +121,54 @@ website/
 │   │   │   │   ├── index.js
 │   │   │   │   └── Product.jsx
 │   │   │   └── structure/
+│   │   │       ├── Blocked.jsx
 │   │   │       ├── Home.jsx
 │   │   │       ├── index.js
 │   │   │       └── NotFound.jsx
 │   │   ├── static/
 │   │   │   ├── Contact.jsx
 │   │   │   ├── Disclaimer.jsx
-│   │   │   ├── index.js
 │   │   │   ├── Privacy.jsx
-│   │   │   └── TermsAndConditions.jsx
+│   │   │   ├── TermsAndConditions.jsx
+│   │   │   └── index.js
 │   │   └── user/
-│   │       ├── dashboard/
-│   │       │   ├── Alerts.jsx
-│   │       │   ├── Cart.jsx
-│   │       │   ├── index.js
-│   │       │   ├── Orders.jsx
-│   │       │   ├── Overview.jsx
-│   │       │   ├── Profile.jsx
-│   │       │   ├── Reviews.jsx
-│   │       │   └── Wishlist.jsx
-│   │       └── index.js
+│   │       ├── index.js
+│   │       └── dashboard/
+│   │           ├── Alerts.jsx
+│   │           ├── Cart.jsx
+│   │           ├── Checkout.jsx
+│   │           ├── index.js
+│   │           ├── Orders.jsx
+│   │           ├── Overview.jsx
+│   │           ├── Profile.jsx
+│   │           ├── Reviews.jsx
+│   │           └── Wishlist.jsx
 │   ├── router/
+│   │   ├── BlockedGate.jsx
 │   │   ├── CatchAllRoute.jsx
 │   │   ├── GuestRoute.jsx
+│   │   ├── ProtecteRoute.jsx
+│   │   ├── RedirectRoute.jsx
+│   │   ├── SlugRoute.jsx
 │   │   ├── path.js
 │   │   ├── productLookup.js
-│   │   ├── ProtecteRoute.jsx
-│   │   ├── SlugRoute.jsx
 │   │   ├── useProductId.js
+│   │   ├── useProfileSync.js
 │   │   └── useSession.js
 │   ├── store/
-│   │   ├── slices/
-│   │   │   ├── authSlice.js
-│   │   │   ├── cartSlice.js
-│   │   │   ├── hooks.js
-│   │   │   ├── index.js
-│   │   │   ├── ordersSlice.js
-│   │   │   ├── productsSlice.js
-│   │   │   ├── services.js
-│   │   │   ├── uiSlice.js
-│   │   │   ├── utils.js
-│   │   │   └── wishlistSlice.js
-│   │   └── store.js
-│   ├── THEME.md
+│   │   ├── store.js
+│   │   └── slices/
+│   │       ├── authSlice.js
+│   │       ├── cartSlice.js
+│   │       ├── hooks.js
+│   │       ├── index.js
+│   │       ├── ordersSlice.js
+│   │       ├── productsSlice.js
+│   │       ├── services.js
+│   │       ├── uiSlice.js
+│   │       ├── userSlice.js
+│   │       ├── utils.js
+│   │       └── wishlistSlice.js
 │   └── ui/
 │       ├── custom/
 │       │   ├── button/
@@ -165,6 +186,8 @@ website/
 │       │   ├── modal/
 │       │   │   ├── ConfirmDialog.jsx
 │       │   │   └── Modal.jsx
+│       │   ├── motion/
+│       │   │   └── useEntered.js
 │       │   └── toggles/
 │       │       ├── ThemeToggle.jsx
 │       │       ├── Toogle.jsx
@@ -174,8 +197,8 @@ website/
 │           ├── Donut.jsx
 │           ├── HeatmapCalendar.jsx
 │           ├── Histogram.jsx
-│           ├── index.js
-│           └── TrendGraph.jsx
+│           ├── TrendGraph.jsx
+│           └── index.js
 ├── vercel.json
 ├── vite.config.js
 └── websiteFileStructure.txt
