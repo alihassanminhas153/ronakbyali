@@ -1,4 +1,5 @@
 import { memo } from 'react';
+import './userScroll.css';
 import { Ban, Eye, Loader2, UserCheck } from 'lucide-react';
 
 import SwitchInput from '../../../ui/custom/input/SwitchInput';
@@ -18,6 +19,7 @@ const COLUMNS = [
   { label: 'Actions', right: true },
 ];
 
+const stop = (e) => e.stopPropagation(); // controls inside a clickable row must not open it
 const rise = (i) => ({ animationDelay: `${Math.min(i, 12) * 35}ms` });
 const ICON_BTN =
   'grid size-9 place-items-center rounded-md text-muted transition-colors hover:bg-surface-alt focus-visible:outline-2 focus-visible:outline-accent disabled:pointer-events-none disabled:opacity-50';
@@ -26,7 +28,7 @@ const ICON_BTN =
 function Shell({ children, always = false }) {
   return (
     <div className={`overflow-hidden rounded-lg border border-border bg-surface ${always ? '' : 'hidden xl:block'}`}>
-      <div className="no-scrollbar overflow-x-auto">
+      <div className="user-scroll overflow-x-auto">
         <table className="w-full min-w-[64rem] text-left">
           <thead className="bg-surface-alt/60 text-xs text-muted">
             <tr>
@@ -120,7 +122,8 @@ const UserRow = memo(function UserRow({ user, index, meId, pending, onView, onTo
     <tr
       style={rise(index)}
       aria-busy={pending || undefined}
-      className={`group/row animate-rise transition-colors hover:bg-surface-alt/50 focus-within:bg-surface-alt/50 ${blocked ? 'bg-error/5' : ''}`}
+      onClick={() => onView?.(user)}
+      className={`group/row cursor-pointer animate-rise transition-colors hover:bg-surface-alt/50 focus-within:bg-surface-alt/50 ${blocked ? 'bg-error/5' : ''}`}
     >
       <td className={`px-4 py-3 ${dim}`}>
         <div className="flex items-center gap-3">
@@ -160,11 +163,11 @@ const UserRow = memo(function UserRow({ user, index, meId, pending, onView, onTo
         <p className="text-xs tabular-nums text-muted">{formatMoney(user.totalSpent)}</p>
       </td>
 
-      <td className="px-4 py-3">
+      <td className="cursor-default px-4 py-3" onClick={stop}>
         <AccessSwitch user={user} blocked={blocked} pending={pending} lock={lock} onToggleBlocked={onToggleBlocked} />
       </td>
 
-      <td className="px-4 py-3">
+      <td className="cursor-default px-4 py-3" onClick={stop}>
         <div className="flex justify-end">
           <Actions user={user} label={label} blocked={blocked} pending={pending} lock={lock} onView={onView} onToggleBlocked={onToggleBlocked} />
         </div>
@@ -179,7 +182,8 @@ const UserCard = memo(function UserCard({ user, index, meId, pending, onView, on
     <li
       style={rise(index)}
       aria-busy={pending || undefined}
-      className={`group/row animate-rise rounded-lg border bg-surface p-3 transition-colors hover:border-accent/40 ${blocked ? 'border-error/30 bg-error/5' : 'border-border'}`}
+      onClick={() => onView?.(user)}
+      className={`group/row cursor-pointer animate-rise rounded-lg border bg-surface p-3 transition-colors hover:border-accent/40 ${blocked ? 'border-error/30 bg-error/5' : 'border-border'}`}
     >
       <div className="flex gap-3">
         <Avatar user={user} size="size-12 text-sm" className="group-hover/row:scale-105" />
@@ -205,7 +209,7 @@ const UserCard = memo(function UserCard({ user, index, meId, pending, onView, on
         <div className="text-right"><dt className="text-muted">Orders</dt><dd className="mt-0.5 text-sm tabular-nums text-text">{formatInt(user.ordersCount)} · {formatMoney(user.totalSpent)}</dd></div>
       </dl>
 
-      <div className="mt-3 flex items-center justify-between gap-3 border-t border-border pt-3">
+      <div onClick={stop} className="mt-3 flex cursor-default items-center justify-between gap-3 border-t border-border pt-3">
         <AccessSwitch user={user} blocked={blocked} pending={pending} lock={lock} onToggleBlocked={onToggleBlocked} />
         <Actions user={user} label={label} blocked={blocked} pending={pending} lock={lock} onView={onView} onToggleBlocked={onToggleBlocked} />
       </div>

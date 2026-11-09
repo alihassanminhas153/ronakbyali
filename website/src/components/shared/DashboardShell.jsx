@@ -1,11 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Outlet, useLocation } from 'react-router';
-import { ChevronsLeft, Menu, X } from 'lucide-react';
+import { ChevronsRight, Menu } from 'lucide-react';
 
 import Sidebar from './Sidebar';
 
 const STORAGE_KEY = 'dashboard-sidebar-collapsed';
-const DURATION = 300; // ms: sidebar width, drawer slide and backdrop fade
+const DURATION = 300; // ms: sidebar width, drawer slide and backdrop fade (matches duration-300 in SidebarFold)
 
 const readCollapsed = () => {
   try {
@@ -16,8 +16,9 @@ const readCollapsed = () => {
 };
 
 // Page frame for both dashboards.
-//   >= lg : fixed sidebar on the left, content on the right. The sidebar can be collapsed
-//           to an icon-only rail with the round button on its edge (remembered between visits).
+//   >= lg : fixed sidebar on the left, content on the right. The sidebar collapses to a
+//           72px icon rail (remembered between visits). Collapse button: inside the sidebar
+//           header while open, round button outside the sidebar edge while collapsed.
 //   <  lg : slim top bar with a menu button; the sidebar slides in as a drawer
 // There is no site header here. Pass children (SlugRoute) or let the route's <Outlet /> render.
 export default function DashboardShell({ area = 'user', children }) {
@@ -25,18 +26,18 @@ export default function DashboardShell({ area = 'user', children }) {
   const [mounted, setMounted] = useState(false); // drawer stays in the DOM while it slides out
   const [shown, setShown] = useState(false); // drives the slide / fade
   const [collapsed, setCollapsed] = useState(readCollapsed);
+  const panelRef = useRef(null);
   const { pathname } = useLocation();
   const title = area === 'admin' ? 'Admin panel' : 'My account';
 
-  const toggleCollapsed = () =>
-    setCollapsed((c) => {
-      try {
-        localStorage.setItem(STORAGE_KEY, c ? '0' : '1');
-      } catch {
-        /* private mode: it just will not be remembered */
-      }
-      return !c;
-    });
+  // remember the collapsed state (kept out of the state updater so it stays pure)
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY, collapsed ? '1' : '0');
+    } catch {
+      /* private mode: it just will not be remembered */
+    }
+  }, [collapsed]);
 
   // close the drawer after navigating
   useEffect(() => {
@@ -49,7 +50,10 @@ export default function DashboardShell({ area = 'user', children }) {
       setMounted(true);
       let second;
       const first = requestAnimationFrame(() => {
-        second = requestAnimationFrame(() => setShown(true)); // paint the hidden state first
+        second = requestAnimationFrame(() => {
+          setShown(true); // paint the hidden state first, then slide in
+          panelRef.current?.focus({ preventScroll: true });
+        });
       });
       return () => {
         cancelAnimationFrame(first);
@@ -88,30 +92,30 @@ export default function DashboardShell({ area = 'user', children }) {
     <div
       style={speed}
       className={`min-h-dvh bg-bg text-text transition-[grid-template-columns] ease-out motion-reduce:transition-none lg:grid ${
-        collapsed ? 'lg:grid-cols-[4.125rem_minmax(0,1fr)]' : 'lg:grid-cols-[16rem_minmax(0,1fr)]'
+        collapsed ? 'lg:grid-cols-[4.5rem_minmax(0,1fr)]' : 'lg:grid-cols-[16.5rem_minmax(0,1fr)]'
       }`}
     >
       {/* desktop sidebar */}
       <aside className="hidden border-r border-border lg:block">
         <div className="sticky top-0 z-20 h-dvh">
           <div className="h-full overflow-hidden">
-            <Sidebar area={area} collapsed={collapsed} />
+            <Sidebar area={area} collapsed={collapsed} onToggleCollapse={() => setCollapsed((c) => !c)} />
           </div>
 
+          {/* While open the toggle lives inside the sidebar header. While collapsed it sits outside, on the edge. */}
           <button
             type="button"
-            onClick={toggleCollapsed}
-            aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-            aria-expanded={!collapsed}
-            title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-            className="absolute -right-3 top-20 z-10 flex size-6 items-center justify-center rounded-full border border-border bg-surface text-muted shadow-soft transition-colors hover:text-text focus-visible:outline-2 focus-visible:outline-accent"
+            onClick={() => setCollapsed(false)}
+            tabIndex={collapsed ? 0 : -1}
+            aria-hidden={!collapsed || undefined}
+            aria-label="Expand sidebar"
+            title="Expand sidebar"
+            style={{ transitionDuration: '200ms', transitionDelay: collapsed ? `${DURATION / 2}ms` : '0ms' }}
+            className={`absolute -right-4 top-[18px] z-10 flex size-7 items-center justify-center rounded-full border border-border bg-surface text-muted shadow-soft transition-[opacity,color,border-color] hover:border-accent hover:text-accent focus-visible:outline-2 focus-visible:outline-accent motion-reduce:transition-none ${
+              collapsed ? 'opacity-100' : 'pointer-events-none opacity-0'
+            }`}
           >
-            <ChevronsLeft
-              size={14}
-              aria-hidden="true"
-              style={speed}
-              className={`transition-transform ease-out motion-reduce:transition-none ${collapsed ? 'rotate-180' : ''}`}
-            />
+            <ChevronsRight size={14} aria-hidden="true" />
           </button>
         </div>
       </aside>
@@ -123,11 +127,11 @@ export default function DashboardShell({ area = 'user', children }) {
           onClick={() => setOpen(true)}
           aria-label="Open menu"
           aria-expanded={open}
-          className="flex size-10 items-center justify-center rounded-sm text-text transition-colors hover:bg-surface-alt focus-visible:outline-2 focus-visible:outline-accent"
+          className="flex size-10 items-center justify-center rounded-md text-text transition-colors hover:bg-surface-alt focus-visible:outline-2 focus-visible:outline-accent"
         >
           <Menu size={20} aria-hidden="true" />
         </button>
-        <span className="font-display text-xl font-bold tracking-wide text-text">{title}</span>
+        <span className="font-heading text-base font-semibold text-text">{title}</span>
       </div>
 
       {/* mobile drawer */}
@@ -136,30 +140,25 @@ export default function DashboardShell({ area = 'user', children }) {
           <button
             type="button"
             aria-label="Close menu"
+            tabIndex={-1}
             onClick={() => setOpen(false)}
             style={speed}
-            className={`absolute inset-0 bg-bg/80 transition-opacity ease-out motion-reduce:transition-none ${
+            className={`absolute inset-0 bg-bg/80 backdrop-blur-sm transition-opacity ease-out motion-reduce:transition-none ${
               shown ? 'opacity-100' : 'opacity-0'
             }`}
           />
           <div
+            ref={panelRef}
+            tabIndex={-1}
             role="dialog"
             aria-modal="true"
             aria-label={title}
             style={speed}
-            className={`absolute inset-y-0 left-0 w-72 max-w-[85%] border-r border-border shadow-soft transition-transform ease-out motion-reduce:transition-none ${
+            className={`absolute inset-y-0 left-0 w-72 max-w-[85%] border-r border-border shadow-soft outline-none transition-transform ease-out motion-reduce:transition-none ${
               shown ? 'translate-x-0' : '-translate-x-full'
             }`}
           >
-            <button
-              type="button"
-              onClick={() => setOpen(false)}
-              aria-label="Close menu"
-              className="absolute right-2 top-2 z-10 flex size-9 items-center justify-center rounded-sm text-muted transition-colors hover:bg-surface-alt hover:text-text"
-            >
-              <X size={18} aria-hidden="true" />
-            </button>
-            <Sidebar area={area} onNavigate={() => setOpen(false)} />
+            <Sidebar area={area} onNavigate={() => setOpen(false)} onClose={() => setOpen(false)} />
           </div>
         </div>
       )}

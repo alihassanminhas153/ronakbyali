@@ -1,0 +1,33 @@
+/* Custom thin scrollbar for the users table and the user drawer.
+   Imported by UserTable.jsx and UserForm.jsx, so index.css does not need to change. */
+.user-scroll {
+  scrollbar-width: thin; /* Firefox */
+  scrollbar-color: color-mix(in srgb, var(--accent) 55%, var(--border)) transparent;
+}
+/* Chrome, Edge, Safari: a standard scrollbar-* property would switch the rules below off */
+@supports selector(::-webkit-scrollbar) {
+  .user-scroll {
+    scrollbar-width: auto;
+    scrollbar-color: auto;
+  }
+  .user-scroll::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  .user-scroll::-webkit-scrollbar-track {
+    background: var(--surface-alt);
+    border-radius: 999px;
+    margin-inline: 8px;
+  }
+  .user-scroll::-webkit-scrollbar-thumb {
+    background: color-mix(in srgb, var(--accent) 55%, var(--border));
+    border-radius: 999px;
+    transition: background 0.2s;
+  }
+  .user-scroll::-webkit-scrollbar-thumb:hover {
+    background: var(--accent);
+  }
+  .user-scroll::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+}

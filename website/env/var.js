@@ -24,7 +24,9 @@ const vars = {
 
     ronakByAliAlerts: String(import.meta.env.RONAK_BY_ALI_ALERTS_TABLE_ID),
 
-    ronakByAliReviews: String(import.meta.env.RONAK_BY_ALI_REVIEWS_TABLE_ID)
+    ronakByAliReviews: String(import.meta.env.RONAK_BY_ALI_REVIEWS_TABLE_ID),
+
+    ronakByAliOrderTracker: String(import.meta.env.RONAK_BY_ALI_ORDERS_TRACKER_TABLE_ID)
 }
 
 export default vars;

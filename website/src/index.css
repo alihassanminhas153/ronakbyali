@@ -297,6 +297,17 @@
 
 /* ---------- Base styles (mobile first) ---------- */
 @layer base {
+
+    /* Thin custom scrollbar (tables, side panels) */
+  .thin-scroll { scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
+  @supports selector(::-webkit-scrollbar) {
+    .thin-scroll { scrollbar-width: auto; scrollbar-color: auto; }
+    .thin-scroll::-webkit-scrollbar { height: 5px; width: 5px; }
+    .thin-scroll::-webkit-scrollbar-track { background: transparent; }
+    .thin-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 999px; }
+    .thin-scroll::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+  }
+
   html {
     -webkit-text-size-adjust: 100%;
     text-size-adjust: 100%;
