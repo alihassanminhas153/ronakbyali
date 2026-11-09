@@ -21,6 +21,7 @@
 //   const rows = useSelector(selectStaffOrders);
 import { createAsyncThunk, createEntityAdapter, createSlice } from '@reduxjs/toolkit';
 import { orderService, settingsService } from './services';
+import trackerService from '../../lib/appwrite/tracker';
 import { LOGIN_REQUIRED, fail, getUserId, stripToast } from './utils';
 import { isSessionEnded, refreshProfile } from './authSlice';
 import { fetchCart } from './cartSlice';
@@ -40,6 +41,8 @@ export { ORDER_STATUS, PAYMENT_METHODS, PAYMENT_STATUS, DELIVERY_TYPES, USER_EDI
 const byNewest = (a, b) => (b.$createdAt || '').localeCompare(a.$createdAt || '');
 const adapter = createEntityAdapter({ selectId: (o) => o.$id, sortComparer: byNewest });
 const staffAdapter = createEntityAdapter({ selectId: (o) => o.$id, sortComparer: byNewest });
+// Tracker rows are looked up by the ORDER's id (the tracker row id equals the order id).
+const trackerAdapter = createEntityAdapter({ selectId: (t) => t.orderId });
 
 const initialState = adapter.getInitialState({
   total: 0,
@@ -56,6 +59,8 @@ const initialState = adapter.getInitialState({
   openStatus: 'idle',
   updating: false, // a customer change is in progress
   updateError: null,
+  // courier link + timeline of each order, by order id
+  tracker: trackerAdapter.getInitialState({ status: 'idle', saving: false, error: null }),
   // every customer's orders (admin, support, manager). Kept apart from "my orders".
   staff: staffAdapter.getInitialState({
     total: 0,
@@ -292,21 +297,66 @@ export const fetchStaffCounts = createAsyncThunk('orders/staffCounts', async (ar
   return counts;
 });
 
-const staffThunk = (type, call, message) =>
+/* ---------- staff: tracker (courier link + timeline) ---------- */
+
+const orderFor = (state, orderId) => state.orders.staff.entities[orderId] || state.orders.entities[orderId] || { $id: orderId };
+
+// Loads the tracker of an order. An older order without one gets it created here.
+export const fetchTracker = createAsyncThunk('orders/trackerFetch', async (arg, { getState, rejectWithValue }) => {
+  const { orderId } = stripToast(arg);
+  trackerService.lastError = null;
+  const tracker = await trackerService.ensure(orderFor(getState(), orderId));
+  if (!tracker) return rejectWithValue(trackerService.lastError || 'Could not load the tracking updates.');
+  return tracker;
+});
+
+const trackerWrite = (type, call, message) =>
   createAsyncThunk(type, async (arg, { getState, rejectWithValue }) => {
+    if (notStaff(getState().auth.profile)) return rejectWithValue('You do not have access to all orders.');
+    const args = stripToast(arg);
+    trackerService.lastError = null;
+    const tracker = await call(args, orderFor(getState(), args.orderId));
+    if (!tracker) return fail(rejectWithValue, trackerService.lastError || message, arg);
+    return tracker;
+  });
+
+// dispatch(addTrackerUpdate({ orderId, title, note }))   one more step on the timeline
+export const addTrackerUpdate = trackerWrite(
+  'orders/trackerAdd',
+  ({ orderId, title, note }, order) => trackerService.addUpdate(orderId, { title, note, status: null, by: 'staff' }, { order }),
+  'Could not add the update.'
+);
+// dispatch(setTrackerLink({ orderId, link }))            the courier link (TCS etc), '' clears it
+export const setTrackerLink = trackerWrite(
+  'orders/trackerLink',
+  ({ orderId, link }, order) => trackerService.setLink(orderId, link, { order }),
+  'Could not save the tracking link.'
+);
+
+/* ---------- staff: change an order ---------- */
+
+// `after` runs once the change worked, for things that changed elsewhere (timeline, counts).
+const staffThunk = (type, call, message, after) =>
+  createAsyncThunk(type, async (arg, { getState, dispatch, rejectWithValue }) => {
     if (notStaff(getState().auth.profile)) return rejectWithValue('You do not have access to all orders.');
     const args = stripToast(arg);
     orderService.lastError = null;
     const order = await call(args);
     if (!order) return fail(rejectWithValue, orderService.lastError || message, arg);
     // lastError can still hold a warning when the status changed but stock did not.
-    return { order, warning: orderService.lastError || null };
+    const warning = orderService.lastError || null;
+    if (after) await after(args, dispatch);
+    return { order, warning };
   });
+
+const refreshTimeline = (a, dispatch) => dispatch(fetchTracker({ orderId: a.orderId }));
+const afterStatus = (a, dispatch) => Promise.all([refreshTimeline(a, dispatch), dispatch(fetchStaffCounts())]);
 
 export const updateOrderStatus = staffThunk(
   'orders/staffStatus',
   ({ orderId, status }) => orderService.updateStatus(orderId, status),
-  'Could not change the status.'
+  'Could not change the status.',
+  afterStatus
 );
 export const updateOrderPayment = staffThunk(
   'orders/staffPayment',
@@ -323,8 +373,16 @@ export const setOrderAdminNotes = staffThunk(
   ({ orderId, adminNotes }) => orderService.setAdminNotes(orderId, adminNotes || null),
   'Could not save the notes.'
 );
+// dispatch(updateOrderFields({ orderId, data: { address, city, ... } }))
+// Only the keys editable for the order's status are accepted (see lib/appwrite/order.js).
+export const updateOrderFields = staffThunk(
+  'orders/staffFields',
+  ({ orderId, data }) => orderService.updateStaffFields(orderId, data),
+  'Could not save the changes.',
+  refreshTimeline
+);
 
-const staffEdits = [updateOrderStatus, updateOrderPayment, setOrderTracking, setOrderAdminNotes];
+const staffEdits = [updateOrderStatus, updateOrderPayment, setOrderTracking, setOrderAdminNotes, updateOrderFields];
 
 /* ---------- slice ---------- */
 
@@ -340,6 +398,9 @@ const ordersSlice = createSlice({
     },
     clearOrderUpdateError: (state) => {
       state.updateError = null;
+    },
+    clearTrackerError: (state) => {
+      state.tracker.error = null;
     },
     clearStaffWarning: (state) => {
       state.staff.warning = null;
@@ -490,11 +551,41 @@ const ordersSlice = createSlice({
         });
     });
 
+    builder
+      .addCase(fetchTracker.pending, (state) => {
+        state.tracker.status = 'loading';
+        state.tracker.error = null;
+      })
+      .addCase(fetchTracker.fulfilled, (state, action) => {
+        trackerAdapter.upsertOne(state.tracker, action.payload);
+        state.tracker.status = 'succeeded';
+      })
+      .addCase(fetchTracker.rejected, (state, action) => {
+        state.tracker.status = 'failed';
+        state.tracker.error = action.payload || action.error?.message;
+      });
+
+    [addTrackerUpdate, setTrackerLink].forEach((thunk) => {
+      builder
+        .addCase(thunk.pending, (state) => {
+          state.tracker.saving = true;
+          state.tracker.error = null;
+        })
+        .addCase(thunk.fulfilled, (state, action) => {
+          state.tracker.saving = false;
+          trackerAdapter.upsertOne(state.tracker, action.payload);
+        })
+        .addCase(thunk.rejected, (state, action) => {
+          state.tracker.saving = false;
+          state.tracker.error = action.payload || action.error?.message;
+        });
+    });
+
     builder.addMatcher(isSessionEnded, () => initialState);
   },
 });
 
-export const { clearLastPlacedOrder, clearOrderUpdateError, clearStaffWarning } = ordersSlice.actions;
+export const { clearLastPlacedOrder, clearOrderUpdateError, clearStaffWarning, clearTrackerError } = ordersSlice.actions;
 export default ordersSlice.reducer;
 
 /* ---------- selectors ---------- */
@@ -530,6 +621,13 @@ export const selectStaffUpdating = (s) => s.orders.staff.updating;
 export const selectStaffUpdateError = (s) => s.orders.staff.updateError;
 export const selectStaffWarning = (s) => s.orders.staff.warning;
 export const selectStaffCounts = (s) => s.orders.staff.counts;
+export const selectStaffOrderById = (id) => (s) => s.orders.staff.entities[id] ?? null;
+
+// Tracker (courier link + timeline, newest update first)
+export const selectTrackerByOrder = (id) => (s) => s.orders.tracker.entities[id] ?? null;
+export const selectTrackerStatus = (s) => s.orders.tracker.status;
+export const selectTrackerSaving = (s) => s.orders.tracker.saving;
+export const selectTrackerError = (s) => s.orders.tracker.error;
 
 // Sync service helpers.
 export const parseOrderItems = (order) => orderService.parseItems(order);

@@ -4,6 +4,7 @@ import userService from './user';
 import cartService from './cart';
 import wishlistService from './wishlist';
 import productService from './product';
+import trackerService from './tracker';
 
 // The statuses below are the real enum values of ronakbyali_orders.status.
 export const ORDER_STATUS = ['pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled', 'returned'];
@@ -23,6 +24,43 @@ export const STOCK_TAKEN_STATUSES = ['shipped', 'delivered'];
 // Who counts as staff in the app (Appwrite itself decides by the account labels
 // admin / support / manager, set in the table permissions).
 export const STAFF_ROLES = ['admin', 'support', 'manager'];
+
+// ---------------------------------------------------------------------
+// WHAT STAFF MAY EDIT, BY STATUS  (the only place to change these rules)
+//   pending / confirmed / processing -> customer details, payment method, delivery time
+//   shipped                          -> only the delivery address (and city)
+//   delivered / cancelled / returned -> nothing (read only)
+// Always open to staff: order status, payment status, courier link, tracking
+// number, timeline updates and admin notes. Items and amounts are never edited here.
+// To lock earlier (for example right after "confirmed"), shorten FULL_EDIT_STATUSES.
+// ---------------------------------------------------------------------
+export const FULL_EDIT_STATUSES = ['pending', 'confirmed', 'processing'];
+export const ADDRESS_EDIT_STATUSES = ['shipped'];
+const FULL_EDIT_KEYS = [
+    'customerName', 'customerPhone', 'customerEmail', 'city', 'address', 'notes',
+    'paymentMethod', 'deliveryTime', 'estimatedDelivery',
+];
+const ADDRESS_EDIT_KEYS = ['city', 'address'];
+const STAFF_ALWAYS_KEYS = ['adminNotes', 'trackingId'];
+
+export const editableKeysFor = (status) => [
+    ...(FULL_EDIT_STATUSES.includes(status) ? FULL_EDIT_KEYS : ADDRESS_EDIT_STATUSES.includes(status) ? ADDRESS_EDIT_KEYS : []),
+    ...STAFF_ALWAYS_KEYS,
+];
+
+// A cancelled or returned order no longer counts towards the customer's totals.
+const NOT_COUNTED_STATUSES = ['cancelled', 'returned'];
+
+// One timeline step is written for every status change.
+const STATUS_UPDATES = {
+    pending: ['Order placed', 'The order is waiting to be confirmed.'],
+    confirmed: ['Order confirmed', 'We have confirmed your order.'],
+    processing: ['Order is being prepared', 'Your items are being packed.'],
+    shipped: ['Order shipped', 'Your parcel has been handed to the courier.'],
+    delivered: ['Order delivered', 'The parcel was delivered. Thank you for shopping with us.'],
+    cancelled: ['Order cancelled', 'This order was cancelled.'],
+    returned: ['Order returned', 'The parcel was returned to us.'],
+};
 
 const DETAIL_LIMITS = {
     customerName: 128,
@@ -245,6 +283,7 @@ export class OrderService {
         const productIds = [...new Set(items.map((i) => i.productId))];
         await Promise.allSettled([
             userService.applyOrderToProfile({ profile, order }),
+            trackerService.createForOrder({ order, by: 'customer' }), // timeline starts with "Order placed"
             cartService.markPurchased({ userId: profile.$id, productIds }),
             wishlistService.markPurchased({ userId: profile.$id, productIds }),
         ]);
@@ -415,7 +454,9 @@ export class OrderService {
         try {
             const order = await this._getEditable(userId, orderId);
             if (!order) return false;
-            return await this._userUpdate(orderId, { status: 'cancelled' });
+            const saved = await this._userUpdate(orderId, { status: 'cancelled' });
+            if (saved) await this._syncProfileCounts(order, order.status, 'cancelled');
+            return saved;
         } catch (error) {
             console.error(error.message);
             return this._fail('Could not cancel the order. Please try again.');
@@ -559,6 +600,13 @@ export class OrderService {
             const updated = await this.updateOrder(rowId, patch);
             if (!updated) return this._fail('Could not change the status.');
 
+            // Tracker: every status change becomes one timeline step. Customer: ordersCount / totalSpent.
+            const [title, note] = STATUS_UPDATES[status] || [`Status: ${status}`, ''];
+            await Promise.allSettled([
+                trackerService.addUpdate(rowId, { title, note, status, by: 'staff' }, { order }),
+                this._syncProfileCounts(order, order.status, status),
+            ]);
+
             const was = STOCK_TAKEN_STATUSES.includes(order.status);
             const now = STOCK_TAKEN_STATUSES.includes(status);
             if (adjustStock && was !== now) {
@@ -576,6 +624,100 @@ export class OrderService {
         } catch (error) {
             console.error(error.message);
             return this._fail('Could not change the status.');
+        }
+    }
+
+    // Gives back / takes again the order in the customer's ordersCount and totalSpent
+    // when it moves into or out of cancelled / returned. Best effort: needs update
+    // permission on the users table (admin label). Never blocks the status change.
+    async _syncProfileCounts(order, from, to) {
+        try {
+            const wasCounted = !NOT_COUNTED_STATUSES.includes(from);
+            const nowCounted = !NOT_COUNTED_STATUSES.includes(to);
+            if (wasCounted === nowCounted || !order?.userId) return;
+            const sign = nowCounted ? 1 : -1;
+            const profile = await userService.getProfile({ userId: order.userId });
+            if (!profile) return;
+            await userService.updateProfile({
+                userId: order.userId,
+                data: {
+                    ordersCount: Math.max(0, (Number(profile.ordersCount) || 0) + sign),
+                    totalSpent: Math.max(0, (Number(profile.totalSpent) || 0) + sign * (Number(order.total) || 0)),
+                },
+            });
+        } catch (error) {
+            console.error(error.message);
+        }
+    }
+
+    // Staff edit from the admin order form. Only the keys allowed for the order's
+    // current status go through (see editableKeysFor above).
+    async updateStaffFields(rowId, patch = {}) {
+        this.lastError = null;
+        try {
+            const order = await this.getOrder(rowId);
+            if (!order) return this._fail('Order not found.');
+
+            const allowed = editableKeysFor(order.status);
+            const blocked = Object.keys(patch).filter((k) => !allowed.includes(k));
+            if (blocked.length) {
+                const names = blocked.map((k) => DETAIL_LABELS[k] || k).join(', ');
+                return this._fail(`This order is ${order.status}, so ${names} can no longer be changed.`);
+            }
+
+            const data = {};
+            const detailInput = {};
+            Object.entries(patch).forEach(([k, v]) => {
+                if (k in DETAIL_LIMITS) detailInput[k] = v;
+            });
+            if (Object.keys(detailInput).length) {
+                const { data: clean, error } = this._checkDetails(detailInput, { partial: true });
+                if (error) return this._fail(error.replace('enter your', "enter the customer's"));
+                Object.assign(data, clean);
+            }
+            if ('paymentMethod' in patch) {
+                if (!PAYMENT_METHODS.includes(patch.paymentMethod)) return this._fail('Unknown payment method.');
+                data.paymentMethod = patch.paymentMethod;
+            }
+            if ('deliveryTime' in patch) {
+                const v = String(patch.deliveryTime ?? '').trim();
+                if (v.length > 100) return this._fail('Delivery time is too long (max 100 characters).');
+                data.deliveryTime = v || null;
+            }
+            if ('estimatedDelivery' in patch) {
+                const v = patch.estimatedDelivery;
+                if (v && Number.isNaN(new Date(v).getTime())) return this._fail('That estimated delivery date is not valid.');
+                data.estimatedDelivery = v ? new Date(v).toISOString() : null;
+            }
+            if ('adminNotes' in patch) {
+                const v = String(patch.adminNotes ?? '').trim();
+                if (v.length > 1000) return this._fail('Admin notes are too long (max 1000 characters).');
+                data.adminNotes = v || null;
+            }
+            if ('trackingId' in patch) {
+                const v = String(patch.trackingId ?? '').trim();
+                if (v.length > 100) return this._fail('The tracking number is too long (max 100 characters).');
+                data.trackingId = v || null;
+            }
+            if (!Object.keys(data).length) return order;
+
+            const updated = await this.updateOrder(rowId, data);
+            if (!updated) return this._fail('Could not save the changes.');
+
+            const addressChanged =
+                (data.address !== undefined && data.address !== (order.address || null)) ||
+                (data.city !== undefined && data.city !== (order.city || null));
+            if (addressChanged) {
+                await trackerService.addUpdate(
+                    rowId,
+                    { title: 'Delivery address updated', note: '', status: null, by: 'staff' },
+                    { order }
+                );
+            }
+            return updated;
+        } catch (error) {
+            console.error(error.message);
+            return this._fail('Could not save the changes.');
         }
     }
 
@@ -603,6 +745,7 @@ export class OrderService {
                 tableId: this.tableId,
                 rowId,
             });
+            await trackerService.deleteForOrder(rowId);
             return true;
         } catch (error) {
             console.error(error.message);

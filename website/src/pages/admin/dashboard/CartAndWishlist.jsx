@@ -1,360 +1,379 @@
-// src/pages/admin/dashboard/CartAndWishlist.jsx   (route: /team/:username/cart-and-wishlist)
-//
-// Needs cartService.listCarts() and wishlistService.listWishlists() (see the
-// snippets in the chat) and table-level READ permission for the admin team.
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Link } from "react-router";
+import { useEffect, useMemo, useState } from 'react';
+import { Activity, AlertTriangle, ArrowRight, Boxes, CalendarDays, Clock, Heart, MapPin, RefreshCw, ShoppingCart, Wallet } from 'lucide-react';
 
-import cartService from "../../../lib/appwrite/cart";
-import wishlistService from "../../../lib/appwrite/wishlist";
-import productService from "../../../lib/appwrite/product";
-import { PATHS } from "../../../router/path";
+import {
+  HolderList,
+  ProductDemandTable,
+  STALE_DAYS,
+  useCartWishlist,
+} from '../../../components/admin/cart';
+import { money } from '../../../components/admin/orders';
+import {
+  BarChart,
+  ChartCard,
+  Donut,
+  HeatmapCalendar,
+  Histogram,
+  StatTile,
+  TrendGraph,
+  compact,
+  countByDay,
+} from '../../../ui/graphs';
+import ActionButton from '../../../ui/custom/button/ActionButton';
+import SearchInput from '../../../ui/custom/input/SearchInput';
+import SelectInput from '../../../ui/custom/input/SelectInput';
+import Tabs, { TabPanel } from '../../../ui/custom/tabs/Tabs';
+import CountUp from '../../../ui/custom/motion/CountUp';
+import Typewriter from '../../../ui/custom/motion/Typewriter';
 
-const PAGE = 50;
-const money = (v) => `Rs ${Number(v || 0).toLocaleString("en-PK")}`;
+const SHOW = 30;
 
-// Normalised view of a row: { id, who, contact, items: [{ productId, quantity, variant }] }
-const fromCart = (row) => ({
-  id: row.$id,
-  row,
-  items: cartService.parseItems(row).map((i) => ({ ...i, quantity: Number(i.quantity) || 0 })),
-});
-const fromWish = (row) => ({
-  id: row.$id,
-  row,
-  items: (row.productIds || []).map((productId) => ({ productId, quantity: 1, variant: null })),
-});
+// What each tab can filter and sort by.
+const CONFIG = {
+  carts: {
+    search: 'Search name, phone, city or product',
+    filterPlaceholder: 'All carts',
+    filters: [
+      { value: 'problem', label: 'Has a stock problem' },
+      { value: 'low', label: 'Has low stock' },
+      { value: 'stale', label: `Idle ${STALE_DAYS}+ days` },
+    ],
+    sorts: [
+      { value: 'recent', label: 'Recently changed' },
+      { value: 'value', label: 'Highest value' },
+      { value: 'items', label: 'Most items' },
+    ],
+  },
+  wishlists: {
+    search: 'Search name, phone, city or product',
+    filterPlaceholder: 'All wishlists',
+    filters: [
+      { value: 'problem', label: 'Has an unavailable product' },
+      { value: 'bought', label: 'Already bought something' },
+    ],
+    sorts: [
+      { value: 'recent', label: 'Recently changed' },
+      { value: 'saved', label: 'Most saved' },
+    ],
+  },
+  products: {
+    search: 'Search product, category or group',
+    filterPlaceholder: 'Any stock',
+    filters: [
+      { value: 'out', label: 'Out of stock' },
+      { value: 'short', label: 'Carts want more than is left' },
+      { value: 'low', label: 'Low stock' },
+      { value: 'removed', label: 'Removed products' },
+      { value: 'carted', label: 'In a cart' },
+      { value: 'wished', label: 'On a wishlist' },
+    ],
+    sorts: [
+      { value: 'demand', label: 'Most in carts' },
+      { value: 'wished', label: 'Most wished for' },
+      { value: 'name', label: 'Name A to Z' },
+    ],
+  },
+};
 
-export default function CartAndWishlist() {
-  const [tab, setTab] = useState("cart");
-  const [query, setQuery] = useState("");
-  const [open, setOpen] = useState(null);
-  const [state, setState] = useState({
-    cart: { rows: [], total: 0 },
-    wish: { rows: [], total: 0 },
-    loading: true,
-    more: null, // "cart" | "wish" while loading another page
-    error: null,
-  });
-  const [products, setProducts] = useState({});
-  const known = useRef(new Set());
+const byUpdated = (a, b) => new Date(b.row.$updatedAt) - new Date(a.row.$updatedAt);
 
-  const hydrate = useCallback(async (entries) => {
-    const ids = [...new Set(entries.flatMap((e) => e.items.map((i) => i.productId)))].filter(
-      (id) => id && !known.current.has(id)
-    );
-    if (!ids.length) return;
-    ids.forEach((id) => known.current.add(id));
-    const rows = await productService.getProductsByIds(ids);
-    if (!Array.isArray(rows)) return;
-    setProducts((prev) => ({ ...prev, ...Object.fromEntries(rows.map((p) => [p.$id, p])) }));
-  }, []);
+const SORTERS = {
+  carts: { recent: byUpdated, value: (a, b) => b.value - a.value, items: (a, b) => b.units - a.units },
+  wishlists: { recent: byUpdated, saved: (a, b) => b.saved - a.saved },
+  products: {
+    demand: (a, b) => b.cartQty - a.cartQty || b.wishes - a.wishes,
+    wished: (a, b) => b.wishes - a.wishes || b.cartQty - a.cartQty,
+    name: (a, b) => (a.product?.name || '~').localeCompare(b.product?.name || '~'),
+  },
+};
 
-  const fetchKind = useCallback(
-    async (kind, offset) => {
-      const res =
-        kind === "cart"
-          ? await cartService.listCarts({ limit: PAGE, offset })
-          : await wishlistService.listWishlists({ limit: PAGE, offset });
-      if (!res) throw new Error(kind);
-      const entries = res.rows.map(kind === "cart" ? fromCart : fromWish);
-      await hydrate(entries);
-      return { entries, total: res.total };
-    },
-    [hydrate]
-  );
+const FILTERS = {
+  carts: { problem: (e) => e.problems > 0, low: (e) => e.low > 0, stale: (e) => e.days >= STALE_DAYS },
+  wishlists: { problem: (e) => e.problems > 0, bought: (e) => e.boughtCount > 0 },
+  products: {
+    out: (d) => d.stock.key === 'out',
+    short: (d) => d.stock.key === 'short',
+    low: (d) => d.stock.key === 'low',
+    removed: (d) => d.stock.key === 'removed',
+    carted: (d) => d.cartQty > 0,
+    wished: (d) => d.wishes > 0,
+  },
+};
 
+const has = (q, values) => values.some((v) => String(v || '').toLowerCase().includes(q));
+
+// "just now", "25s ago", "4m ago" ... re-rendered every 10 seconds
+function useTimeAgo(date) {
+  const [, tick] = useState(0);
   useEffect(() => {
-    let alive = true;
-    (async () => {
-      try {
-        const [c, w] = await Promise.all([fetchKind("cart", 0), fetchKind("wish", 0)]);
-        if (!alive) return;
-        setState({
-          cart: { rows: c.entries, total: c.total },
-          wish: { rows: w.entries, total: w.total },
-          loading: false,
-          more: null,
-          error: null,
-        });
-      } catch {
-        if (alive)
-          setState((s) => ({
-            ...s,
-            loading: false,
-            error:
-              "Could not load carts and wishlists. Check that your admin team has Read permission on both tables in Appwrite.",
-          }));
-      }
-    })();
-    return () => {
-      alive = false;
-    };
-  }, [fetchKind]);
+    const id = setInterval(() => tick((n) => n + 1), 10000);
+    return () => clearInterval(id);
+  }, []);
+  if (!date) return '';
+  const sec = Math.max(0, Math.round((Date.now() - date.getTime()) / 1000));
+  if (sec < 10) return 'just now';
+  if (sec < 60) return `${sec}s ago`;
+  if (sec < 3600) return `${Math.floor(sec / 60)}m ago`;
+  return `${Math.floor(sec / 3600)}h ago`;
+}
 
-  const loadMore = async (kind) => {
-    setState((s) => ({ ...s, more: kind }));
-    try {
-      const { entries, total } = await fetchKind(kind, state[kind].rows.length);
-      setState((s) => ({
-        ...s,
-        [kind]: { rows: [...s[kind].rows, ...entries], total },
-        more: null,
-      }));
-    } catch {
-      setState((s) => ({ ...s, more: null, error: "Could not load more rows." }));
-    }
+// Admin > Carts & wishlists   (/team/:username/cart-and-wishlist)
+export default function CartAndWishlist() {
+  const data = useCartWishlist();
+  const { carts, wishes, demand, stats, charts, loading, error, loadedAt, reload } = data;
+
+  const [tab, setTab] = useState('carts');
+  const [term, setTerm] = useState('');
+  const [filter, setFilter] = useState('');
+  const [sort, setSort] = useState('recent');
+  const [limit, setLimit] = useState(SHOW);
+  const ago = useTimeAgo(loadedAt);
+
+  const cfg = CONFIG[tab];
+  useEffect(() => setLimit(SHOW), [tab, term, filter, sort]);
+
+  const changeTab = (id) => {
+    setTab(id);
+    setFilter('');
+    setSort(CONFIG[id]?.sorts[0].value || '');
+  };
+  const reviewProblems = () => {
+    setTab('carts');
+    setFilter(stats.problemCarts ? 'problem' : '');
+    setSort('recent');
   };
 
-  /* ---------- derived ---------- */
+  // ---- the rows of the current tab, searched, filtered and sorted
+  const list = useMemo(() => {
+    if (tab === 'insights') return [];
+    const q = term.trim().toLowerCase();
+    const source = tab === 'carts' ? carts : tab === 'wishlists' ? wishes : demand;
+    const match = FILTERS[tab][filter];
+    const out = source.filter((e) => {
+      if (match && !match(e)) return false;
+      if (!q) return true;
+      if (tab === 'products') return has(q, [e.product?.name, e.product?.category, e.product?.group, e.product?.slug]);
+      return (
+        has(q, [e.row.name, e.row.username, e.row.email, e.row.phone, e.row.city]) ||
+        e.lines.some((l) => has(q, [l.product?.name]))
+      );
+    });
+    return out.sort(SORTERS[tab][sort] || SORTERS[tab][CONFIG[tab].sorts[0].value]);
+  }, [tab, term, filter, sort, carts, wishes, demand]);
 
-  const priceOf = (id) => Number(products[id]?.price) || 0;
-  const withItems = (list) => list.filter((e) => e.items.length > 0);
+  const filtered = Boolean(term.trim() || filter);
+  const busy = loading;
 
-  const cartEntries = useMemo(() => withItems(state.cart.rows), [state.cart.rows]);
-  const wishEntries = useMemo(() => withItems(state.wish.rows), [state.wish.rows]);
+  const tabs = [
+    { id: 'carts', label: 'Carts', icon: ShoppingCart, color: 'var(--graph-1)', badge: carts.length || undefined },
+    { id: 'wishlists', label: 'Wishlists', icon: Heart, color: 'var(--graph-6)', badge: wishes.length || undefined },
+    { id: 'products', label: 'Products', icon: Boxes, color: 'var(--graph-2)', badge: demand.length || undefined },
+    { id: 'insights', label: 'Insights', icon: Activity, color: 'var(--graph-3)' },
+  ];
 
-  const stats = useMemo(() => {
-    const units = cartEntries.reduce((n, e) => n + e.items.reduce((m, i) => m + i.quantity, 0), 0);
-    const value = cartEntries.reduce(
-      (n, e) => n + e.items.reduce((m, i) => m + priceOf(i.productId) * i.quantity, 0),
-      0
-    );
-    const saved = wishEntries.reduce((n, e) => n + e.items.length, 0);
-    return { shoppers: cartEntries.length, units, value, wishers: wishEntries.length, saved };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cartEntries, wishEntries, products]);
-
-  const top = (entries, weight) => {
-    const map = new Map();
-    entries.forEach((e) =>
-      e.items.forEach((i) => map.set(i.productId, (map.get(i.productId) || 0) + weight(i)))
-    );
-    return [...map.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5);
-  };
-  const topCart = useMemo(() => top(cartEntries, (i) => i.quantity), [cartEntries]);
-  const topWish = useMemo(() => top(wishEntries, () => 1), [wishEntries]);
-
-  const q = query.trim().toLowerCase();
-  const list = (tab === "cart" ? cartEntries : wishEntries).filter(
-    (e) =>
-      !q ||
-      [e.row.name, e.row.username, e.row.email, e.row.phone, e.row.city].some((v) =>
-        String(v || "").toLowerCase().includes(q)
-      )
+  const phrases = useMemo(
+    () => [
+      `${money(stats.value)} waiting in carts`,
+      stats.problemCarts
+        ? `${stats.problemCarts} ${stats.problemCarts === 1 ? 'cart has' : 'carts have'} a stock problem`
+        : 'No stock problems right now',
+      `${stats.saved} products saved to wishlists`,
+    ],
+    [stats.value, stats.problemCarts, stats.saved]
   );
-  const current = state[tab];
-  const hasMore = current.rows.length < current.total;
-
-  /* ---------- render ---------- */
 
   return (
-    <section className="w-full">
-      <header className="mb-6">
-        <h1 className="font-['Barlow_Condensed',sans-serif] text-4xl font-bold text-neutral-900 dark:text-white">
-          Carts and wishlists
-        </h1>
-        <p className="text-neutral-600 dark:text-neutral-300">
-          What shoppers are holding right now, and what they have saved for later.
-        </p>
+    <div className="space-y-5">
+      <header className="flex items-end justify-between gap-3">
+        <div className="min-w-0">
+          <h1 className="font-display text-3xl font-bold tracking-wide text-text sm:text-4xl">Carts and wishlists</h1>
+          <p className="mt-1 text-sm text-muted">
+            {loading && !loadedAt ? (
+              'Loading…'
+            ) : (
+              <>
+                <CountUp value={stats.shoppers} className="font-semibold text-text" /> {stats.shoppers === 1 ? 'cart' : 'carts'} ·{' '}
+                <CountUp value={stats.wishers} className="font-semibold text-text" /> {stats.wishers === 1 ? 'wishlist' : 'wishlists'}
+              </>
+            )}
+          </p>
+        </div>
+
+        <div className="flex items-center gap-3">
+          {ago && (
+            <span className="hidden items-center gap-1.5 text-xs text-muted sm:flex" aria-live="polite">
+              <span className={`h-1.5 w-1.5 rounded-full ${busy ? 'animate-pulse bg-graph-3' : 'bg-graph-7'}`} />
+              {busy ? 'Syncing…' : `Updated ${ago}`}
+            </span>
+          )}
+          <button
+            type="button"
+            onClick={reload}
+            disabled={busy}
+            title="Fetch the latest carts, wishlists and stock"
+            className="group inline-flex h-10 items-center gap-2 rounded-lg border border-border bg-surface pl-3 pr-3.5 text-sm font-medium text-text shadow-soft transition-all duration-200 hover:-translate-y-px hover:border-graph-1 hover:bg-surface-alt hover:text-graph-1 active:translate-y-0 active:scale-95 disabled:translate-y-0 disabled:opacity-70 disabled:hover:border-border disabled:hover:bg-surface disabled:hover:text-text"
+          >
+            <RefreshCw size={16} className={busy ? 'animate-spin' : 'transition-transform duration-500 group-hover:rotate-180'} />
+            <span>{busy ? 'Refreshing' : 'Refresh'}</span>
+          </button>
+        </div>
       </header>
 
-      {state.error && (
-        <p role="alert" className="mb-4 rounded-md bg-red-50 px-4 py-3 text-sm text-red-700 dark:bg-red-950 dark:text-red-300">
-          {state.error}
-        </p>
-      )}
+      {/* Big banner (same block as the Products page) */}
+      <button
+        type="button"
+        onClick={reviewProblems}
+        style={{ background: 'linear-gradient(120deg, var(--brown), var(--accent))' }}
+        className="group relative isolate flex w-full items-center gap-4 overflow-hidden rounded-2xl p-5 text-left text-white transition-all duration-300 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.99] sm:gap-6 sm:p-7"
+      >
+        <span aria-hidden="true" className="pointer-events-none absolute -right-12 -top-14 h-44 w-44 rounded-full bg-white/10 transition-transform duration-700 group-hover:scale-125" />
+        <span aria-hidden="true" className="pointer-events-none absolute -bottom-16 right-28 hidden h-32 w-32 animate-float rounded-full bg-white/[0.07] sm:block" />
+        <span aria-hidden="true" className="pointer-events-none absolute inset-x-0 bottom-0 h-1 origin-left scale-x-0 bg-white/60 transition-transform duration-500 group-hover:scale-x-100" />
 
-      {state.loading ? (
-        <p className="text-neutral-600 dark:text-neutral-300" aria-busy="true">Loading...</p>
-      ) : (
-        <>
-          <dl className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-            <Stat label="Shoppers with a cart" value={stats.shoppers} />
-            <Stat label="Units in carts" value={stats.units} />
-            <Stat label="Value in carts" value={money(stats.value)} />
-            <Stat label="Products saved to wishlists" value={stats.saved} />
-          </dl>
-          {(state.cart.rows.length < state.cart.total || state.wish.rows.length < state.wish.total) && (
-            <p className="mt-2 text-xs text-neutral-500 dark:text-neutral-400">
-              Totals cover the rows loaded so far. Load more below to include the rest.
-            </p>
-          )}
+        <span className="relative grid h-14 w-14 shrink-0 place-items-center sm:h-16 sm:w-16">
+          <span aria-hidden="true" className="absolute inset-0 animate-ring rounded-2xl border-2 border-white/70" />
+          <span className="grid h-full w-full place-items-center rounded-2xl border border-white/25 bg-white/15 transition-transform duration-500 ease-out group-hover:-rotate-6 group-hover:scale-105">
+            <ShoppingCart size={28} strokeWidth={2.5} />
+          </span>
+        </span>
 
-          <div className="mt-8 grid gap-6 md:grid-cols-2">
-            <TopList title="Most in carts" unit="units" data={topCart} products={products} />
-            <TopList title="Most wished for" unit="saves" data={topWish} products={products} />
+        <span className="relative min-w-0 flex-1">
+          <span className="block text-[11px] font-semibold uppercase tracking-[0.18em] text-white/70">Shopper watch</span>
+          <span className="heading mt-1 block min-h-[1.6em] truncate text-xl sm:text-3xl">
+            <Typewriter key={phrases.join('|')} phrases={phrases} />
+          </span>
+          <span className="mt-0.5 hidden text-sm text-white/75 sm:block">See what people hold, and which items you cannot supply.</span>
+        </span>
+
+        <span className="relative hidden shrink-0 items-center gap-2 rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-[color:var(--brown)] transition-transform duration-300 group-hover:scale-105 sm:inline-flex">
+          {stats.problemCarts ? 'Review problems' : 'View carts'}
+          <ArrowRight size={16} className="group-hover:animate-nudge" />
+        </span>
+      </button>
+
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <StatTile icon={ShoppingCart} tone={1} label="Carts with items" value={stats.shoppers} hint={`${stats.units} items in total`} />
+        <StatTile
+          icon={Wallet}
+          tone={2}
+          delay={60}
+          label="Value in carts"
+          value={stats.value}
+          format={(n) => money(n)}
+          hint={`${money(stats.staleValue)} idle ${STALE_DAYS}+ days`}
+        />
+        <StatTile icon={AlertTriangle} tone={4} delay={120} label="Carts with a stock problem" value={stats.problemCarts} hint="Out of stock or not enough left" />
+        <StatTile icon={Heart} tone={6} delay={180} label="Products on wishlists" value={stats.saved} hint={`${stats.conversion}% already bought`} />
+      </div>
+
+      <Tabs tabs={tabs} value={tab} onChange={changeTab} />
+
+      {error && !loadedAt ? (
+        <div role="alert" className="rounded-lg border border-error/40 bg-error/10 p-6 text-center text-sm text-error">
+          {error}{' '}
+          <button type="button" onClick={reload} className="font-medium underline">Try again</button>
+        </div>
+      ) : loading && !loadedAt ? (
+        <div className="space-y-3" aria-hidden="true">
+          {[0, 1, 2, 3].map((i) => <div key={i} className="h-16 animate-pulse rounded-lg bg-surface-alt motion-reduce:animate-none" />)}
+        </div>
+      ) : tab === 'insights' ? (
+        <TabPanel key="insights" className="space-y-4">
+          <div className="grid gap-4 lg:grid-cols-2">
+            <ChartCard title="Most in carts" subtitle="Units across every cart" icon={ShoppingCart} tone={1}>
+              <BarChart data={charts.topCart} format={(n) => `${n} units`} empty="No carts yet." />
+            </ChartCard>
+            <ChartCard title="Most wished for" subtitle="Saves across every wishlist" icon={Heart} tone={6} delay={60}>
+              <BarChart data={charts.topWish} format={(n) => `${n} saves`} empty="No wishlists yet." />
+            </ChartCard>
+            <ChartCard title="Stock of held products" subtitle="Products someone has in a cart or wishlist" icon={Boxes} tone={2} delay={120}>
+              <Donut data={charts.stockMix} centerLabel="products" empty="No products held yet." />
+            </ChartCard>
+            <ChartCard title="Wishlist to purchase" subtitle={`${stats.conversion}% of saved products were bought later`} icon={Heart} tone={7} delay={180}>
+              <Donut data={charts.wishMix} centerLabel="saves" empty="No wishlists yet." />
+            </ChartCard>
+            <ChartCard title="Carts by idle time" subtitle="How long since the cart last changed" icon={Clock} tone={3} delay={240}>
+              <BarChart data={charts.ages} format={(n) => `${n} ${n === 1 ? 'cart' : 'carts'}`} empty="No carts yet." />
+            </ChartCard>
+            <ChartCard title="Cart value spread" subtitle="How many carts fall in each value range" icon={Wallet} tone={5} delay={300}>
+              <Histogram values={charts.cartValues} bins={6} format={(n) => compact(n)} empty="No carts yet." />
+            </ChartCard>
+            <ChartCard title="Activity, last 14 days" subtitle="Carts and wishlists changed per day" icon={Activity} tone={1} delay={360}>
+              <TrendGraph data={charts.activity} empty="Nothing changed in the last 14 days." />
+            </ChartCard>
+            <ChartCard title="Where carts come from" subtitle="Cart value by city" icon={MapPin} tone={2} delay={420}>
+              <BarChart data={charts.cities} format={(n) => money(n)} empty="No carts yet." />
+            </ChartCard>
           </div>
-
-          <div className="mt-10 flex flex-wrap items-center justify-between gap-3">
-            <div role="tablist" aria-label="Carts or wishlists" className="flex rounded-md border border-neutral-300 p-1 dark:border-neutral-700">
-              {[
-                ["cart", `Carts (${cartEntries.length})`],
-                ["wish", `Wishlists (${wishEntries.length})`],
-              ].map(([key, label]) => (
-                <button
-                  key={key}
-                  role="tab"
-                  type="button"
-                  aria-selected={tab === key}
-                  onClick={() => {
-                    setTab(key);
-                    setOpen(null);
-                  }}
-                  className={`rounded px-4 py-1.5 text-sm font-medium ${
-                    tab === key
-                      ? "bg-neutral-900 text-white dark:bg-white dark:text-neutral-900"
-                      : "text-neutral-700 dark:text-neutral-300"
-                  }`}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-            <input
-              type="search"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search name, email, phone or city"
-              aria-label="Search shoppers"
-              className="w-full rounded-md border border-neutral-300 bg-transparent px-3 py-2 text-sm text-neutral-900 sm:w-72 dark:border-neutral-700 dark:text-white"
+          <ChartCard title="Activity calendar" subtitle="Day each cart or wishlist last changed" icon={CalendarDays} tone={2} delay={480}>
+            <HeatmapCalendar data={countByDay(charts.activityRows, (r) => r.$updatedAt)} label="changes" />
+          </ChartCard>
+        </TabPanel>
+      ) : (
+        <TabPanel key={tab} className="space-y-6">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_14rem_12rem]">
+            <SearchInput
+              size="sm"
+              value={term}
+              onSearch={setTerm}
+              placeholder={cfg.search}
+              label="Search"
+              className="sm:col-span-2 lg:col-span-1"
+            />
+            <SelectInput
+              size="sm"
+              aria-label="Filter"
+              placeholder={cfg.filterPlaceholder}
+              options={cfg.filters}
+              value={filter}
+              onChange={(v) => setFilter(v || '')}
+              clearable
+            />
+            <SelectInput
+              size="sm"
+              aria-label="Sort"
+              options={cfg.sorts}
+              value={sort}
+              onChange={(v) => setSort(v || cfg.sorts[0].value)}
             />
           </div>
 
           {list.length === 0 ? (
-            <p className="mt-6 rounded-lg border border-dashed border-neutral-300 px-4 py-10 text-center text-neutral-600 dark:border-neutral-700 dark:text-neutral-300">
-              {q
-                ? "No shoppers match that search."
-                : tab === "cart"
-                  ? "No one has anything in their cart."
-                  : "No one has saved a product yet."}
-            </p>
+            <div className="rounded-lg border border-dashed border-border p-10 text-center">
+              <p className="font-display text-2xl font-semibold text-text">
+                {filtered ? 'Nothing matches' : tab === 'carts' ? 'No carts with items' : tab === 'wishlists' ? 'No saved products' : 'No products held'}
+              </p>
+              <p className="mt-1 text-sm text-muted">
+                {filtered ? 'Try a different search or clear the filter.' : 'When shoppers add products they will show up here.'}
+              </p>
+              {filtered && (
+                <ActionButton variant="secondary" className="mt-5" onClick={() => { setTerm(''); setFilter(''); }}>
+                  Clear filters
+                </ActionButton>
+              )}
+            </div>
           ) : (
-            <ul className="mt-4 divide-y divide-neutral-200 border-y border-neutral-200 dark:divide-neutral-800 dark:border-neutral-800">
-              {list.map((e) => (
-                <ShopperRow
-                  key={e.id}
-                  entry={e}
-                  kind={tab}
-                  products={products}
-                  expanded={open === e.id}
-                  onToggle={() => setOpen(open === e.id ? null : e.id)}
-                />
-              ))}
-            </ul>
+            <>
+              <p className="text-xs text-muted">
+                {list.length} {tab === 'products' ? (list.length === 1 ? 'product' : 'products') : list.length === 1 ? 'shopper' : 'shoppers'}
+                {filtered ? ' match' : ''}
+              </p>
+              {tab === 'products' ? (
+                <ProductDemandTable rows={list.slice(0, limit)} />
+              ) : (
+                <HolderList entries={list.slice(0, limit)} kind={tab === 'carts' ? 'cart' : 'wish'} />
+              )}
+              {list.length > limit && (
+                <div className="flex justify-center">
+                  <ActionButton variant="secondary" onClick={() => setLimit((n) => n + SHOW)}>
+                    Show more ({list.length - limit} left)
+                  </ActionButton>
+                </div>
+              )}
+            </>
           )}
-
-          {hasMore && (
-            <button
-              type="button"
-              onClick={() => loadMore(tab)}
-              disabled={state.more === tab}
-              className="mt-4 rounded-md border border-neutral-300 px-4 py-2 text-sm font-medium text-neutral-900 disabled:opacity-50 dark:border-neutral-700 dark:text-white"
-            >
-              {state.more === tab ? "Loading..." : `Load more (${current.total - current.rows.length} left)`}
-            </button>
-          )}
-        </>
+        </TabPanel>
       )}
-    </section>
-  );
-}
-
-function ShopperRow({ entry, kind, products, expanded, onToggle }) {
-  const { row, items } = entry;
-  const who = row.name || row.username || row.email || row.$id;
-  const contact = [row.email, row.phone, row.city].filter(Boolean).join(" | ");
-  const units = items.reduce((n, i) => n + i.quantity, 0);
-  const value = items.reduce((n, i) => n + (Number(products[i.productId]?.price) || 0) * i.quantity, 0);
-  const summary =
-    kind === "cart"
-      ? `${units} ${units === 1 ? "item" : "items"} | ${money(value)}`
-      : `${items.length} saved`;
-
-  return (
-    <li className="py-3">
-      <button
-        type="button"
-        onClick={onToggle}
-        aria-expanded={expanded}
-        className="flex w-full items-center justify-between gap-4 text-left"
-      >
-        <span className="min-w-0">
-          <span className="block truncate font-medium text-neutral-900 dark:text-white">{who}</span>
-          {contact && <span className="block truncate text-sm text-neutral-500 dark:text-neutral-400">{contact}</span>}
-        </span>
-        <span className="shrink-0 text-sm tabular-nums text-neutral-700 dark:text-neutral-300">
-          {summary}
-          <span aria-hidden="true" className="ml-3">{expanded ? "−" : "+"}</span>
-        </span>
-      </button>
-
-      {expanded && (
-        <ul className="mt-3 space-y-2 pl-0 sm:pl-4">
-          {items.map((i, idx) => {
-            const p = products[i.productId];
-            const img = p ? productService.getMainImageUrl(p) : null;
-            return (
-              <li key={`${i.productId}:${idx}`} className="flex items-center gap-3 text-sm">
-                <span className="h-12 w-10 shrink-0 overflow-hidden rounded bg-neutral-100 dark:bg-neutral-800">
-                  {img && <img src={img} alt="" loading="lazy" className="h-full w-full object-cover" />}
-                </span>
-                <span className="min-w-0 flex-1">
-                  {p ? (
-                    <Link
-                      to={PATHS.product(p.category, p.group, p.slug)}
-                      className="block truncate text-neutral-900 hover:underline dark:text-white"
-                    >
-                      {p.name}
-                    </Link>
-                  ) : (
-                    <span className="block truncate text-neutral-500 dark:text-neutral-400">
-                      Product removed ({i.productId})
-                    </span>
-                  )}
-                  {i.variant && <span className="text-neutral-500 dark:text-neutral-400">Option: {i.variant}</span>}
-                </span>
-                {kind === "cart" && (
-                  <span className="shrink-0 tabular-nums text-neutral-700 dark:text-neutral-300">
-                    {i.quantity} x {money(p?.price)}
-                  </span>
-                )}
-              </li>
-            );
-          })}
-        </ul>
-      )}
-    </li>
-  );
-}
-
-function Stat({ label, value }) {
-  return (
-    <div className="rounded-lg border border-neutral-200 p-4 dark:border-neutral-800">
-      <dt className="text-sm text-neutral-600 dark:text-neutral-300">{label}</dt>
-      <dd className="mt-1 text-2xl font-semibold tabular-nums text-neutral-900 dark:text-white">{value}</dd>
     </div>
-  );
-}
-
-function TopList({ title, unit, data, products }) {
-  return (
-    <section className="rounded-lg border border-neutral-200 p-4 dark:border-neutral-800">
-      <h2 className="font-semibold text-neutral-900 dark:text-white">{title}</h2>
-      {data.length === 0 ? (
-        <p className="mt-2 text-sm text-neutral-500 dark:text-neutral-400">Nothing yet.</p>
-      ) : (
-        <ol className="mt-3 space-y-2 text-sm">
-          {data.map(([id, n]) => (
-            <li key={id} className="flex justify-between gap-3">
-              <span className="truncate text-neutral-900 dark:text-white">{products[id]?.name || "Product removed"}</span>
-              <span className="shrink-0 tabular-nums text-neutral-600 dark:text-neutral-300">
-                {n} {unit}
-              </span>
-            </li>
-          ))}
-        </ol>
-      )}
-    </section>
   );
 }
