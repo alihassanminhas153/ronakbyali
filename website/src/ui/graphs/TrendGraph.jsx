@@ -2,10 +2,10 @@ import { useId, useMemo, useState } from 'react';
 import { useReveal, compact } from './utils';
 import { EmptyChart } from './ChartCard';
 
-// data: [{ label, value }]   (oldest first, e.g. monthlySeries() from utils.js)
+// data: [{ label, value }]   (oldest first). Values may be negative (profit / loss).
 const W = 600;
 const H = 210;
-const PAD = { top: 14, right: 12, bottom: 26, left: 34 };
+const PAD = { top: 14, right: 12, bottom: 26, left: 44 };
 
 export default function TrendGraph({ data = [], format = (n) => compact(n), color = 'var(--graph-line)', empty }) {
   const gid = useId();
@@ -14,16 +14,18 @@ export default function TrendGraph({ data = [], format = (n) => compact(n), colo
 
   const geo = useMemo(() => {
     const n = data.length;
-    const maxRaw = Math.max(0, ...data.map((d) => Number(d.value) || 0));
-    const max = maxRaw <= 4 ? 4 : Math.ceil(maxRaw / 4) * 4;
+    const vals = data.map((d) => Number(d.value) || 0);
+    const lo = Math.min(0, ...vals);
+    let hi = Math.max(0, ...vals);
+    if (hi === lo) hi = lo + 4;
     const innerW = W - PAD.left - PAD.right;
     const innerH = H - PAD.top - PAD.bottom;
+    const y = (v) => PAD.top + innerH - ((v - lo) / (hi - lo)) * innerH;
     const pts = data.map((d, i) => ({
       x: PAD.left + (n === 1 ? innerW / 2 : (i / (n - 1)) * innerW),
-      y: PAD.top + innerH - ((Number(d.value) || 0) / max) * innerH,
+      y: y(Number(d.value) || 0),
       ...d,
     }));
-    // smooth line through the points
     let line = '';
     pts.forEach((p, i) => {
       if (i === 0) line = `M${p.x},${p.y}`;
@@ -33,13 +35,13 @@ export default function TrendGraph({ data = [], format = (n) => compact(n), colo
         line += ` C${cx},${prev.y} ${cx},${p.y} ${p.x},${p.y}`;
       }
     });
-    const base = PAD.top + innerH;
+    const base = y(0);
     const area = pts.length ? `${line} L${pts[pts.length - 1].x},${base} L${pts[0].x},${base} Z` : '';
-    return { pts, line, area, max, innerH, base };
+    return { pts, line, area, lo, hi, innerH, base, y };
   }, [data]);
 
   if (!data.length || data.every((d) => !d.value)) return <EmptyChart>{empty}</EmptyChart>;
-  const ticks = [0, 0.5, 1].map((t) => ({ y: PAD.top + geo.innerH - t * geo.innerH, v: Math.round(geo.max * t) }));
+  const ticks = [geo.lo, (geo.lo + geo.hi) / 2, geo.hi].map((v) => ({ y: geo.y(v), v }));
   const active = hover != null ? geo.pts[hover] : null;
   const step = Math.ceil(data.length / 7);
 
@@ -53,12 +55,13 @@ export default function TrendGraph({ data = [], format = (n) => compact(n), colo
           </linearGradient>
         </defs>
 
-        {ticks.map((t) => (
-          <g key={t.y}>
+        {ticks.map((t, i) => (
+          <g key={i}>
             <line x1={PAD.left} x2={W - PAD.right} y1={t.y} y2={t.y} stroke="var(--border)" strokeDasharray="3 4" />
-            <text x={PAD.left - 8} y={t.y + 3} textAnchor="end" fontSize="10" fill="var(--text-muted)">{format(t.v)}</text>
+            <text x={PAD.left - 8} y={t.y + 3} textAnchor="end" fontSize="10" fill="var(--text-muted)">{format(Math.round(t.v))}</text>
           </g>
         ))}
+        {geo.lo < 0 && <line x1={PAD.left} x2={W - PAD.right} y1={geo.base} y2={geo.base} stroke="var(--text-muted)" strokeOpacity="0.5" />}
 
         <path d={geo.area} fill={`url(#${gid})`} style={{ opacity: on ? 1 : 0, transition: 'opacity 0.9s ease 0.3s' }} />
         <path
@@ -75,9 +78,7 @@ export default function TrendGraph({ data = [], format = (n) => compact(n), colo
 
         {geo.pts.map((p, i) => (
           <g key={p.label + i}>
-            {i % step === 0 && (
-              <text x={p.x} y={H - 8} textAnchor="middle" fontSize="10" fill="var(--text-muted)">{p.label}</text>
-            )}
+            {i % step === 0 && <text x={p.x} y={H - 8} textAnchor="middle" fontSize="10" fill="var(--text-muted)">{p.label}</text>}
             <circle
               cx={p.x}
               cy={p.y}
@@ -88,7 +89,7 @@ export default function TrendGraph({ data = [], format = (n) => compact(n), colo
               style={{ opacity: on ? 1 : 0, transition: 'opacity 0.6s ease 0.8s, r 0.15s' }}
             />
             <rect
-              x={p.x - (W / data.length) / 2}
+              x={p.x - W / data.length / 2}
               y={PAD.top}
               width={W / data.length}
               height={geo.innerH + 10}
