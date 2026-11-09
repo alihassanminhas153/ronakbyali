@@ -205,7 +205,7 @@ export default function Sidebar({ area = 'user', collapsed = false, onNavigate, 
           onClick={onNavigate}
           title={collapsed ? user?.name || username : undefined}
           aria-label={collapsed ? user?.name || username : undefined}
-          className="flex h-14 items-center rounded-md transition-colors hover:bg-surface-alt focus-visible:-outline-offset-2 focus-visible:outline-accent"
+          className="flex gap-2 h-14 items-center rounded-md transition-colors hover:bg-surface-alt focus-visible:-outline-offset-2 focus-visible:outline-accent"
         >
           <IconCell>
             <Avatar profile={user} />
