@@ -21,31 +21,70 @@
 @font-face {
   font-family: "Inter";
   src: url("/public/fonts/Inter-VariableFont_opsz\,wght.ttf") format("truetype");
-  font-weight: 400 600;
+  font-weight: 100 900; /* widened so heading weights (600-800) render correctly */
   font-style: normal;
   font-display: swap;
 }
 
-/* ---------- Theme variables: DARK (default) ---------- */
-:root {
-  color-scheme: dark;
+/* Panel / section heading font (admin + user panels) */
+@font-face {
+  font-family: "Space Grotesk";
+  src: url("/public/fonts/SpaceGrotesk-VariableFont_wght.ttf") format("truetype");
+  font-weight: 300 700;
+  font-style: normal;
+  font-display: swap;
+}
 
-  --bg: #0a0a0b;
-  --surface: #111113;
-  --surface-alt: #18181b;
-  --border: #27272a;
-  --text: #ededee;
-  --text-muted: #8b8b93;
-  --accent: #3d6df2;
-  --accent-hover: #5a85f5;
+/* ---------- Theme variables: LIGHT (default) ----------
+   Neutral base + ONE accent (orange) and its shades.
+   Green is reserved for success states only. */
+:root {
+  color-scheme: light;
+
+  /* Neutrals */
+  --bg: #ffffff;
+  --surface: #faf9f8;
+  --surface-alt: #f1efed;
+  --border: #e5e2de;
+  --text: #262626;            /* dark gray text */
+  --text-muted: #6b6b6b;
+
+  /* Accent: orange + its shades */
+  --accent: #c2571a;          /* main orange: links, active states, highlights */
+  --accent-hover: #9c4313;    /* darker orange shade */
+  --accent-soft: color-mix(in srgb, var(--accent) 10%, var(--bg));  /* light orange tint for backgrounds */
   --on-accent: #ffffff;
-  --success: #3fb27f;
-  --warning: #e0a030;
-  --error: #e5484d;
-  --shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+  --link: var(--accent);
+
+  /* Buttons: deep brown (dark shade of the orange family) */
+  --brown: #7a4a2b;
+  --brown-hover: #5a3419;
+  --on-brown: #ffffff;
+
+  /* Graph palette: independent of the theme colours. Change these to recolour every chart. */
+  --graph-1: #4457d9;   /* indigo */
+  --graph-2: #0f8f8c;   /* teal */
+  --graph-3: #b9770e;   /* amber */
+  --graph-4: #d6405a;   /* rose */
+  --graph-5: #2486c9;   /* sky */
+  --graph-6: #7a54c6;   /* violet */
+  --graph-7: #2f9460;   /* emerald */
+  --graph-8: #6b7886;   /* slate */
+  --graph-heat: var(--graph-2);   /* heatmap calendar */
+  --graph-line: var(--graph-1);   /* trend lines */
+
+  /* Big call-to-action button (add product) */
+  --cta-1: #3f4fd1;
+  --cta-2: #12898a;
+
+  /* Status colors (green only for success, used sparingly) */
+  --success: #3f7a4f;
+  --warning: #c9822b;
+  --error: #c0392b;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
 
   /* Coming-soon page shadow colour (used as var(--card-shadow)) */
-  --card-shadow: rgba(0, 0, 0, 0.5);
+  --card-shadow: rgba(0, 0, 0, 0.08);
 
   /* Legacy names used by the coming-soon page. They only point at the
      variables above, so they follow the theme automatically. */
@@ -58,26 +97,50 @@
   --sage: var(--accent);
   --sage-deep: var(--accent-hover);
   --sage-wash: color-mix(in srgb, var(--accent) 8%, var(--bg));
-  --btn: var(--text);
-  --btn-ink: var(--bg);
-  --btn-hover: color-mix(in srgb, var(--text) 85%, var(--bg));
+  --btn: var(--brown);
+  --btn-ink: var(--on-brown);
+  --btn-hover: var(--brown-hover);
 }
 
-/* ---------- DARK (explicit, same values) ---------- */
+/* ---------- DARK (opt-in: dark gray / light black, white text) ---------- */
 :root[data-theme="dark"],
 .dark {
-  --bg: #0a0a0b;
-  --surface: #111113;
-  --surface-alt: #18181b;
-  --border: #27272a;
-  --text: #ededee;
-  --text-muted: #8b8b93;
-  --accent: #3d6df2;
-  --accent-hover: #5a85f5;
-  --on-accent: #ffffff;
-  --success: #3fb27f;
+  color-scheme: dark;
+
+  --bg: #141414;
+  --surface: #1c1c1c;
+  --surface-alt: #262626;
+  --border: #333333;
+  --text: #f5f5f5;            /* white-type text */
+  --text-muted: #a3a3a3;
+
+  --accent: #f0803c;
+  --accent-hover: #ff9a5c;
+  --accent-soft: color-mix(in srgb, var(--accent) 14%, var(--bg));
+  --on-accent: #141414;
+  --link: var(--accent);
+
+  --graph-1: #8397ff;
+  --graph-2: #4fd1c5;
+  --graph-3: #f2b84b;
+  --graph-4: #ff7a90;
+  --graph-5: #63b8f5;
+  --graph-6: #b394f2;
+  --graph-7: #5fcf8d;
+  --graph-8: #a3afbb;
+  --graph-heat: var(--graph-2);
+  --graph-line: var(--graph-1);
+
+  --cta-1: #4a5ae0;
+  --cta-2: #168f8c;
+
+  --brown: #9a5f35;
+  --brown-hover: #b4743f;
+  --on-brown: #ffffff;
+
+  --success: #7fb08a;
   --warning: #e0a030;
-  --error: #e5484d;
+  --error: #e0674f;
   --shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
   --card-shadow: rgba(0, 0, 0, 0.5);
 }
@@ -94,6 +157,19 @@
   --color-muted: var(--text-muted);
   --color-accent: var(--accent);
   --color-accent-hover: var(--accent-hover);
+  --color-accent-soft: var(--accent-soft);
+  --color-graph-1: var(--graph-1);
+  --color-graph-2: var(--graph-2);
+  --color-graph-3: var(--graph-3);
+  --color-graph-4: var(--graph-4);
+  --color-graph-5: var(--graph-5);
+  --color-graph-6: var(--graph-6);
+  --color-graph-7: var(--graph-7);
+  --color-graph-8: var(--graph-8);
+  --color-link: var(--link);
+  --color-brown: var(--brown);
+  --color-brown-hover: var(--brown-hover);
+  --color-on-brown: var(--on-brown);
   --color-on-accent: var(--on-accent);
   --color-success: var(--success);
   --color-warning: var(--warning);
@@ -111,14 +187,20 @@
   --color-sage: var(--accent);
   --color-sage-deep: var(--accent-hover);
   --color-sage-wash: color-mix(in srgb, var(--accent) 8%, var(--bg));
-  --color-btn: var(--text);
-  --color-btn-ink: var(--bg);
-  --color-btn-hover: color-mix(in srgb, var(--text) 85%, var(--bg));
+  --color-btn: var(--brown);
+  --color-btn-ink: var(--on-brown);
+  --color-btn-hover: var(--brown-hover);
 }
 
 /* Static tokens (same in both themes) */
 @theme {
+  /* Tall font: large hero headings only */
   --font-display: "Barlow Condensed", "Arial Narrow", sans-serif;
+
+  /* NEW: clean heading font for admin panel, user panel, section titles.
+     Tailwind utility: font-heading */
+  --font-heading: "Space Grotesk", "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+
   --font-body: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-sans: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-serif: "Cormorant Garamond", Georgia, serif;
@@ -129,8 +211,38 @@
   --radius-lg: 16px;
 
   --animate-fade: fade-in 1.2s ease both;
+  --animate-rise: rise 0.45s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  --animate-ring: ring 2.4s ease-out infinite;
+  --animate-caret: caret 1s steps(1) infinite;
+  --animate-nudge: nudge 1.4s ease-in-out infinite;
+  --animate-float: float 5s ease-in-out infinite;
   --animate-jelly-drop: jelly-drop 2.1s both;
   --animate-ground-pulse: ground-pulse 2.1s ease both;
+
+  @keyframes rise {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes caret {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+  }
+
+  @keyframes nudge {
+    0%, 100% { transform: translateX(0); }
+    50% { transform: translateX(5px); }
+  }
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-6px); }
+  }
+
+  @keyframes ring {
+    0% { opacity: 0.55; transform: scale(1); }
+    80%, 100% { opacity: 0; transform: scale(1.9); }
+  }
 
   @keyframes fade-in {
     from { opacity: 0; }
@@ -183,29 +295,105 @@
   }
 }
 
-/* ---------- Base styles ---------- */
+/* ---------- Base styles (mobile first) ---------- */
 @layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+  }
   html,
   body,
   #root {
-    height: 100%;
     margin: 0;
-    overflow: hidden; /* the page always fits the viewport, never scrolls */
+    min-height: 100%;   /* was height:100% + overflow:hidden, which blocked scrolling */
   }
   body {
     background: var(--bg);
     color: var(--text);
     font-family: var(--font-sans);
+    font-size: 1rem;
+    line-height: 1.55;
+    overflow-x: clip;   /* stops sideways scroll on phones, vertical scroll is free */
     -webkit-font-smoothing: antialiased;
   }
 
-  /* Opt-in tall heading style: <h2 class="display">... */
+  a {
+    color: var(--link);
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+  a:hover { color: var(--accent-hover); }   /* darker orange on hover */
+
+  ::selection { background: var(--accent-soft); color: var(--text); }
+
+  /* Pointer cursor on everything clickable, "not-allowed" when disabled */
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  [role="tab"],
+  [role="switch"],
+  [role="option"],
+  summary,
+  select,
+  label[for],
+  input[type="checkbox"],
+  input[type="file"] { cursor: pointer; }
+  button:disabled,
+  [aria-disabled="true"] { cursor: not-allowed; }
+
+  /* No up/down arrows on number inputs */
+  input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
+  input[type="number"]::-webkit-outer-spin-button,
+  input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+
+  .no-scrollbar { scrollbar-width: none; }
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+  }
+
+  img, video, svg { max-width: 100%; height: auto; }
+
+  /* Inputs at 16px so iOS Safari does not zoom on focus */
+  input, select, textarea {
+    font: inherit;
+    font-size: 1rem;
+    color: var(--text);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 0.7rem 0.85rem;
+    min-height: 44px;
+    width: 100%;
+    transition: border-color 0.2s;
+  }
+  input::placeholder, textarea::placeholder { color: var(--text-muted); }
+  input:focus, select:focus, textarea:focus { border-color: var(--accent); outline: none; }
+
+  /* Tall hero headings only: <h1 class="display"> */
   .display {
     font-family: var(--font-display);
     font-weight: 700;
     line-height: 1.05;
     letter-spacing: 0.01em;
     text-transform: uppercase;
+  }
+
+  /* Panel / section headings (admin panel, user panel):
+     <h2 class="heading">, or Tailwind: font-heading */
+  .heading {
+    font-family: var(--font-heading);
+    font-weight: 600;
+    line-height: 1.2;
+    letter-spacing: -0.01em;
+    font-size: 1.25rem;
+  }
+  .heading-sm {
+    font-family: var(--font-heading);
+    font-weight: 600;
+    line-height: 1.3;
+    font-size: 1rem;
   }
 
   :focus-visible {
@@ -217,24 +405,47 @@
 /* ---------- Optional reusable components ---------- */
 @layer components {
   .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;           /* comfortable tap target */
     font-weight: 500;
     font-size: 0.95rem;
-    padding: 0.75rem 1.5rem;
+    padding: 0.7rem 1.25rem;
     border-radius: var(--radius-sm);
     border: 1px solid transparent;
-    transition: background-color 0.2s, transform 0.2s;
+    transition: background-color 0.2s, border-color 0.2s;
   }
-  .btn-primary { background: var(--accent); color: var(--on-accent); }
-  .btn-primary:hover { background: var(--accent-hover); transform: translateY(-1px); text-decoration: none; }
+  .btn-primary { background: var(--brown); color: var(--on-brown); }
+  .btn-primary:hover { background: var(--brown-hover); text-decoration: none; }
   .btn-ghost { background: transparent; color: var(--text); border-color: var(--border); }
-  .btn-ghost:hover { background: var(--surface-alt); text-decoration: none; }
+  .btn-ghost:hover { background: var(--surface-alt); border-color: var(--accent); text-decoration: none; }
 
   .card {
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--radius-md);
-    padding: 1.5rem;
-    transition: box-shadow 0.2s, transform 0.2s;
+    padding: 1rem;
+    transition: border-color 0.2s;
   }
-  .card:hover { box-shadow: var(--shadow); }
+  .card:hover { border-color: color-mix(in srgb, var(--accent) 45%, var(--border)); }
+
+  /* Page wrapper for admin / user panels */
+  .container-page {
+    width: 100%;
+    max-width: 72rem;
+    margin-inline: auto;
+    padding-inline: 1rem;
+  }
+}
+
+/* ---------- Larger screens (progressive enhancement) ---------- */
+@media (min-width: 640px) {
+  .container-page { padding-inline: 1.5rem; }
+  .heading { font-size: 1.5rem; }
+}
+@media (min-width: 1024px) {
+  .container-page { padding-inline: 2rem; }
+  .card { padding: 1.5rem; }
+  .heading { font-size: 1.75rem; }
 }
