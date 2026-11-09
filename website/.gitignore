@@ -23,15 +23,10 @@ dist-ssr
 *.sln
 *.sw?
 
-# md Files needed for development
-THEME.md
-DESIGN.md
-CODEBASE_BRIEF.md
-
-# all txt files
+# Documentation and text files
+*.md
 *.txt
-!websiteFileStructure.txt
 
 .env
 .env.sample
-qppwrite.config.json
+appwrite.config.json
