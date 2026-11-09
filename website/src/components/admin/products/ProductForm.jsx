@@ -124,6 +124,7 @@ export default function ProductForm({ open, product, categories = [], groups = [
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
   const [submitError, setSubmitError] = useState('');
+  const [dragOver, setDragOver] = useState(false);
 
   // Images in display order. Existing: { key, id, url }  New (uploaded on save): { key, file, url }
   const [images, setImages] = useState(() =>
@@ -355,27 +356,40 @@ export default function ProductForm({ open, product, categories = [], groups = [
 
           <section style={{ animationDelay: '240ms', borderTopColor: 'var(--graph-6)' }} className="group/sec animate-rise rounded-lg border border-border border-t-2 bg-surface-alt/40 p-4">
             <SectionHead icon={ImageIcon} tone={6} title="Images" subtitle="The first image is the main one. Tap the star on an image to make it main." />
-            <div className="mt-4 grid grid-cols-3 gap-3 sm:grid-cols-4">
-              {images.map((img, i) => (
-                <div key={img.key} className="group animate-rise relative aspect-square overflow-hidden rounded-md border border-border bg-surface">
-                  <img src={img.url} alt="" className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" />
-                  {i === 0 && <span className="absolute left-1.5 top-1.5 rounded-full bg-graph-6 px-2 py-0.5 text-[10px] font-medium text-white">Main</span>}
-                  <div className="absolute inset-x-0 bottom-0 flex justify-end gap-1 bg-gradient-to-t from-black/50 to-transparent p-1.5 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100">
-                    {i !== 0 && (
-                      <button type="button" aria-label="Make main" onClick={() => makeMain(img)} className="grid h-7 w-7 place-items-center rounded bg-white/90 text-black"><Star size={14} /></button>
-                    )}
-                    <button type="button" aria-label="Remove image" onClick={() => removeImage(img)} className="grid h-7 w-7 place-items-center rounded bg-white/90 text-black"><X size={14} /></button>
+            {/* full-width rectangular upload button + drop zone */}
+            <button
+              type="button"
+              onClick={() => fileInput.current?.click()}
+              onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+              onDragLeave={() => setDragOver(false)}
+              onDrop={(e) => { e.preventDefault(); setDragOver(false); addFiles(e.dataTransfer.files); }}
+              className={`mt-4 flex w-full items-center justify-center gap-3 rounded-md border border-dashed px-4 py-5 text-sm transition-colors ${
+                dragOver ? 'border-graph-6 bg-graph-6/10 text-graph-6' : 'border-border bg-surface text-muted hover:border-graph-6 hover:bg-graph-6/10 hover:text-graph-6'
+              }`}
+            >
+              <ImagePlus size={22} className="shrink-0" />
+              <span className="text-left">
+                <span className="block font-medium">Click to upload images</span>
+                <span className="block text-xs opacity-80">or drag and drop them here</span>
+              </span>
+            </button>
+
+            {images.length > 0 && (
+              <div className="mt-3 grid grid-cols-3 gap-3 sm:grid-cols-4">
+                {images.map((img, i) => (
+                  <div key={img.key} className="group animate-rise relative aspect-square overflow-hidden rounded-md border border-border bg-surface">
+                    <img src={img.url} alt="" className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" />
+                    {i === 0 && <span className="absolute left-1.5 top-1.5 rounded-full bg-graph-6 px-2 py-0.5 text-[10px] font-medium text-white">Main</span>}
+                    <div className="absolute inset-x-0 bottom-0 flex justify-end gap-1 bg-gradient-to-t from-black/50 to-transparent p-1.5 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100">
+                      {i !== 0 && (
+                        <button type="button" aria-label="Make main" onClick={() => makeMain(img)} className="grid h-7 w-7 place-items-center rounded bg-white/90 text-black"><Star size={14} /></button>
+                      )}
+                      <button type="button" aria-label="Remove image" onClick={() => removeImage(img)} className="grid h-7 w-7 place-items-center rounded bg-white/90 text-black"><X size={14} /></button>
+                    </div>
                   </div>
-                </div>
-              ))}
-              <button
-                type="button"
-                onClick={() => fileInput.current?.click()}
-                className="grid aspect-square place-items-center rounded-md border border-dashed border-border text-muted transition-colors hover:border-graph-6 hover:bg-graph-6/10 hover:text-graph-6"
-              >
-                <span className="grid justify-items-center gap-1 text-xs"><ImagePlus size={20} />Add</span>
-              </button>
-            </div>
+                ))}
+              </div>
+            )}
             <input ref={fileInput} type="file" accept="image/*" multiple hidden onChange={(e) => { addFiles(e.target.files); e.target.value = ''; }} />
           </section>
 
@@ -390,7 +404,12 @@ export default function ProductForm({ open, product, categories = [], groups = [
           <p role="alert" className={`min-w-0 flex-1 text-sm text-error transition-opacity ${submitError ? 'opacity-100' : 'opacity-0'}`}>{submitError}</p>
           <div className="flex gap-2">
             <button type="button" onClick={onClose} disabled={saving} className="btn btn-ghost">Cancel</button>
-            <button type="submit" disabled={saving} className="btn btn-primary min-w-32 disabled:opacity-60">
+            <button
+              type="submit"
+              disabled={saving}
+              style={{ background: 'linear-gradient(120deg, var(--brown), var(--accent))', color: 'var(--on-brown)' }}
+              className="btn min-w-32 transition-[filter,transform] hover:brightness-110 active:scale-95 disabled:opacity-60"
+            >
               {saving ? 'Saving…' : editing ? 'Save changes' : 'Create product'}
             </button>
           </div>

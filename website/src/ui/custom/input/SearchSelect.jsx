@@ -1,6 +1,6 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { Check, ChevronDown, Plus, Search, X } from 'lucide-react';
-import { colorFor } from '../../graphs/utils';
+import { colorFor, tint } from '../../graphs/utils';
 
 // Searchable dropdown. Pick an existing option or (creatable) type a new one.
 //   <SearchSelect options={['Lawn','Kurta']} value={v} onChange={setV} placeholder="Select category" />
@@ -19,6 +19,7 @@ export default function SearchSelect({
   const id = useId();
   const root = useRef(null);
   const searchRef = useRef(null);
+  const listRef = useRef(null);
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [cursor, setCursor] = useState(0);
@@ -43,6 +44,9 @@ export default function SearchSelect({
   }, [open]);
 
   useEffect(() => setCursor(0), [q]);
+  useEffect(() => {
+    if (open) listRef.current?.children[cursor]?.scrollIntoView({ block: 'nearest' });
+  }, [cursor, open]);
 
   const onKey = (e) => {
     if (e.key === 'ArrowDown') { e.preventDefault(); setCursor((c) => Math.min(c + 1, rows.length - 1)); }
@@ -68,8 +72,16 @@ export default function SearchSelect({
           error ? 'border-error' : open ? 'border-graph-1' : 'border-border hover:border-graph-1/60'
         }`}
       >
-        {value && <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: colorFor(value) }} />}
-        <span className={`min-w-0 flex-1 truncate ${value ? 'text-text' : 'text-muted/70'}`}>{value || placeholder}</span>
+        <span className="min-w-0 flex-1">
+          {value ? (
+            <span className="inline-flex max-w-full items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium" style={{ background: tint(colorFor(value), 14), color: colorFor(value) }}>
+              <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: colorFor(value) }} />
+              <span className="truncate">{value}</span>
+            </span>
+          ) : (
+            <span className="block truncate text-muted/70">{placeholder}</span>
+          )}
+        </span>
         {clearable && value && (
           <span
             role="button"
@@ -100,8 +112,9 @@ export default function SearchSelect({
             placeholder={searchPlaceholder}
             className="min-h-10 flex-1 border-0 bg-transparent p-0 text-sm"
           />
+          <span className="shrink-0 text-[11px] tabular-nums text-muted">{filtered.length}/{options.length}</span>
         </div>
-        <ul className="max-h-56 overflow-y-auto p-1">
+        <ul ref={listRef} className="max-h-60 overflow-y-auto p-1">
           {rows.length === 0 && <li className="px-3 py-6 text-center text-xs text-muted">No matches</li>}
           {rows.map((r, i) => {
             const isCreate = typeof r !== 'string';

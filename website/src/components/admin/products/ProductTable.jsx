@@ -1,5 +1,6 @@
 import { ImageOff, Pencil, Star, Trash2 } from 'lucide-react';
 import productService from '../../../lib/appwrite/product';
+import Tooltip from '../../../ui/custom/tooltip/Tooltip';
 import { colorFor, tint } from '../../../ui/graphs/utils';
 
 // props: products[], busyId, onEdit(product), onDelete(product), onToggleFeatured(product)
@@ -58,14 +59,32 @@ function Price({ product }) {
 }
 
 function Actions({ product, busy, onEdit, onDelete, onToggleFeatured }) {
-  const btn = 'grid h-9 w-9 place-items-center rounded-md text-muted transition-colors hover:bg-surface-alt disabled:opacity-50';
+  const btn = 'grid h-9 w-9 place-items-center rounded-md transition-colors disabled:opacity-50';
+  const featured = Boolean(product.featured);
   return (
     <div className="flex items-center gap-0.5">
-      <button type="button" disabled={busy} onClick={() => onToggleFeatured(product)} aria-label={product.featured ? 'Remove from featured' : 'Mark as featured'} aria-pressed={Boolean(product.featured)} className={`${btn} ${product.featured ? 'text-graph-3' : 'hover:text-graph-3'}`}>
-        <Star size={16} className={`transition-transform duration-200 ${product.featured ? 'scale-110' : ''}`} fill={product.featured ? 'currentColor' : 'none'} />
-      </button>
-      <button type="button" onClick={() => onEdit(product)} aria-label="Edit product" className={`${btn} hover:text-text`}><Pencil size={16} /></button>
-      <button type="button" onClick={() => onDelete(product)} aria-label="Delete product" className={`${btn} hover:bg-error/10 hover:text-error`}><Trash2 size={16} /></button>
+      <Tooltip label={featured ? 'Featured · click to remove' : 'Mark as featured'} tone={featured ? 'accent' : 'default'} hideOnClick={false}>
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => onToggleFeatured(product)}
+          aria-label={featured ? 'Remove from featured' : 'Mark as featured'}
+          aria-pressed={featured}
+          className={`${btn} hover:bg-surface-alt ${featured ? 'text-accent' : 'text-muted hover:text-accent'}`}
+        >
+          <Star size={16} className={`transition-transform duration-200 ${featured ? 'scale-110' : ''}`} fill={featured ? 'currentColor' : 'none'} />
+        </button>
+      </Tooltip>
+      <Tooltip label="Edit product">
+        <button type="button" onClick={() => onEdit(product)} aria-label="Edit product" className={`${btn} text-muted hover:bg-surface-alt hover:text-text`}>
+          <Pencil size={16} />
+        </button>
+      </Tooltip>
+      <Tooltip label="Delete product" tone="danger">
+        <button type="button" onClick={() => onDelete(product)} aria-label="Delete product" className={`${btn} text-muted hover:bg-error/10 hover:text-error`}>
+          <Trash2 size={16} />
+        </button>
+      </Tooltip>
     </div>
   );
 }
@@ -110,13 +129,13 @@ export default function ProductTable({ products = [], busyId, onEdit, onDelete, 
           </thead>
           <tbody className="divide-y divide-border">
             {products.map((p, i) => (
-              <tr key={p.$id} style={rise(i)} className="animate-rise transition-colors hover:bg-surface-alt/50">
+              <tr key={p.$id} style={rise(i)} className="group/row animate-rise transition-colors hover:bg-surface-alt/50">
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-3">
                     <Thumb product={p} />
                     <div className="min-w-0">
                       <p className="max-w-64 truncate text-sm font-medium text-text">{p.name}</p>
-                      <p className="max-w-64 truncate text-xs text-muted">/{p.slug}</p>
+                      <p className="max-w-64 truncate text-xs text-muted transition-colors duration-200 group-hover/row:text-graph-7">/{p.slug}</p>
                     </div>
                   </div>
                 </td>

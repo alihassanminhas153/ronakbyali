@@ -216,7 +216,7 @@ export default function Products() {
       <button
         type="button"
         onClick={openAdd}
-        style={{ background: 'linear-gradient(120deg, var(--cta-1), var(--cta-2))' }}
+        style={{ background: 'linear-gradient(120deg, var(--brown), var(--accent))' }}
         className="group relative isolate flex w-full items-center gap-4 overflow-hidden rounded-2xl p-5 text-left text-white transition-all duration-300 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.99] sm:gap-6 sm:p-7"
       >
         {/* decorative shapes */}
@@ -239,8 +239,8 @@ export default function Products() {
           <span className="mt-0.5 hidden text-sm text-white/75 sm:block">Fill in the details once and it goes live in your store.</span>
         </span>
 
-        <span className="relative hidden shrink-0 items-center gap-2 rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-[color:var(--cta-1)] transition-transform duration-300 group-hover:scale-105 sm:inline-flex">
-          Get started
+        <span className="relative hidden shrink-0 items-center gap-2 rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-[color:var(--brown)] transition-transform duration-300 group-hover:scale-105 sm:inline-flex">
+          Add product
           <ArrowRight size={16} className="group-hover:animate-nudge" />
         </span>
       </button>

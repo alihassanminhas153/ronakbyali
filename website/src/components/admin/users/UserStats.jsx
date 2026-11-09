@@ -1,22 +1,33 @@
+import { Ban, ShoppingBag, UserCheck, Users, Wallet } from 'lucide-react';
+
 import { useAppSelector } from '../../../store/slices/hooks';
 import { selectUserStats } from '../../../store/slices/userSlice';
-import useEntered from '../../../ui/custom/motion/useEntered';
+import CountUp from '../../../ui/custom/motion/CountUp';
+import { tint } from '../../../ui/graphs/utils';
 import { RoleBadge } from './UserBadges';
-import { ROLE_VALUES, formatInt, formatMoney } from './userFields';
+import { ROLE_VALUES, formatMoney } from './userFields';
 
-function Tile({ label, value, tone = 'text-text', index, loading }) {
-  const entered = useEntered(index * 40);
+function Tile({ label, icon: Icon, color, index, loading, count, text }) {
   return (
     <div
-      className={`rounded-lg border border-border bg-surface px-4 py-3 transition duration-300 ease-out motion-reduce:transition-none ${
-        entered ? 'translate-y-0 opacity-100' : 'translate-y-2 opacity-0'
-      }`}
+      style={{ animationDelay: `${index * 50}ms`, borderTopColor: color }}
+      className="group/tile animate-rise rounded-lg border border-border border-t-2 bg-surface px-4 py-3 transition-colors hover:border-border hover:bg-surface-alt/40"
     >
-      <p className="text-xs text-muted">{label}</p>
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-xs text-muted">{label}</p>
+        <span
+          className="grid size-8 place-items-center rounded-lg transition-transform duration-300 group-hover/tile:-rotate-6 group-hover/tile:scale-110"
+          style={{ background: tint(color, 14), color }}
+        >
+          <Icon size={16} aria-hidden="true" />
+        </span>
+      </div>
       {loading ? (
-        <div className="mt-1.5 h-6 w-16 animate-pulse rounded-sm bg-surface-alt motion-reduce:animate-none" />
+        <div className="mt-2 h-7 w-16 animate-pulse rounded-sm bg-surface-alt motion-reduce:animate-none" />
       ) : (
-        <p className={`mt-1 text-xl font-semibold tabular-nums ${tone}`}>{value}</p>
+        <p className="mt-1 text-2xl font-semibold tabular-nums text-text">
+          {text ?? <CountUp value={count} />}
+        </p>
       )}
     </div>
   );
@@ -27,11 +38,11 @@ export default function UserStats({ loading = false }) {
   const stats = useAppSelector(selectUserStats);
 
   const tiles = [
-    { label: 'Total users', value: formatInt(stats.total) },
-    { label: 'Active', value: formatInt(stats.active), tone: 'text-success' },
-    { label: 'Blocked', value: formatInt(stats.blocked), tone: stats.blocked ? 'text-error' : 'text-text' },
-    { label: 'Orders', value: formatInt(stats.orders) },
-    { label: 'Total spent', value: formatMoney(stats.totalSpent) },
+    { label: 'Total users', icon: Users, color: 'var(--graph-1)', count: stats.total },
+    { label: 'Active', icon: UserCheck, color: 'var(--graph-7)', count: stats.active },
+    { label: 'Blocked', icon: Ban, color: 'var(--graph-4)', count: stats.blocked },
+    { label: 'Orders', icon: ShoppingBag, color: 'var(--graph-5)', count: stats.orders },
+    { label: 'Total spent', icon: Wallet, color: 'var(--graph-3)', text: formatMoney(stats.totalSpent) },
   ];
   const roles = ROLE_VALUES.filter((role) => stats.byRole[role]);
 

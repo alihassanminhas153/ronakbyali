@@ -2,6 +2,9 @@
 // (the equivalent of productFields.js). Columns come from `ronakbyali_users`.
 import { productService } from '../../../store/slices/services';
 import { getAvatarUrl } from '../../../store/slices/authSlice';
+import { colorFor } from '../../../ui/graphs/utils';
+import { KeyRound, Mail } from 'lucide-react';
+import { FaApple, FaDiscord, FaFacebook, FaGithub, FaGoogle, FaMicrosoft } from 'react-icons/fa';
 
 /* ---------- roles ---------- */
 
@@ -32,6 +35,35 @@ export const ROLE_TONE = {
   loyal: 'border-success/30 bg-success/10 text-success',
   new: 'border-border bg-surface-alt text-text',
 };
+
+// Same idea as the product category chips: soft tint + solid text, taken from the graph palette.
+export const ROLE_COLOR = {
+  admin: 'var(--graph-4)',
+  support: 'var(--graph-5)',
+  manager: 'var(--graph-3)',
+  customer: 'var(--graph-2)',
+  loyal: 'var(--graph-7)',
+  new: 'var(--graph-8)',
+};
+
+/* ---------- sign-in methods (users.authProvider) ---------- */
+
+export const PROVIDERS = {
+  email: { label: 'Email', icon: Mail, color: 'var(--graph-1)' },
+  google: { label: 'Google', icon: FaGoogle, color: 'var(--graph-4)' },
+  github: { label: 'GitHub', icon: FaGithub, color: 'var(--graph-8)' },
+  facebook: { label: 'Facebook', icon: FaFacebook, color: 'var(--graph-5)' },
+  apple: { label: 'Apple', icon: FaApple, color: 'var(--graph-6)' },
+  microsoft: { label: 'Microsoft', icon: FaMicrosoft, color: 'var(--graph-2)' },
+  discord: { label: 'Discord', icon: FaDiscord, color: 'var(--graph-6)' },
+};
+
+// Unknown providers still get an icon and a stable colour.
+export function providerMeta(key) {
+  const k = String(key || 'email').toLowerCase();
+  return PROVIDERS[k] || { label: cap(k), icon: KeyRound, color: colorFor(k) };
+}
+export const providerOf = (user) => String(user?.authProvider || 'email').toLowerCase();
 
 /* ---------- guards (the slice enforces them too) ---------- */
 
@@ -73,6 +105,13 @@ export function timeAgo(value) {
   }
   return 'Just now';
 }
+
+export const shortDate = (value) => {
+  const date = new Date(value);
+  return value && !Number.isNaN(date.getTime())
+    ? date.toLocaleDateString('en', { day: 'numeric', month: 'short', year: 'numeric' })
+    : '—';
+};
 
 export function initialsOf(user) {
   const source = (user?.name || user?.username || user?.email || '?').trim();

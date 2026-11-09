@@ -1,26 +1,41 @@
 import { useState } from 'react';
-import { Ban, Globe, Mail, ShieldCheck } from 'lucide-react';
+import { Ban, MapPin, ShieldCheck } from 'lucide-react';
 
-import { ROLE_TONE, avatarOf, initialsOf, isTeamRole } from './userFields';
+import Tooltip from '../../../ui/custom/tooltip/Tooltip';
+import { colorFor, tint } from '../../../ui/graphs/utils';
+import { ROLE_COLOR, avatarOf, initialsOf, isTeamRole, providerMeta } from './userFields';
+
+// Soft tinted pill, the same look as the category chips in the products table.
+function Chip({ color, icon: Icon, children, className = '' }) {
+  return (
+    <span
+      className={`inline-flex max-w-full items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ${className}`}
+      style={{ background: tint(color, 14), color }}
+    >
+      {Icon ? (
+        <Icon size={12} aria-hidden="true" className="shrink-0" />
+      ) : (
+        <span aria-hidden="true" className="size-1.5 shrink-0 rounded-full" style={{ background: color }} />
+      )}
+      <span className="truncate">{children}</span>
+    </span>
+  );
+}
 
 // `size` carries both the box and the initials text size, e.g. 'size-16 text-lg'.
-export function Avatar({ user, size = 'size-10 text-sm' }) {
+export function Avatar({ user, size = 'size-10 text-sm', className = '' }) {
   const src = avatarOf(user);
   const [brokenSrc, setBrokenSrc] = useState('');
   const showImage = src && src !== brokenSrc;
+  const color = colorFor(user?.$id || user?.email || user?.name);
 
   return (
     <span
-      className={`flex shrink-0 items-center justify-center overflow-hidden rounded-full border border-border bg-surface-alt font-medium text-muted ${size}`}
+      style={showImage ? undefined : { background: tint(color, 14), color }}
+      className={`flex shrink-0 items-center justify-center overflow-hidden rounded-full border border-border bg-surface-alt font-medium text-muted transition-transform duration-300 ${size} ${className}`}
     >
       {showImage ? (
-        <img
-          src={src}
-          alt=""
-          referrerPolicy="no-referrer"
-          onError={() => setBrokenSrc(src)}
-          className="size-full object-cover"
-        />
+        <img src={src} alt="" referrerPolicy="no-referrer" onError={() => setBrokenSrc(src)} className="size-full object-cover" />
       ) : (
         <span aria-hidden="true">{initialsOf(user)}</span>
       )}
@@ -32,35 +47,25 @@ export function Avatar({ user, size = 'size-10 text-sm' }) {
 export function RoleBadge({ role }) {
   const value = role || 'new';
   const team = isTeamRole(value);
-  return (
-    <span
-      title={team ? 'Team member' : undefined}
-      className={`inline-flex items-center gap-1 rounded-sm border px-2 py-0.5 text-xs font-medium capitalize ${
-        ROLE_TONE[value] || ROLE_TONE.new
-      }`}
-    >
-      {team && <ShieldCheck size={12} aria-hidden="true" />}
+  const chip = (
+    <Chip color={ROLE_COLOR[value] || 'var(--graph-8)'} icon={team ? ShieldCheck : undefined} className="capitalize">
       {value}
-    </span>
+    </Chip>
   );
+  return team ? <Tooltip label="Team member">{chip}</Tooltip> : chip;
 }
 
+// Icon + colour per sign-in method (email, google, github ...).
 export function ProviderChip({ provider }) {
-  const value = provider || 'email';
-  const Icon = value === 'google' ? Globe : Mail;
-  return (
-    <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface-alt px-2 py-0.5 text-xs capitalize text-muted">
-      <Icon size={12} aria-hidden="true" />
-      {value}
-    </span>
-  );
+  const meta = providerMeta(provider);
+  return <Chip color={meta.color} icon={meta.icon}>{meta.label}</Chip>;
+}
+
+export function CityChip({ city }) {
+  if (!city) return null;
+  return <Chip color={colorFor(city)} icon={MapPin}>{city}</Chip>;
 }
 
 export function BlockedBadge() {
-  return (
-    <span className="inline-flex items-center gap-1 rounded-sm border border-error/30 bg-error/10 px-2 py-0.5 text-xs font-medium text-error">
-      <Ban size={12} aria-hidden="true" />
-      Blocked
-    </span>
-  );
+  return <Chip color="var(--error)" icon={Ban}>Blocked</Chip>;
 }

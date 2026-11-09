@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { dayKey, useReveal } from './utils';
 import CountUp from '../custom/motion/CountUp';
+import { TipBubble } from '../custom/tooltip/Tooltip';
 
 // GitHub-style activity calendar.
 //   data:  [{ date: 'YYYY-MM-DD' | Date, value: number }]   (see countByDay in utils.js)
@@ -20,6 +21,7 @@ const DAYS = ['Mon', '', 'Wed', '', 'Fri', '', ''];
 export default function HeatmapCalendar({ data = [], weeks = 26, label = 'items' }) {
   const scroller = useRef(null);
   const on = useReveal([data, weeks]);
+  const [tip, setTip] = useState(null); // { rect, value, date } of the hovered day
 
   const { columns, months, total, best, max } = useMemo(() => {
     const counts = new Map();
@@ -79,10 +81,16 @@ export default function HeatmapCalendar({ data = [], weeks = 26, label = 'items'
     return ratio > 0.75 ? 4 : ratio > 0.5 ? 3 : ratio > 0.25 ? 2 : 1;
   };
   const pretty = (d) => d.toLocaleDateString('en', { day: 'numeric', month: 'short', year: 'numeric' });
+  // One listener for the whole grid (instead of one per cell). Cells carry data-key / data-value.
+  const showTip = (e) => {
+    const el = e.target.closest?.('[data-key]');
+    if (!el) { setTip(null); return; }
+    setTip({ rect: el.getBoundingClientRect(), value: Number(el.dataset.value) || 0, date: new Date(`${el.dataset.key}T00:00:00`) });
+  };
 
   return (
     <div>
-      <div ref={scroller} className="no-scrollbar -mx-1 overflow-x-auto px-1 pb-1">
+      <div ref={scroller} onScroll={() => setTip(null)} className="no-scrollbar -mx-1 overflow-x-auto px-1 pb-1">
         <div className="inline-flex gap-2">
           <div className="flex flex-col text-[10px] text-muted" style={{ paddingTop: 18, gap: GAP }}>
             {DAYS.map((d, i) => (
@@ -95,13 +103,14 @@ export default function HeatmapCalendar({ data = [], weeks = 26, label = 'items'
                 <span key={m.index} className="absolute" style={{ left: m.index * (CELL + GAP) }}>{m.text}</span>
               ))}
             </div>
-            <div className="mt-0.5 flex" style={{ gap: GAP }} role="img" aria-label={`${total} ${label} in the last ${weeks} weeks`}>
+            <div className="mt-0.5 flex" style={{ gap: GAP }} onMouseOver={showTip} onMouseLeave={() => setTip(null)} onClick={showTip} role="img" aria-label={`${total} ${label} in the last ${weeks} weeks`}>
               {columns.map((col, ci) => (
                 <div key={ci} className="flex flex-col" style={{ gap: GAP }}>
                   {col.map((c) => (
                     <span
                       key={c.key}
-                      title={c.future ? '' : `${c.value} ${label} on ${pretty(c.date)}`}
+                      data-key={c.future ? undefined : c.key}
+                      data-value={c.value}
                       className="rounded-[3px] transition-[opacity,transform] duration-500 hover:scale-125"
                       style={{
                         width: CELL,
@@ -132,6 +141,15 @@ export default function HeatmapCalendar({ data = [], weeks = 26, label = 'items'
           More
         </span>
       </div>
+
+      <TipBubble rect={tip?.rect ?? null}>
+        {tip && (
+          <>
+            <b className="block font-semibold">{tip.value ? `${tip.value} ${label}` : `No ${label}`}</b>
+            <span className="block opacity-75">{pretty(tip.date)}</span>
+          </>
+        )}
+      </TipBubble>
     </div>
   );
 }
