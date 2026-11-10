@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { BadgeCheck, Check, Reply, Trash2, X } from 'lucide-react';
 
 import reviewService from '../../../lib/appwrite/review';
-import { Stars, StatusBadge } from './parts';
+import { Stars, StatusBadge } from './Parts';
 import { STATUS_META, prettyDate } from './helpers';
 
 const ACTION =
