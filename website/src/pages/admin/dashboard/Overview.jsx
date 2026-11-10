@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router';
 import {
   ArrowRight, Banknote, Bell, Boxes, CalendarDays, CheckCircle2, Clock, Heart, LineChart as LineIcon, RefreshCw,
@@ -9,6 +9,8 @@ import {
   STATUS_TONE, LinkTile, Mini, OverviewCard, StatusBadge, buildOverview, useAdminLink, useOverviewData,
 } from '../../../components/admin/overview';
 import { rs } from '../../../components/admin/finance';
+import useSession from '../../../router/useSession';
+import { PATHS } from '../../../router/path';
 import { BarChart, Donut, HeatmapCalendar, TrendGraph, colorFor, compact, toneVar } from '../../../ui/graphs';
 import CountUp from '../../../ui/custom/motion/CountUp';
 import Typewriter from '../../../ui/custom/motion/Typewriter';
@@ -17,6 +19,15 @@ const short = (n) => `Rs ${compact(n)}`;
 const colored = (data) => data.map((d) => ({ ...d, color: colorFor(d.label) }));
 const cap = (s) => String(s).charAt(0).toUpperCase() + String(s).slice(1);
 const grid = 'grid gap-4 lg:grid-cols-2';
+
+// Every key used in this page -> the matching helper in router/path.js (PATHS.admin).
+// Wrong or missing keys used to fall through to another page, so they are all listed here.
+const ROUTES = {
+  overview: 'overview', orders: 'orders', products: 'products', users: 'users', finance: 'finance',
+  alerts: 'alerts', settings: 'settings', reviews: 'reviews',
+  carts: 'cartAndWishlist', cart: 'cartAndWishlist', wishlist: 'cartAndWishlist', wishlists: 'cartAndWishlist',
+  'cart-and-wishlist': 'cartAndWishlist', cartAndWishlist: 'cartAndWishlist',
+};
 
 // "just now", "25s ago", "4m ago" ... re-rendered every 10 seconds
 function useTimeAgo(date) {
@@ -35,7 +46,13 @@ function useTimeAgo(date) {
 
 // Admin > Overview   (/team/:username)
 export default function Overview() {
-  const link = useAdminLink();
+  const baseLink = useAdminLink();
+  const { username } = useSession();
+  // Known keys always use PATHS (the same URLs as the sidebar); anything else falls back to the old helper.
+  const link = useCallback(
+    (key) => (ROUTES[key] && username ? PATHS.admin[ROUTES[key]](username) : baseLink(key)),
+    [username, baseLink]
+  );
   const data = useOverviewData();
   const { loading, error, reload } = data;
   const [updatedAt, setUpdatedAt] = useState(null);
@@ -76,7 +93,7 @@ export default function Overview() {
             </span>
           )}
           <button
-            type="button"r
+            type="button"
             onClick={reload}
             disabled={loading}
             title="Fetch the latest data from the database"
@@ -96,18 +113,23 @@ export default function Overview() {
 
       {/* Needs attention */}
       <section
-        style={{ background: 'linear-gradient(120deg, var(--cta-1), var(--cta-2))' }}
+        style={{ background: 'linear-gradient(120deg, var(--brown), var(--accent))' }}
         className="animate-rise relative isolate overflow-hidden rounded-2xl p-5 text-white sm:p-7"
       >
+        {/* decorative shapes */}
         <span aria-hidden="true" className="pointer-events-none absolute -right-12 -top-14 h-44 w-44 rounded-full bg-white/10" />
         <span aria-hidden="true" className="pointer-events-none absolute -bottom-16 right-28 hidden h-32 w-32 animate-float rounded-full bg-white/[0.07] sm:block" />
+
         <div className="relative flex items-center gap-4 sm:gap-6">
           <span className="relative grid h-14 w-14 shrink-0 place-items-center sm:h-16 sm:w-16">
-            {attention.length > 0 && <span aria-hidden="true" className="absolute inset-0 animate-ring rounded-2xl border-2 border-white/70" />}
+            {attention.length > 0 && (
+              <span aria-hidden="true" className="absolute inset-0 animate-ring rounded-2xl border-2 border-white/70" />
+            )}
             <span className="grid h-full w-full place-items-center rounded-2xl border border-white/25 bg-white/15">
-              {attention.length ? <Clock size={26} /> : <CheckCircle2 size={26} />}
+              {attention.length ? <Clock size={28} strokeWidth={2.5} /> : <CheckCircle2 size={28} strokeWidth={2.5} />}
             </span>
           </span>
+
           <div className="min-w-0 flex-1">
             <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/70">Needs attention</p>
             <p className="heading mt-1 min-h-[1.6em] truncate text-xl sm:text-3xl">
@@ -115,17 +137,20 @@ export default function Overview() {
             </p>
           </div>
         </div>
+
         {attention.length > 0 && (
           <div className="relative mt-4 flex flex-wrap gap-2">
             {attention.map((a) => (
               <Link
                 key={a.key}
                 to={link(a.to)}
-                className="group inline-flex min-h-9 items-center gap-2 rounded-full bg-white/15 px-3.5 text-sm font-medium transition-all duration-200 hover:-translate-y-px hover:bg-white hover:text-[color:var(--cta-1)] active:scale-95"
+                className="group inline-flex min-h-9 items-center gap-2 rounded-full bg-white px-3.5 text-sm font-semibold text-[color:var(--brown)] transition-transform duration-300 hover:scale-105 active:scale-95"
               >
-                <span className="grid h-5 min-w-5 place-items-center rounded-full bg-white px-1 text-[11px] font-semibold tabular-nums text-[color:var(--cta-1)] transition-colors group-hover:bg-[color:var(--cta-1)] group-hover:text-white">{a.count}</span>
+                <span className="grid h-5 min-w-5 place-items-center rounded-full bg-[color:var(--brown)] px-1 text-[11px] font-semibold tabular-nums text-white">
+                  {a.count}
+                </span>
                 {a.text.replace(/^\d+\s/, '')}
-                <ArrowRight size={14} className="transition-transform duration-300 group-hover:translate-x-0.5" />
+                <ArrowRight size={14} className="group-hover:animate-nudge" />
               </Link>
             ))}
           </div>
@@ -236,7 +261,7 @@ export default function Overview() {
           <TrendGraph data={fin.months.map((m) => ({ label: m.label, value: m.profit }))} color="var(--graph-7)" format={short} />
         </OverviewCard>
 
-        <OverviewCard to={link('reviews')} cta="Products" title="Reviews" subtitle={`${reviewStats.total} in total`} icon={Star} tone={4} delay={480} className="lg:col-span-2">
+        <OverviewCard to={link('reviews')} cta="All reviews" title="Reviews" subtitle={`${reviewStats.total} in total`} icon={Star} tone={4} delay={480} className="lg:col-span-2">
           <Mini items={[
             { label: 'To approve', value: reviewStats.pending, tone: 3 },
             { label: 'Average rating', value: reviewStats.average ? `${reviewStats.average.toFixed(1)} / 5` : '—', tone: 7 },
@@ -250,7 +275,7 @@ export default function Overview() {
       <nav aria-label="Admin pages" className="flex flex-wrap gap-2 pt-1">
         {[
           ['orders', 'Orders', ShoppingBag, 1], ['products', 'Products', Boxes, 2], ['users', 'Users', Users, 6], ['alerts', 'Alerts', Bell, 5],
-          ['carts', 'Carts & wishlists', Heart, 4], ['finance', 'Finance', Wallet, 7], ['settings', 'Settings', Settings, 8],
+          ['carts', 'Carts & wishlists', Heart, 4], ['reviews', 'Reviews', Star, 3], ['finance', 'Finance', Wallet, 7], ['settings', 'Settings', Settings, 8],
         ].map(([to, label, Icon, tone]) => (
           <Link
             key={to}

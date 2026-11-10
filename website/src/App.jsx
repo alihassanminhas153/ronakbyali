@@ -43,6 +43,7 @@ import AdminProducts from "./pages/admin/dashboard/Products";
 import AdminUsers from "./pages/admin/dashboard/Users";
 import AdminFinance from "./pages/admin/dashboard/Finance";
 import AdminCartAndWishlist from "./pages/admin/dashboard/CartAndWishlist";
+import AdminReviews from "./pages/admin/dashboard/Reviews";
 import AdminAlerts from "./pages/admin/dashboard/Alerts";
 import AdminSettings from "./pages/admin/dashboard/Settings";
 
@@ -120,6 +121,7 @@ export default function App() {
             <Route path="users" element={<AdminUsers />} />
             <Route path="finance" element={<AdminFinance />} />
             <Route path="cart-and-wishlist" element={<AdminCartAndWishlist />} />
+            <Route path="reviews" element={<AdminReviews />} />
             <Route path="alerts" element={<AdminAlerts />} />
             <Route path="settings" element={<AdminSettings />} />
           </Route>

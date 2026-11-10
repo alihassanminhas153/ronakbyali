@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Navigate, useParams } from "react-router";
 import useSession from "./useSession";
-import { PATHS, RESERVED_USERNAMES } from "./path";
+import { PATHS, RESERVED_USERNAMES, stripAt } from "./path";
 import { productExists } from "./productLookup";
 import PlainLayout from "../layouts/PlainLayout";
 import AccountLayout from "../layouts/AccountLayout";
@@ -9,11 +9,13 @@ import Product from "../pages/shared/products/Product";
 import UserOverview from "../pages/user/dashboard/Overview";
 
 /**
- * Handles the single-segment URL  /:something
- *  - the logged-in customer's own username -> their dashboard overview
- *  - the logged-in staff member's username -> their admin panel (staff have no /:username)
- *  - a reserved word (e.g. /team)          -> their panel, or login when logged out
- *  - anything else                         -> short product link (/:productId) if that
+ * Handles the single-segment URL  /:something   (the param includes a leading "@" for dashboards)
+ *  - /@ownUsername (customer)   -> their dashboard overview
+ *  - /@ownUsername (staff)      -> their admin panel (staff have no /@username)
+ *  - /@someoneElse              -> their own panel, or login when logged out
+ *  - /ownUsername (old link)    -> their panel (/@username for customers)
+ *  - a reserved word (e.g. /team) -> their panel, or login when logged out
+ *  - anything else              -> short product link (/:productId) if that
  *    product exists, otherwise their panel (logged in) or /welcome-back (logged out)
  */
 export default function SlugRoute() {
@@ -22,9 +24,12 @@ export default function SlugRoute() {
   const [lookup, setLookup] = useState({ slug: null, found: null });
 
   const key = slug.toLowerCase();
-  const isOwn = isLoggedIn && key === username.toLowerCase();
-  const isReserved = RESERVED_USERNAMES.includes(key);
-  const needsLookup = isReady && !isOwn && !isReserved;
+  const isHandle = key.startsWith("@");
+  const sameName = isLoggedIn && stripAt(key) === username.toLowerCase();
+  const isOwn = isHandle && sameName; // /@me
+  const isLegacyOwn = !isHandle && sameName; // /me (before the @ existed)
+  const isReserved = !isHandle && RESERVED_USERNAMES.includes(key);
+  const needsLookup = isReady && !isHandle && !isLegacyOwn && !isReserved;
 
   // where a URL that leads nowhere sends the visitor
   const fallback = isLoggedIn ? panel : PATHS.signin;
@@ -42,7 +47,10 @@ export default function SlugRoute() {
 
   if (!isReady) return null;
 
-  if (isReserved) return <Navigate to={fallback} replace />;
+  // reserved word, or somebody else's @handle: nothing to show
+  if (isReserved || (isHandle && !isOwn)) return <Navigate to={fallback} replace />;
+  // old /username link -> the panel (customers land on /@username)
+  if (isLegacyOwn) return <Navigate to={panel} replace />;
 
   if (isOwn) {
     if (isStaff) return <Navigate to={panel} replace />;

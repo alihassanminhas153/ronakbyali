@@ -22,13 +22,21 @@ export const MAX_REVIEW_IDS_STORED = 50;
 //   reviewerAvatarId, rating (1-5), title, message, imageIds (array),
 //   isVerifiedPurchase, orderId, status, adminReply, repliedAt
 //
+// TABLE SETUP (Appwrite console > ronakbyali_reviews > Settings)
+//   Row security : ON  (authors keep update/delete on their own row)
+//   Permissions  : create(users), read(any), read/update/delete(label:admin)
+//   "read(any)" is what makes approved reviews visible on product pages.
+//   Admin approval only changes `status`; it never has to grant permissions
+//   (Appwrite only lets a client grant roles it holds itself, so an admin can't
+//   grant "user:<author id>" -> that was the 401 on approve/reject).
+//
 // HOW REVIEWS FLOW
-//   1. Customer writes a review      -> status "pending", visible only to them
-//   2. Admin approves it (approveReview) -> status "approved", the row becomes
-//      public (read "any") and the PRODUCT is updated: reviewCount,
-//      ratingAverage and reviewIds. Only admins can update products, so this
-//      is why products are updated at approval time and not at posting time.
-//   3. Customer edits an approved review -> goes back to "pending" (hidden)
+//   1. Customer writes a review      -> status "pending"
+//   2. Admin approves it (approveReview) -> status "approved" and the PRODUCT is
+//      updated: reviewCount, ratingAverage and reviewIds. Only admins can update
+//      products, so this is why products are updated at approval time and not at
+//      posting time. Product pages only ask for status "approved".
+//   3. Customer edits an approved review -> goes back to "pending" (not shown)
 //      until the admin approves it again.
 //   4. If a customer deletes a review, the product numbers refresh the next
 //      time an admin approves/rejects something or runs recalculateProduct().
@@ -135,7 +143,7 @@ export class ReviewService {
                     adminReply: null,
                     repliedAt: null,
                 },
-                // Pending: only the author (and admins via table permissions) can see it.
+                // The author may edit / delete their own review (the table gives everyone read access).
                 permissions: this._ownerPermissions(profile.$id),
             });
 
@@ -149,8 +157,8 @@ export class ReviewService {
         }
     }
 
-    // Edit your own review. It goes back to "pending" and hidden until the
-    // admin approves it again.  review: the review row being edited.
+    // Edit your own review. It goes back to "pending" and is hidden from the
+    // shop until the admin approves it again.  review: the review row being edited.
     async updateMyReview({ review, rating, title, message }) {
         this.lastError = null;
         try {
@@ -212,7 +220,7 @@ export class ReviewService {
         }
     }
 
-    // All of a user's reviews, any status (they can read their own).
+    // All of a user's reviews, any status.
     async getMyReviews({ userId, limit = 25, offset = 0 }) {
         return this.getReviewsPage({ userId, limit, offset });
     }
@@ -311,38 +319,38 @@ export class ReviewService {
         return total;
     }
 
-    // Makes the review public and refreshes the product's reviewCount,
-    // ratingAverage and reviewIds.
+    // Marks the review approved and refreshes the product's reviewCount,
+    // ratingAverage and reviewIds. Only `status` is changed on the review row.
     async approveReview(rowId) {
+        this.lastError = null;
         try {
             const review = await this.getReview(rowId);
-            if (!review) return false;
+            if (!review) return this._fail('Review not found.');
 
-            const updated = await this._setStatus(review, REVIEW_STATUS.APPROVED, this._publicPermissions(review.userId));
+            const updated = await this._setStatus(review, REVIEW_STATUS.APPROVED);
             if (!updated) return false;
 
             await this.recalculateProduct(review.productId);
             return updated;
         } catch (error) {
-            console.error(error.message);
-            return false;
+            return this._fail(error.message);
         }
     }
 
-    // Hides the review again (back to author-only) and refreshes the product.
+    // Marks the review rejected (not shown in the shop) and refreshes the product.
     async rejectReview(rowId) {
+        this.lastError = null;
         try {
             const review = await this.getReview(rowId);
-            if (!review) return false;
+            if (!review) return this._fail('Review not found.');
 
-            const updated = await this._setStatus(review, REVIEW_STATUS.REJECTED, this._ownerPermissions(review.userId));
+            const updated = await this._setStatus(review, REVIEW_STATUS.REJECTED);
             if (!updated) return false;
 
             await this.recalculateProduct(review.productId);
             return updated;
         } catch (error) {
-            console.error(error.message);
-            return false;
+            return this._fail(error.message);
         }
     }
 
@@ -471,6 +479,7 @@ export class ReviewService {
     // INTERNAL
     // =====================================================================
 
+    // The author can read / edit / delete their own review row.
     _ownerPermissions(userId) {
         return [
             Permission.read(Role.user(userId)),
@@ -479,22 +488,20 @@ export class ReviewService {
         ];
     }
 
-    // Approved reviews are readable by everyone.
-    _publicPermissions(userId) {
-        return [Permission.read(Role.any()), ...this._ownerPermissions(userId)];
-    }
-
-    async _setStatus(review, status, permissions) {
+    // Changes ONLY the status. No `permissions` argument on purpose: an admin
+    // can't grant "user:<author id>" (Appwrite 401), and it isn't needed because
+    // the table already gives read access and the row keeps its owner permissions.
+    async _setStatus(review, status) {
         try {
             return await this.table.updateRow({
                 databaseId: this.databaseId,
                 tableId: this.tableId,
                 rowId: review.$id,
                 data: { status },
-                permissions,
             });
         } catch (error) {
             console.error(error.message);
+            this.lastError = error.message;
             return false;
         }
     }
