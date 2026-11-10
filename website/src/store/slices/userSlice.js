@@ -6,6 +6,7 @@ import {
 } from '@reduxjs/toolkit';
 
 import userService, { isStaffRole } from '../../lib/appwrite/user';
+import { clearAvatarPref } from '../../lib/appwrite/accountExtras';
 
 /*
  * users slice
@@ -94,14 +95,44 @@ export const fetchUsers = createAsyncThunk(
 );
 
 // Own profile edits. Goes through updateOwnProfile, which strips role,
-// isBlocked, ordersCount, totalSpent etc.
+// isBlocked, ordersCount, totalSpent etc. A changed username is checked for
+// availability first so the user gets a clear message.
 export const updateMyProfile = createAsyncThunk(
     'users/updateMyProfile',
     async (data, { getState, rejectWithValue }) => {
-        const { meId } = getState().users;
+        const state = getState();
+        const { meId } = state.users;
         if (!meId) return rejectWithValue('Not signed in.');
+
+        const me = selectMe(state);
+        if (data?.username && data.username !== me?.username) {
+            const free = await userService.isUsernameAvailable(data.username);
+            if (!free) return rejectWithValue('That username is already taken.');
+        }
+
         const profile = await userService.updateOwnProfile({ userId: meId, data });
         if (!profile) return rejectWithValue('Could not save your profile.');
+        return profile;
+    }
+);
+
+// Removes the signed-in user's photo: clears avatarFileId in the users table,
+// deletes the file from the bucket and clears the Appwrite Auth pref.
+export const removeMyAvatar = createAsyncThunk(
+    'users/removeMyAvatar',
+    async (_, { getState, rejectWithValue }) => {
+        const me = selectMe(getState());
+        if (!me) return rejectWithValue('Not signed in.');
+
+        const profile = await userService.updateProfile({
+            userId: me.$id,
+            data: { avatarFileId: null },
+        });
+        if (!profile) return rejectWithValue('Could not remove your photo.');
+
+        // Best effort: the profile no longer points at the file either way.
+        if (me.avatarFileId) await userService.deleteAvatar({ fileId: me.avatarFileId });
+        await clearAvatarPref();
         return profile;
     }
 );
@@ -206,6 +237,13 @@ const usersSlice = createSlice({
                 adapter.upsertOne(state, payload);
             })
             .addCase(updateMyProfile.rejected, (state, { payload, error }) => {
+                state.error = payload || error.message;
+            })
+
+            .addCase(removeMyAvatar.fulfilled, (state, { payload }) => {
+                adapter.upsertOne(state, payload);
+            })
+            .addCase(removeMyAvatar.rejected, (state, { payload, error }) => {
                 state.error = payload || error.message;
             })
 

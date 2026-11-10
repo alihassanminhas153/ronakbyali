@@ -22,7 +22,7 @@ export const isStaffRole = (role) => STAFF_ROLES.includes(role);
 
 // The ONLY columns a signed-in user may change on their own profile.
 // role, isBlocked, ordersCount, totalSpent, cartId... are never in this list.
-export const SELF_EDITABLE_FIELDS = ['name', 'phone', 'lastAddress', 'lastCity', 'avatarFileId'];
+export const SELF_EDITABLE_FIELDS = ['name', 'username', 'phone', 'lastAddress', 'lastCity', 'avatarFileId'];
 
 // Profile data that lives in YOUR database. Login, email and password stay
 // in Appwrite Auth (see auth.js). Each profile row uses the auth user's $id
@@ -204,12 +204,15 @@ export class UserService {
 
     // Profile edits made by the signed-in user. Unknown / protected fields are
     // dropped so the UI can never send role, isBlocked, totals, etc.
-    // (Client-side guard only; see the note about server enforcement in the
-    // setBlocked comment below.)
+    // Usernames are trimmed and lower-cased. (Client-side guard only; see the
+    // note about server enforcement in the setBlocked comment below.)
     async updateOwnProfile({ userId, data = {} }) {
         const safe = {};
         for (const key of SELF_EDITABLE_FIELDS) {
-            if (key in data) safe[key] = data[key];
+            if (key in data) {
+                safe[key] =
+                    key === 'username' ? String(data[key]).trim().toLowerCase() : data[key];
+            }
         }
         if (!Object.keys(safe).length) return false;
         return this.updateProfile({ userId, data: safe });
