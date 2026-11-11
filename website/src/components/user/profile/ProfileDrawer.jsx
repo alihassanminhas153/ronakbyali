@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import {
   AlertCircle,
   Camera,
@@ -290,7 +291,10 @@ export default function ProfileDrawer({ open, me, section = 'details', canChange
   const pwType = showPw ? 'text' : 'password';
   const displayName = clean(form.name) || me.username;
 
-  return (
+  // Rendered into document.body (portal) so no page container can clip it or
+  // become its positioning parent: a transform/opacity/overflow on a parent
+  // makes "fixed" behave like "absolute" and traps the panel inside the page.
+  return createPortal(
     <div
       className="fixed inset-0 z-50"
       style={{ visibility: open ? 'visible' : 'hidden', transition: `visibility 0s linear ${open ? 0 : 350}ms` }}
@@ -480,6 +484,7 @@ export default function ProfileDrawer({ open, me, section = 'details', canChange
           </div>
         </footer>
       </form>
-    </div>
+    </div>,
+    document.body
   );
 }
