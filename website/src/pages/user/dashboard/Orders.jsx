@@ -93,17 +93,27 @@ const NOT_COUNTED = ['cancelled', 'returned'];
    fix it HERE only. The rest of the page does not touch them.
    ===================================================================== */
 
-function SearchBox({ value, onChange }) {
-  return <SearchInput value={value} onChange={onChange} placeholder="Search order number, product or city" />;
+// SearchInput commits through onSearch (debounced, Enter, or clear).
+function SearchBox({ value, onSearch }) {
+  return (
+    <SearchInput
+      value={value}
+      onSearch={onSearch}
+      size="sm"
+      label="Search orders"
+      placeholder="Search order number, product or city"
+    />
+  );
 }
 
+// No visible label (it made this row taller than the search box). aria-label keeps it accessible.
 function SortSelect({ value, onChange }) {
-  return <SelectInput value={value} onChange={onChange} options={SORTS} label="Sort by" />;
+  return <SelectInput value={value} onChange={onChange} options={SORTS} size="sm" aria-label="Sort orders" />;
 }
 
 // data: [{ date: 'YYYY-MM-DD', value: number }]
 function OrdersHeatmap({ data }) {
-  return <HeatmapCalendar data={data} />;
+  return <HeatmapCalendar data={data} label="orders" />;
 }
 
 /* =====================================================================
@@ -752,15 +762,13 @@ export default function Orders() {
             <h2 className="heading-sm">Order activity</h2>
             <span className="text-xs text-muted">Orders per day</span>
           </div>
-          <div className="thin-scroll overflow-x-auto">
-            <OrdersHeatmap data={stats.heat} />
-          </div>
+          <OrdersHeatmap data={stats.heat} />
         </section>
       )}
 
       {/* Search + sort */}
-      <div className="grid gap-3 sm:grid-cols-[1fr_14rem]">
-        <SearchBox value={query} onChange={setQuery} />
+      <div className="grid items-start gap-3 sm:grid-cols-[1fr_14rem]">
+        <SearchBox value={query} onSearch={setQuery} />
         <SortSelect value={sort} onChange={setSort} />
       </div>
 
