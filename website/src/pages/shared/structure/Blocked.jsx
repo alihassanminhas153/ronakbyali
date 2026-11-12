@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { Ban, Mail, Phone } from 'lucide-react';
 
 import { useAppSelector } from '../../../store/slices/hooks';
@@ -21,6 +22,10 @@ const LINK =
 export default function Blocked() {
   const me = useAppSelector(selectMe);
   const entered = useEntered();
+
+  useEffect(() => {
+    document.title = 'Account blocked | Ronak By Ali';
+  }, []);
 
   const mailto = SUPPORT_EMAIL
     ? `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent('My account is blocked')}`

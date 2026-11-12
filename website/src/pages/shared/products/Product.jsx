@@ -12,7 +12,6 @@ import {
   Clock3,
   CreditCard,
   MapPin,
-  MessageCircle,
   PackageCheck,
   Star,
   ShoppingBag,
@@ -91,6 +90,15 @@ export default function Product({ slug: slugProp }) {
   const status = useSelector(selectProductDetailStatus);
   const error = useSelector(selectProductDetailError);
   const related = useSelector(selectRelatedProducts);
+
+  useEffect(() => {
+    const pageTitle = product?.slug === slug
+      ? product.name
+      : status === "failed"
+        ? "Page not found"
+        : "Product";
+    document.title = `${pageTitle} | Ronak By Ali`;
+  }, [product?.name, product?.slug, slug, status]);
 
   useEffect(() => {
     if (!slug) return undefined;
@@ -775,9 +783,11 @@ function CheckoutDrawer({ mounted, open, onClose, onPlaced, product, quantity, a
   const total = subtotal + delivery;
   const checkoutUnitPrice = getProductCheckoutPrice(product, form.paymentType);
   const originalUnitPrice = Number(product.originalPrice) || Number(product.price) || 0;
+  const hasDiscount = originalUnitPrice > checkoutUnitPrice;
+  const discountPercent = hasDiscount
+    ? Math.round((1 - checkoutUnitPrice / originalUnitPrice) * 100)
+    : 0;
   const savings = Math.max(0, originalUnitPrice - checkoutUnitPrice) * quantity;
-  const regularTime = storeSettings.deliveryTimeRegular || "Delivery estimate will be confirmed after ordering";
-  const isManualOnlinePayment = form.paymentType === "advance";
   const productImage = getMainImageUrl(product);
 
   useEffect(() => {
@@ -872,70 +882,45 @@ function CheckoutDrawer({ mounted, open, onClose, onPlaced, product, quantity, a
       open={open}
       onClose={onClose}
       title="Complete your order"
+      titleClassName="!font-display !text-2xl !font-bold !tracking-wide !text-accent sm:!text-3xl"
       subtitle="Product, delivery and payment details"
       icon={ShoppingBag}
       tone={3}
       busy={submitting}
       onSubmit={submit}
-      width="max-w-2xl"
+      width="max-w-3xl"
       footer={(
-        <div className="w-full">
-          <div className="flex items-center justify-between gap-4 text-sm">
-            <span className="text-muted">Total including delivery</span>
-            <span className="text-xl font-semibold tabular-nums text-text">{money(total)}</span>
-          </div>
-          <ActionButton type="submit" loading={submitting} disabled={deliveryLoading || deliveryError} icon={PackageCheck} className="mt-3 w-full">
-            {deliveryLoading ? "Calculating delivery..." : `Place order · ${money(total)}`}
-          </ActionButton>
-        </div>
+        <ActionButton type="submit" loading={submitting} disabled={deliveryLoading || deliveryError} icon={PackageCheck} className="w-full">
+          {deliveryLoading ? "Calculating delivery..." : `Place order · ${money(total)}`}
+        </ActionButton>
       )}
     >
       <div className="space-y-5">
         <section className="rounded-lg border border-border bg-surface p-3 sm:p-4" aria-label="Order item">
-          <div className="flex gap-4">
-            <div className="h-28 w-24 shrink-0 overflow-hidden rounded-md bg-surface-alt sm:h-32 sm:w-28">
+          <div className="flex items-center gap-3">
+            <div className="h-20 w-16 shrink-0 overflow-hidden rounded-md bg-surface-alt sm:h-24 sm:w-20">
               {productImage && <img src={productImage} alt={product.name} className="h-full w-full object-cover" />}
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-xs font-semibold uppercase tracking-wide text-accent">Your product</p>
-              <h3 className="mt-1 line-clamp-2 font-semibold text-text">{product.name}</h3>
-              <p className="mt-1 text-xs text-muted">
-                {[product.category, product.group].filter(Boolean).join(" · ")}
-                {product.remaining != null && ` · ${formatRemaining(product.remaining, 500)} available`}
-              </p>
-                <div className="mt-2 flex flex-wrap items-baseline gap-x-2 gap-y-1">
-                  <span className="font-semibold tabular-nums text-text">{money(checkoutUnitPrice)}</span>
-                  {originalUnitPrice > checkoutUnitPrice && (
-                  <>
-                      <span className="text-sm tabular-nums text-muted line-through">{money(originalUnitPrice)}</span>
-                    <span className="rounded bg-accent-soft px-1.5 py-0.5 text-xs font-semibold text-accent">
-                        {product.discountName || `${Math.round((1 - checkoutUnitPrice / originalUnitPrice) * 100)}% off`}
-                    </span>
-                  </>
-                )}
-              </div>
-              <div className="mt-1 flex flex-wrap gap-x-4 text-xs text-muted">
-                <span>Quantity: {quantity}</span>
-                <span>Items: {money(subtotal)}</span>
-                {savings > 0 && <span className="font-medium text-success">You save {money(savings)}</span>}
-              </div>
+              <h3 className="line-clamp-2 font-semibold text-text">{product.name}</h3>
+              <p className="mt-1 text-sm text-muted">Quantity: {quantity}</p>
             </div>
           </div>
         </section>
 
-        {historyError && <p role="status" className="rounded-md bg-warning/10 px-3 py-2 text-sm text-text">{historyError}</p>}
+        {historyError && <p role="status" className="rounded-md bg-warning/10 px-3 py-2 text-sm text-text">Could not load previous order details. Enter them below.</p>}
 
-        <section aria-labelledby="checkout-contact-heading">
+        <section aria-labelledby="checkout-contact-heading" className="rounded-lg border border-border p-3 sm:p-4">
           <h3 id="checkout-contact-heading" className="mb-3 flex items-center gap-2 font-semibold text-text">
-            <MapPin size={17} className="text-accent" aria-hidden="true" /> Contact and delivery address
+            <MapPin size={17} className="text-accent" aria-hidden="true" /> Delivery details
           </h3>
           <div className="grid gap-3 sm:grid-cols-2">
             <TextInput label="Full name" value={form.customerName} onChange={setField("customerName")} error={errors.customerName} required maxLength={128} autoComplete="name" autoFocus />
-            <TextInput label="Phone" value={form.customerPhone} onChange={setField("customerPhone")} error={errors.customerPhone} required maxLength={20} inputMode="tel" autoComplete="tel" />
+            <TextInput label="Phone" type="tel" value={form.customerPhone} onChange={setField("customerPhone")} error={errors.customerPhone} required maxLength={20} inputMode="tel" autoComplete="tel" />
             <TextInput className="sm:col-span-2" label="Email" hint="Optional" type="email" value={form.customerEmail} onChange={setField("customerEmail")} maxLength={320} autoComplete="email" />
             <TextInput label="City" value={form.city} onChange={setField("city")} error={errors.city} required maxLength={100} autoComplete="address-level2" />
-            <TextInput className="sm:col-span-2" label="Street address" as="textarea" rows={2} value={form.address} onChange={setField("address")} error={errors.address} required maxLength={500} autoComplete="street-address" />
-            <TextInput className="sm:col-span-2" label="Order notes" hint="Optional" as="textarea" rows={2} value={form.notes} onChange={setField("notes")} maxLength={1000} />
+            <TextInput className="sm:col-span-2" inputClassName="resize-none" label="Street address" as="textarea" rows={2} value={form.address} onChange={setField("address")} error={errors.address} required maxLength={500} autoComplete="street-address" />
+            <TextInput className="sm:col-span-2" inputClassName="resize-none" label="Order notes" hint="Optional" as="textarea" rows={2} value={form.notes} onChange={setField("notes")} maxLength={1000} />
           </div>
         </section>
 
@@ -943,46 +928,34 @@ function CheckoutDrawer({ mounted, open, onClose, onPlaced, product, quantity, a
           <h3 id="checkout-delivery-heading" className="mb-3 flex items-center gap-2 font-semibold text-text">
             <Truck size={17} className="text-accent" aria-hidden="true" /> Delivery options
           </h3>
-          <div className="grid gap-2 sm:grid-cols-2">
-            <label className={`cursor-pointer rounded-md border p-3 transition ${form.deliveryType === "regular" ? "border-accent bg-accent-soft" : "border-border hover:border-accent/50"}`}>
+          <div className="grid items-stretch gap-2 sm:grid-cols-2">
+            <label className={`flex h-full min-h-24 cursor-pointer flex-col justify-between gap-3 rounded-md border p-3 transition ${form.deliveryType === "regular" ? "border-accent bg-accent-soft" : "border-border hover:border-accent/50"}`}>
               <input type="radio" name="direct-delivery" value="regular" checked={form.deliveryType === "regular"} onChange={setField("deliveryType")} className="sr-only" />
               <span className="flex items-center justify-between gap-2">
                 <span className="flex items-center gap-2 font-medium"><Truck size={16} aria-hidden="true" /> Home delivery</span>
                 <span className="text-sm font-semibold tabular-nums">{deliveryLoading ? "…" : deliveryCharge ? money(deliveryCharge) : "Free"}</span>
               </span>
-              <span className="mt-1 flex items-center gap-1.5 text-xs text-muted"><Clock3 size={13} aria-hidden="true" /> {regularTime}</span>
-              {Number(storeSettings.freeShippingAbove) > 0 && (
-                <span className="mt-1 block text-xs text-muted">
-                  {subtotal >= Number(storeSettings.freeShippingAbove)
-                    ? "This order qualifies for free delivery."
-                    : `Free delivery over ${money(storeSettings.freeShippingAbove)}.`}
-                </span>
+              {storeSettings.deliveryTimeRegular && (
+                <span className="flex items-start gap-1.5 text-xs text-muted"><Clock3 size={13} className="mt-0.5 shrink-0" aria-hidden="true" /> {storeSettings.deliveryTimeRegular}</span>
               )}
             </label>
-            <label className={`cursor-pointer rounded-md border p-3 transition ${form.deliveryType === "pickup" ? "border-accent bg-accent-soft" : "border-border hover:border-accent/50"}`}>
+            <label className={`flex h-full min-h-24 cursor-pointer flex-col justify-between gap-3 rounded-md border p-3 transition ${form.deliveryType === "pickup" ? "border-accent bg-accent-soft" : "border-border hover:border-accent/50"}`}>
               <input type="radio" name="direct-delivery" value="pickup" checked={form.deliveryType === "pickup"} onChange={setField("deliveryType")} className="sr-only" />
               <span className="flex items-center justify-between gap-2">
                 <span className="flex items-center gap-2 font-medium"><Store size={16} aria-hidden="true" /> Store pickup</span>
                 <span className="text-sm font-semibold">Free</span>
               </span>
-              <span className="mt-1 block text-xs text-muted">
-                {storeSettings.storeAddress || "Pickup instructions will be shared after order confirmation."}
-              </span>
+              {storeSettings.storeAddress && <span className="line-clamp-2 text-xs text-muted">{storeSettings.storeAddress}</span>}
             </label>
           </div>
           {deliveryError && <p role="alert" className="mt-2 text-sm text-error">Delivery charges could not be loaded. Close checkout and try again.</p>}
-          <div className="mt-3 flex items-center justify-between border-t border-border pt-3 text-sm">
-            <span className="text-muted">Delivery charge</span>
-            <span className="font-medium tabular-nums">{form.deliveryType === "pickup" ? "Free" : deliveryLoading ? "Calculating…" : delivery ? money(delivery) : "Free"}</span>
-          </div>
         </section>
 
         <section aria-labelledby="checkout-payment-heading">
           <h3 id="checkout-payment-heading" className="mb-1 flex items-center gap-2 font-semibold text-text">
             <CreditCard size={17} className="text-accent" aria-hidden="true" /> Payment method
           </h3>
-          <p className="mb-3 text-xs text-muted">Choose a price option. Advance payment is arranged manually after our team contacts you.</p>
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3" role="radiogroup" aria-label="Payment method">
+          <div className="grid grid-cols-2 items-stretch gap-2" role="radiogroup" aria-label="Payment method">
             {["cod", "advance"].map((method) => {
               const Icon = paymentIcons[method] || Wallet;
               const selected = form.paymentType === method;
@@ -995,7 +968,7 @@ function CheckoutDrawer({ mounted, open, onClose, onPlaced, product, quantity, a
                   role="radio"
                   aria-checked={selected}
                   onClick={() => setForm((current) => ({ ...current, paymentType: method }))}
-                  className={`flex min-h-16 items-center gap-2 rounded-md border p-2.5 text-left text-sm transition ${selected ? "border-accent bg-accent-soft text-accent" : "border-border text-text hover:border-accent/60"}`}
+                  className={`flex h-full min-h-20 w-full items-center gap-2 rounded-md border p-2.5 text-left text-sm transition ${selected ? "border-accent bg-accent-soft text-accent" : "border-border text-text hover:border-accent/60"}`}
                 >
                   <Icon size={18} className="shrink-0" aria-hidden="true" />
                   <span className="min-w-0">
@@ -1006,25 +979,31 @@ function CheckoutDrawer({ mounted, open, onClose, onPlaced, product, quantity, a
               );
             })}
           </div>
-          <div className="mt-3 flex gap-2 rounded-md border border-accent/30 bg-accent-soft p-3 text-sm text-text" role="status">
-            {isManualOnlinePayment
-              ? <MessageCircle size={18} className="mt-0.5 shrink-0 text-accent" aria-hidden="true" />
-              : <Banknote size={18} className="mt-0.5 shrink-0 text-accent" aria-hidden="true" />}
-            <p>
-              {isManualOnlinePayment
-                ? `No payment is taken now. After you place the order, our team will contact you at ${form.customerPhone.trim() || "the phone number above"} on WhatsApp or by phone to arrange advance payment.`
-                : "Pay when your order arrives. Our team may contact you at the phone number above to confirm your order."}
-            </p>
-          </div>
         </section>
 
         <section className="rounded-lg border border-border bg-surface p-3 sm:p-4" aria-label="Order total">
           <h3 className="mb-3 flex items-center gap-2 font-semibold text-text"><ShoppingBag size={17} className="text-accent" aria-hidden="true" /> Order summary</h3>
           <dl className="space-y-2 text-sm">
-            <div className="flex justify-between gap-4"><dt className="text-muted">{product.name} × {quantity}</dt><dd className="tabular-nums">{money(subtotal)}</dd></div>
-            {savings > 0 && <div className="flex justify-between gap-4"><dt className="text-muted">You save</dt><dd className="font-medium tabular-nums text-success">{money(savings)}</dd></div>}
+            {hasDiscount && (
+              <>
+                <div className="flex justify-between gap-4">
+                  <dt className="text-muted">Original price</dt>
+                  <dd className="tabular-nums text-muted line-through">{money(originalUnitPrice * quantity)}</dd>
+                </div>
+                <div className="flex justify-between gap-4">
+                  <dt className="min-w-0 text-accent">
+                    <span className="block truncate">{product.discountName || "Discount"}{discountPercent > 0 ? ` · ${discountPercent}% off` : ""}</span>
+                  </dt>
+                  <dd className="shrink-0 font-medium tabular-nums text-accent">−{money(savings)}</dd>
+                </div>
+              </>
+            )}
+            <div className="flex items-center justify-between gap-4">
+              <dt className="font-medium text-text">{hasDiscount ? "Discounted price" : `Price × ${quantity}`}</dt>
+              <dd className="text-lg font-semibold tabular-nums text-text">{money(subtotal)}</dd>
+            </div>
             <div className="flex justify-between gap-4"><dt className="text-muted">Delivery</dt><dd className="tabular-nums">{form.deliveryType === "pickup" || delivery === 0 ? "Free" : deliveryLoading ? "Calculating…" : money(delivery)}</dd></div>
-            <div className="flex justify-between gap-4 border-t border-border pt-2 font-semibold"><dt>Total</dt><dd className="tabular-nums">{money(total)}</dd></div>
+            <div className="flex justify-between gap-4 border-t border-border pt-2 font-semibold"><dt>Total</dt><dd className="text-xl tabular-nums">{money(total)}</dd></div>
           </dl>
         </section>
 

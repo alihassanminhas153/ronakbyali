@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router';
 import {
-  ArrowRight, Banknote, Bell, Boxes, CalendarDays, CheckCircle2, Clock, Heart, LineChart as LineIcon, RefreshCw,
-  Settings, ShoppingBag, ShoppingCart, Star, TrendingDown, TrendingUp, Users, Wallet,
+  ArrowRight, Bell, Boxes, CheckCircle2, Clock, Heart, RefreshCw,
+  Settings, ShoppingBag, Star, Users, Wallet,
 } from 'lucide-react';
 
 import {
@@ -12,7 +12,6 @@ import { rs } from '../../../components/admin/finance';
 import useSession from '../../../router/useSession';
 import { PATHS } from '../../../router/path';
 import { BarChart, Donut, HeatmapCalendar, TrendGraph, colorFor, compact, toneVar } from '../../../ui/graphs';
-import CountUp from '../../../ui/custom/motion/CountUp';
 import Typewriter from '../../../ui/custom/motion/Typewriter';
 
 const short = (n) => `Rs ${compact(n)}`;
@@ -159,28 +158,28 @@ export default function Overview() {
 
       {/* Key numbers: every tile opens its page */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <LinkTile to={link('finance')} label="Revenue (30 days)" value={fin.now.revenue} format={short} hint={`${fin.deliveredCount} delivered orders`} icon={Banknote} tone={1} delay={0} />
-        <LinkTile to={link('finance')} label={loss ? 'Net loss (all time)' : 'Net profit (all time)'} value={Math.abs(fin.all.net)} format={short} hint={fin.roi == null ? 'add an investment' : `${Math.round(fin.roi)}% return`} icon={loss ? TrendingDown : TrendingUp} tone={loss ? 4 : 7} delay={40} />
-        <LinkTile to={link('orders')} label="Pending orders" value={orderStats.pending} hint={`${orderStats.open} open in total`} icon={Clock} tone={3} delay={80} />
-        <LinkTile to={link('users')} label="Customers" value={userStats.customers} hint={`${userStats.fresh} new in 30 days`} icon={Users} tone={6} delay={120} />
-        <LinkTile to={link('products')} label="Products in stock" value={productStats.inStock} hint={`${productStats.out} out of stock`} icon={Boxes} tone={2} delay={160} />
-        <LinkTile to={link('alerts')} label="Active alerts" value={alertStats.active} hint={`${alertStats.popups} popups`} icon={Bell} tone={5} delay={200} />
-        <LinkTile to={link('carts')} label="Value in carts" value={fin.demand.cartValue} format={short} hint={`${fin.demand.cartsWithItems} carts with items`} icon={ShoppingCart} tone={1} delay={240} />
-        <LinkTile to={link('reviews')} label="Reviews to approve" value={reviewStats.pending} hint={reviewStats.average ? `${reviewStats.average.toFixed(1)} / 5 average` : 'no reviews yet'} icon={Star} tone={4} delay={280} />
+        <LinkTile to={link('finance')} label="Revenue (30 days)" value={fin.now.revenue} format={short} hint={`${fin.paidCount} orders with payment received`} appIcon="pkr" sensitive tone={1} delay={0} />
+        <LinkTile to={link('finance')} label={loss ? 'Net loss (all time)' : 'Net profit (all time)'} value={Math.abs(fin.all.net)} format={short} hint={fin.roi == null ? 'add an investment' : `${Math.round(fin.roi)}% return`} appIcon={loss ? 'arrow_trend_down' : 'arrow_trend_up'} sensitive tone={loss ? 4 : 7} delay={40} />
+        <LinkTile to={link('orders')} label="Pending orders" value={orderStats.pending} hint={`${orderStats.open} open in total`} appIcon="clock" tone={3} delay={80} />
+        <LinkTile to={link('users')} label="Customers" value={userStats.customers} hint={`${userStats.fresh} new in 30 days`} appIcon="customers" tone={6} delay={120} />
+        <LinkTile to={link('products')} label="Products in stock" value={productStats.inStock} hint={`${productStats.out} out of stock`} appIcon="boxes" tone={2} delay={160} />
+        <LinkTile to={link('alerts')} label="Active alerts" value={alertStats.active} hint={`${alertStats.popups} popups`} appIcon="alert" tone={5} delay={200} />
+        <LinkTile to={link('carts')} label="Value in carts" value={fin.demand.cartValue} format={short} hint={`${fin.demand.cartsWithItems} carts with items`} appIcon="cart" sensitive tone={1} delay={240} />
+        <LinkTile to={link('reviews')} label="Reviews to approve" value={reviewStats.pending} hint={reviewStats.average ? `${reviewStats.average.toFixed(1)} / 5 average` : 'no reviews yet'} appIcon="reviews" tone={4} delay={280} />
       </div>
 
       <div className={grid}>
-        <OverviewCard to={link('finance')} cta="Finance" title="Revenue trend" subtitle="Delivered orders, last 12 months" icon={LineIcon} tone={1}>
+        <OverviewCard to={link('finance')} cta="Finance" title="Revenue trend" subtitle="Payment received, last 12 months" appIcon="histogram" tone={1}>
           <TrendGraph data={fin.months.map((m) => ({ label: m.label, value: m.revenue }))} color="var(--graph-1)" format={short} />
         </OverviewCard>
-        <OverviewCard to={link('orders')} cta="Orders" title="Orders per day" subtitle="Last 6 months" icon={CalendarDays} tone={2} delay={80}>
+        <OverviewCard to={link('orders')} cta="Orders" title="Orders per day" subtitle="Last 6 months" appIcon="clock" tone={2} delay={80}>
           <HeatmapCalendar data={fin.ordersHeat} weeks={26} label="orders" />
         </OverviewCard>
       </div>
 
       {/* One card per section */}
       <div className={grid}>
-        <OverviewCard to={link('orders')} cta="All orders" title="Orders" subtitle={`${orderStats.total} in total`} icon={ShoppingBag} tone={1} className="lg:col-span-2">
+        <OverviewCard to={link('orders')} cta="All orders" title="Orders" subtitle={`${orderStats.total} in total`} appIcon="list" tone={1} className="lg:col-span-2">
           <Mini items={[
             { label: 'Pending', value: orderStats.pending, tone: 3 },
             { label: 'Open', value: orderStats.open, tone: 5 },
@@ -216,7 +215,7 @@ export default function Overview() {
           </div>
         </OverviewCard>
 
-        <OverviewCard to={link('products')} cta="Products" title="Products" subtitle={`${productStats.total} in the store`} icon={Boxes} tone={2} delay={80}>
+        <OverviewCard to={link('products')} cta="Products" title="Products" subtitle={`${productStats.total} in the store`} appIcon="boxes" tone={2} delay={80}>
           <Mini items={[
             { label: 'In stock', value: productStats.inStock, tone: 2 },
             { label: 'Out of stock', value: productStats.out, tone: 4 },
@@ -225,7 +224,7 @@ export default function Overview() {
           <BarChart data={colored(productStats.byCategory.slice(0, 6))} empty="No products yet." />
         </OverviewCard>
 
-        <OverviewCard to={link('users')} cta="Users" title="Customers" subtitle="New sign-ups, last 6 months" icon={Users} tone={6} delay={160}>
+        <OverviewCard to={link('users')} cta="Users" title="Customers" subtitle="New sign-ups, last 6 months" appIcon="customers" tone={6} delay={160}>
           <Mini items={[
             { label: 'Accounts', value: userStats.total, tone: 6 },
             { label: 'New (30 days)', value: userStats.fresh, tone: 7 },
@@ -234,7 +233,7 @@ export default function Overview() {
           <TrendGraph data={userStats.signups.map((s) => ({ label: s.label, value: s.value }))} color="var(--graph-6)" />
         </OverviewCard>
 
-        <OverviewCard to={link('alerts')} cta="Alerts" title="Alerts" subtitle={`${alertStats.total} created · ${Math.round(alertStats.seenRate)}% seen`} icon={Bell} tone={5} delay={240}>
+        <OverviewCard to={link('alerts')} cta="Alerts" title="Alerts" subtitle={`${alertStats.total} created · ${Math.round(alertStats.seenRate)}% seen`} appIcon="alert" tone={5} delay={240}>
           <Mini items={[
             { label: 'Active', value: alertStats.active, tone: 5 },
             { label: 'Scheduled', value: alertStats.scheduled, tone: 3 },
@@ -243,7 +242,7 @@ export default function Overview() {
           <Donut centerLabel="alerts" data={colored(alertStats.byState.map((d) => ({ ...d, label: cap(d.label) })))} empty="No alerts yet." />
         </OverviewCard>
 
-        <OverviewCard to={link('carts')} cta="Carts & wishlists" title="Carts & wishlists" subtitle="What shoppers are about to buy" icon={ShoppingCart} tone={3} delay={320}>
+        <OverviewCard to={link('carts')} cta="Carts & wishlists" title="Carts & wishlists" subtitle="What shoppers are about to buy" appIcon="cart" tone={3} delay={320}>
           <Mini items={[
             { label: 'Carts', value: fin.demand.cartsWithItems, tone: 1 },
             { label: 'In carts', value: fin.demand.cartValue, format: short, tone: 7 },
@@ -252,7 +251,7 @@ export default function Overview() {
           <BarChart data={fin.demand.topCarted.slice(0, 5).map((l) => ({ label: l.name, value: l.carts, hint: `${l.qty} pcs` }))} empty="No carts yet." />
         </OverviewCard>
 
-        <OverviewCard to={link('finance')} cta="Finance" title="Finance" subtitle="Net profit per month, below the line = loss" icon={Wallet} tone={7} delay={400}>
+        <OverviewCard to={link('finance')} cta="Finance" title="Finance" subtitle="Net profit per month, below the line = loss" appIcon="wallet" tone={7} delay={400}>
           <Mini items={[
             { label: 'Cash in hand', value: fin.cash, format: short, tone: fin.cash < 0 ? 4 : 2 },
             { label: 'Invested', value: fin.all.invested, format: short, tone: 6 },
@@ -261,7 +260,7 @@ export default function Overview() {
           <TrendGraph data={fin.months.map((m) => ({ label: m.label, value: m.profit }))} color="var(--graph-7)" format={short} />
         </OverviewCard>
 
-        <OverviewCard to={link('reviews')} cta="All reviews" title="Reviews" subtitle={`${reviewStats.total} in total`} icon={Star} tone={4} delay={480} className="lg:col-span-2">
+        <OverviewCard to={link('reviews')} cta="All reviews" title="Reviews" subtitle={`${reviewStats.total} in total`} appIcon="reviews" tone={4} delay={480} className="lg:col-span-2">
           <Mini items={[
             { label: 'To approve', value: reviewStats.pending, tone: 3 },
             { label: 'Average rating', value: reviewStats.average ? `${reviewStats.average.toFixed(1)} / 5` : '—', tone: 7 },

@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { Routes, Route } from "react-router";
+import { Routes, Route, useLocation } from "react-router";
 import { useDispatch, useSelector } from "react-redux";
 
 import { initAuth } from "./store/slices/authSlice";
@@ -18,6 +18,7 @@ import SlugRoute from "./router/SlugRoute";
 import CatchAllRoute from "./router/CatchAllRoute";
 import RedirectRoute from "./router/RedirectRoute";
 import { PATHS, PRODUCT_LIST_ALIASES } from "./router/path";
+import ToastViewport from "./ui/custom/toast/ToastViewport";
 
 // shared pages
 import Home from "./pages/shared/structure/Home";
@@ -58,9 +59,27 @@ const SITE_PAGES = [
   { name: "FAQs", link: PATHS.faqs },
 ];
 
+const STATIC_PAGE_TITLES = {
+  "/": "Home",
+  "/products": "Shop",
+  "/contact": "Contact",
+  "/privacy": "Privacy Policy",
+  "/faqs": "FAQs",
+  "/welcome-back": "Sign In",
+  "/create-account": "Create Account",
+  "/auth/callback": "Signing In",
+};
+
 export default function App() {
   const dispatch = useDispatch();
   const profileId = useSelector((s) => s.auth.profile?.$id);
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    const route = pathname.replace(/\/+$/, "") || "/";
+    const pageTitle = STATIC_PAGE_TITLES[route];
+    if (pageTitle) document.title = `${pageTitle} | Ronak By Ali`;
+  }, [pathname]);
 
   // Restore the profile before route guards decide where to send the visitor.
   // (BlockedGate then loads the same account into the users slice, see useProfileSync.)
@@ -78,6 +97,8 @@ export default function App() {
   }, [dispatch, profileId]);
 
   return (
+    <>
+    <ToastViewport />
     <Routes>
       {/* Pathless layout route ABOVE every other route: a blocked user sees only the
           Blocked page, whatever URL they type. */}
@@ -161,5 +182,6 @@ export default function App() {
         </Route>
       </Route>
     </Routes>
+    </>
   );
 }

@@ -6,6 +6,7 @@ import {
 } from '@reduxjs/toolkit';
 
 import userService, { isStaffRole } from '../../lib/appwrite/user';
+import orderService from '../../lib/appwrite/order';
 import { clearAvatarPref } from '../../lib/appwrite/accountExtras';
 
 /*
@@ -55,7 +56,7 @@ export const loadMyProfile = createAsyncThunk(
     async ({ user }, { rejectWithValue }) => {
         const profile = await userService.ensureProfile({ user });
         if (!profile) return rejectWithValue('Could not load your profile.');
-        return profile;
+        return (await orderService.syncUserTotalSpent(profile.$id)) || profile;
     }
 );
 
@@ -82,7 +83,10 @@ export const fetchUsers = createAsyncThunk(
 
         if (!isStaffRole(me.role)) return { scope: 'self', rows: [me] };
 
-        const rows = await userService.getProfiles();
+        const [rows, paidTotals] = await Promise.all([
+            userService.getProfiles(),
+            orderService.getPaidTotalsByUser(),
+        ]);
         if (!rows) {
             // The users table is readable only with the Appwrite "admin" label,
             // so support/manager accounts without it end up here.
@@ -90,7 +94,16 @@ export const fetchUsers = createAsyncThunk(
                 'Could not load users. Your account needs the "admin" label in Appwrite Auth to read all profiles.'
             );
         }
-        return { scope: 'team', rows };
+        if (!paidTotals) {
+            return rejectWithValue('Could not load paid order totals for users.');
+        }
+        return {
+            scope: 'team',
+            rows: rows.map((profile) => ({
+                ...profile,
+                totalSpent: paidTotals[profile.$id] || 0,
+            })),
+        };
     }
 );
 
@@ -272,7 +285,8 @@ const usersSlice = createSlice({
                 adapter.updateOne(state, { id: userId, changes: { isBlocked: !!isBlocked } });
             })
             .addCase(setUserBlocked.fulfilled, (state, { payload }) => {
-                adapter.upsertOne(state, payload);
+                const totalSpent = state.entities[payload.$id]?.totalSpent;
+                adapter.upsertOne(state, { ...payload, totalSpent: totalSpent ?? payload.totalSpent });
                 removePending(state, payload.$id);
             })
             .addCase(setUserBlocked.rejected, (state, { meta, payload, error }) => {
@@ -288,7 +302,8 @@ const usersSlice = createSlice({
                 addPending(state, meta.arg.userId);
             })
             .addCase(setUserRole.fulfilled, (state, { payload }) => {
-                adapter.upsertOne(state, payload);
+                const totalSpent = state.entities[payload.$id]?.totalSpent;
+                adapter.upsertOne(state, { ...payload, totalSpent: totalSpent ?? payload.totalSpent });
                 removePending(state, payload.$id);
             })
             .addCase(setUserRole.rejected, (state, { meta, payload, error }) => {

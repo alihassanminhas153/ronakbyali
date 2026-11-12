@@ -16,6 +16,7 @@ export default function TextInput({
   required = false,
   showCount = false,
   className = '',
+  inputClassName = '',
   ...props
 }) {
   const id = useId();
@@ -44,7 +45,7 @@ export default function TextInput({
           aria-invalid={error ? true : undefined}
           aria-describedby={messageId}
           aria-required={required || undefined}
-          className={`${BASE} ${isArea ? 'py-3' : 'h-12'} ${prefix ? 'pl-12' : 'pl-3.5'} ${suffix ? 'pr-12' : 'pr-3.5'} ${
+          className={`${BASE} ${isArea ? 'py-3' : 'h-12'} ${prefix ? 'pl-12' : 'pl-3.5'} ${suffix ? 'pr-12' : 'pr-3.5'} ${inputClassName} ${
             error ? 'border-error' : 'border-border'
           }`}
           {...props}

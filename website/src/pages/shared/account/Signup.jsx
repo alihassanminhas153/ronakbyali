@@ -4,19 +4,19 @@ import { Lock, Mail } from 'lucide-react';
 
 import { useAppDispatch, useAppSelector } from '../../../store/slices/hooks';
 import {
-  registerWithEmail,
+  authenticateWithEmail,
   continueWithGoogle,
   clearAuthError,
-  selectAuthError,
   selectAuthStatus,
   selectPendingProfile,
 } from '../../../store/slices/authSlice';
-import AuthShell, { EmailChip, FormError, Notice, OrDivider } from '../auth/AuthShell';
+import { addToast } from '../../../store/slices/uiSlice';
+import AuthShell, { EmailChip, OrDivider } from '../auth/AuthShell';
 import AuthField from '../auth/AuthField';
 import AuthButton from '../auth/AuthButton';
 import GoogleButton from '../auth/GoogleButton';
 import ProfileStep from '../auth/ProfileStep';
-import { PATHS } from '../../../router/path';
+import { homePathFor } from './authRedirect';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -32,7 +32,7 @@ export default function Signup() {
       {pendingProfile && (
         <ProfileStep
           profile={pendingProfile}
-          onDone={() => navigate(PATHS.products, { replace: true })}
+          onDone={(profile) => navigate(homePathFor(profile), { replace: true })}
         />
       )}
     </>
@@ -73,11 +73,8 @@ function PasswordMeter({ password }) {
 function CredentialsStep() {
   const dispatch = useAppDispatch();
   const location = useLocation();
-  const authError = useAppSelector(selectAuthError);
+  const navigate = useNavigate();
   const status = useAppSelector(selectAuthStatus);
-
-  // Sent here by Signin after 3 failed log-ins: keep the email they typed.
-  const fromFailedLogin = location.state?.reason === 'attempts';
 
   const [step, setStep] = useState('email'); // 'email' | 'password'
   const [email, setEmail] = useState(location.state?.email || '');
@@ -111,7 +108,7 @@ function CredentialsStep() {
     dispatch(clearAuthError());
   };
 
-  const onPasswordSubmit = (e) => {
+  const onPasswordSubmit = async (e) => {
     e.preventDefault();
     if (password.length < 8) {
       setFieldErrors({ password: 'Use at least 8 characters.' });
@@ -119,8 +116,17 @@ function CredentialsStep() {
     }
     setFieldErrors({});
 
-    // On success the slice stores pendingProfile and <ProfileStep /> opens.
-    dispatch(registerWithEmail({ email, password }));
+    const result = await dispatch(authenticateWithEmail({ email, password, toast: true }));
+    if (!authenticateWithEmail.fulfilled.match(result)) return;
+
+    const { profile, created } = result.payload;
+    if (created) {
+      dispatch(addToast({ type: 'success', message: 'Account created. Finish setting up your profile.' }));
+      return;
+    }
+
+    dispatch(addToast({ type: 'success', message: 'You are now logged in.' }));
+    navigate(homePathFor(profile), { replace: true });
   };
 
   const onGoogle = () => {
@@ -143,16 +149,6 @@ function CredentialsStep() {
         </>
       }
     >
-      {fromFailedLogin && (
-        <Notice>
-          We could not log you in after 3 tries. Create a new account below, or{' '}
-          <Link to="/welcome-back" className="font-medium text-accent hover:underline">
-            try logging in again
-          </Link>
-          .
-        </Notice>
-      )}
-
       {step === 'email' ? (
         <>
           <GoogleButton onClick={onGoogle} loading={googleBusy} disabled={busy} />
@@ -172,8 +168,6 @@ function CredentialsStep() {
               error={fieldErrors.email}
               disabled={busy}
             />
-
-            <FormError message={authError} />
 
             <AuthButton disabled={busy}>Continue with email</AuthButton>
           </form>
@@ -202,8 +196,6 @@ function CredentialsStep() {
             />
 
             <PasswordMeter password={password} />
-
-            <FormError message={authError} />
 
             <AuthButton loading={status === 'loading'} disabled={busy}>Create account</AuthButton>
           </form>

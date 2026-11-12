@@ -5,7 +5,7 @@ import { tint, toneVar } from '../../graphs/utils';
 // Side panel that slides in from the right (same behaviour as the product form).
 //   Mount it while you need it (use a changing `key` for a fresh form), flip `open`.
 //   onSubmit given -> the panel is a <form>.   footer = buttons node.
-export default function Drawer({ open, onClose, title, subtitle, icon: Icon, tone = 1, busy = false, onSubmit, footer, children, width = 'max-w-xl' }) {
+export default function Drawer({ open, onClose, title, titleClassName = '', subtitle, icon: Icon, tone = 1, busy = false, onSubmit, footer, children, width = 'max-w-xl' }) {
   const [shown, setShown] = useState(false);
   const color = toneVar(tone);
 
@@ -44,7 +44,7 @@ export default function Drawer({ open, onClose, title, subtitle, icon: Icon, ton
               </span>
             )}
             <div className="min-w-0">
-              <h2 className="heading truncate" style={{ color }}>{title}</h2>
+              <h2 className={`heading truncate ${titleClassName}`} style={{ color }}>{title}</h2>
               {subtitle && <p className="truncate text-xs text-muted">{subtitle}</p>}
             </div>
           </div>

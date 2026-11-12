@@ -1,32 +1,57 @@
+import { useState } from 'react';
 import { Link } from 'react-router';
-import { ArrowRight, ArrowUpRight } from 'lucide-react';
+import { ArrowRight, ArrowUpRight, Eye, EyeOff } from 'lucide-react';
 
+import AppIcon from '../../../ui/custom/AppIcon';
 import CountUp from '../../../ui/custom/motion/CountUp';
 import { ChartCard, tint, toneVar } from '../../../ui/graphs';
 
 // Clickable number tile (same look as StatTile, goes to a page).
-export function LinkTile({ to, label, value, format, hint, icon: Icon, tone = 1, delay = 0 }) {
+export function LinkTile({ to, label, value, format, hint, icon: Icon, appIcon, sensitive = false, tone = 1, delay = 0 }) {
   const color = toneVar(tone);
+  const [hidden, setHidden] = useState(false);
   return (
-    <Link
-      to={to}
-      style={{ animationDelay: `${delay}ms`, '--tile-tone': color }}
-      className="group/tile animate-rise relative flex min-w-0 items-center gap-2 rounded-lg border border-border bg-surface p-3 transition-all duration-300 hover:-translate-y-0.5 hover:border-[color-mix(in_srgb,var(--tile-tone)_45%,var(--border))] sm:gap-3 sm:p-4"
-    >
-      {Icon && (
-        <span className="grid size-9 shrink-0 place-items-center rounded-lg transition-transform duration-300 group-hover/tile:rotate-6 group-hover/tile:scale-110 sm:size-11" style={{ background: tint(color, 14), color }}>
-          <Icon size={18} className="sm:size-5" />
-        </span>
+    <div className="relative min-w-0">
+      <Link
+        to={to}
+        style={{ animationDelay: `${delay}ms`, '--tile-tone': color }}
+        className={`group/tile animate-rise relative flex min-w-0 items-center gap-3 rounded-xl border border-border bg-surface p-3 shadow-soft transition-all duration-300 hover:-translate-y-0.5 hover:border-[color-mix(in_srgb,var(--tile-tone)_45%,var(--border))] sm:gap-4 sm:p-4 ${sensitive ? 'pr-10' : ''}`}
+      >
+        {appIcon ? (
+          <AppIcon
+            name={appIcon}
+            className="size-10 shrink-0 object-contain transition-transform duration-300 group-hover/tile:scale-105 sm:size-12"
+          />
+        ) : Icon ? (
+          <span className="grid size-10 shrink-0 place-items-center rounded-xl transition-transform duration-300 group-hover/tile:rotate-3 group-hover/tile:scale-105 sm:size-12" style={{ background: tint(color, 14), color }}>
+            <Icon size={20} className="sm:size-5" aria-hidden="true" />
+          </span>
+        ) : null}
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-xs text-muted">{label}</p>
+          <p className="heading truncate text-xl leading-tight text-text sm:text-2xl">
+            {hidden ? '••••••' : typeof value === 'number' ? <CountUp value={value} format={format} /> : value}
+          </p>
+          {hint && <p className="truncate text-xs text-muted">{hidden ? 'Hidden' : hint}</p>}
+        </div>
+        <ArrowUpRight
+          size={16}
+          className={`absolute text-muted opacity-0 transition-all duration-300 group-hover/tile:translate-x-0.5 group-hover/tile:-translate-y-0.5 group-hover/tile:opacity-100 ${sensitive ? 'bottom-3 right-3 top-auto' : 'right-3 top-3'}`}
+        />
+      </Link>
+      {sensitive && (
+        <button
+          type="button"
+          onClick={() => setHidden((current) => !current)}
+          aria-label={`${hidden ? 'Show' : 'Hide'} ${label}`}
+          aria-pressed={hidden}
+          title={`${hidden ? 'Show' : 'Hide'} amount`}
+          className="absolute right-2 top-2 z-10 grid size-7 place-items-center rounded-md text-muted transition-colors hover:bg-surface-alt hover:text-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+        >
+          {hidden ? <EyeOff size={16} aria-hidden="true" /> : <Eye size={16} aria-hidden="true" />}
+        </button>
       )}
-      <div className="min-w-0">
-        <p className="truncate text-xs text-muted">{label}</p>
-        <p className="heading truncate text-xl leading-tight text-text sm:text-2xl">
-          {typeof value === 'number' ? <CountUp value={value} format={format} /> : value}
-        </p>
-        {hint && <p className="truncate text-xs text-muted">{hint}</p>}
-      </div>
-      <ArrowUpRight size={16} className="absolute right-3 top-3 text-muted opacity-0 transition-all duration-300 group-hover/tile:translate-x-0.5 group-hover/tile:-translate-y-0.5 group-hover/tile:opacity-100" />
-    </Link>
+    </div>
   );
 }
 

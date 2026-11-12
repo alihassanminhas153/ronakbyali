@@ -1,11 +1,17 @@
 // USAGE
 //   dispatch(openLoginModal());                      // guests clicking add-to-cart do this for you
 //   const open = useAppSelector(selectCartDrawerOpen);
-//   dispatch(addToast({ type: 'success', message: 'Saved' }));
+//   dispatch(addToast({ type: 'success', message: 'Saved', position: 'top-center', duration: 3000 }));
 //   dispatch(toggleTheme());
-//   // any thunk dispatched with { toast: true } shows an error toast when it fails
+//   // thunk toast options are configurable too: { toast: { position: 'top-left', duration: 3000 } }
 import { createSlice, isAnyOf, isRejected, nanoid } from '@reduxjs/toolkit';
-import { isSessionEnded, signIn, signUp, continueWithEmail } from './authSlice';
+import {
+  authenticateWithEmail,
+  continueWithEmail,
+  isSessionEnded,
+  signIn,
+  signUp,
+} from './authSlice';
 
 const initialState = {
   loginModalOpen: false,
@@ -38,7 +44,15 @@ const uiSlice = createSlice({
         s.toasts.push(a.payload);
         if (s.toasts.length > MAX_TOASTS) s.toasts.shift();
       },
-      prepare: ({ type = 'info', message }) => ({ payload: { id: nanoid(), type, message } }),
+      prepare: ({ type = 'info', message, duration, position }) => ({
+        payload: {
+          id: nanoid(),
+          type,
+          message: String(message ?? ''),
+          duration,
+          position,
+        },
+      }),
     },
     removeToast: (s, a) => {
       s.toasts = s.toasts.filter((t) => t.id !== a.payload);
@@ -52,17 +66,20 @@ const uiSlice = createSlice({
         s.mobileMenuOpen = false;
       })
       // Close the login modal after a successful login.
-      .addMatcher(isAnyOf(signIn.fulfilled, signUp.fulfilled, continueWithEmail.fulfilled), (s) => {
+      .addMatcher(isAnyOf(signIn.fulfilled, signUp.fulfilled, continueWithEmail.fulfilled, authenticateWithEmail.fulfilled), (s) => {
         s.loginModalOpen = false;
       })
       // Any rejected thunk whose meta says toast: true becomes an error toast.
       .addMatcher(
-        (a) => isRejected(a) && a.meta?.toast === true,
+        (a) => isRejected(a) && Boolean(a.meta?.toast),
         (s, a) => {
+          const options = typeof a.meta.toast === 'object' ? a.meta.toast : {};
           s.toasts.push({
             id: a.meta.requestId,
-            type: 'error',
-            message: typeof a.payload === 'string' ? a.payload : a.error?.message || 'Something went wrong.',
+            type: options.type || 'error',
+            message: typeof a.payload === 'string' ? a.payload : options.message || a.error?.message || 'Something went wrong.',
+            duration: options.duration,
+            position: options.position,
           });
           if (s.toasts.length > MAX_TOASTS) s.toasts.shift();
         }

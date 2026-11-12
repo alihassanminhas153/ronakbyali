@@ -1,9 +1,10 @@
 import { countByDay, groupBy } from '../../../ui/graphs/utils';
+import { paidAmountForOrder } from '../../../lib/orderMath';
 import { STOCK_CATEGORY } from './financeSchema';
 
 // All the money maths in one place (pure functions, no Appwrite calls).
 //
-//   Revenue        = total of DELIVERED orders that were not refunded
+//   Revenue        = amounts actually received for paid / partially paid orders
 //   Cost of goods  = quantity sold x the product's cost price
 //   Gross profit   = Revenue - Cost of goods
 //   Net profit     = Gross profit + other income - operating expenses   (negative = loss)
@@ -45,8 +46,13 @@ export function buildFinance({ orders = [], products = [], carts = [], wishlists
   /* ---------- sales ---------- */
   const costOf = (o) => sum(parseItems(o), (it) => num(byId.get(it.productId)?.costPrice) * num(it.quantity));
   const sold = orders
-    .filter((o) => o.status === 'delivered' && o.paymentStatus !== 'refunded')
-    .map((o) => ({ o, date: o.$createdAt, revenue: num(o.total), cost: costOf(o) }));
+    .filter((o) => paidAmountForOrder(o) > 0)
+    .map((o) => ({
+      o,
+      date: o.$updatedAt || o.$createdAt,
+      revenue: paidAmountForOrder(o),
+      cost: o.status === 'delivered' ? costOf(o) : 0,
+    }));
 
   const calc = (soldSet, ledgerSet) => {
     const revenue = sum(soldSet, (s) => s.revenue);
@@ -149,7 +155,7 @@ export function buildFinance({ orders = [], products = [], carts = [], wishlists
 
   return {
     period, now, all, cash, roi, recovered, margin: now.revenue ? (now.net / now.revenue) * 100 : 0,
-    deliveredCount: soldNow.length, lostValue, pipelineValue, pipelineCount: pipeline.length,
+    paidCount: soldNow.length, lostValue, pipelineValue, pipelineCount: pipeline.length,
     months, productProfit, noCostProducts, missingCostCount: missingCost.size,
     expenseByCategory: groupBy(ledgerNow.filter((e) => e.type === 'expense'), (e) => e.category || 'Uncategorised', (e) => num(e.amount)),
     revenueByPayment: groupBy(soldNow, (s) => s.o.paymentMethod || 'unknown', (s) => s.revenue),

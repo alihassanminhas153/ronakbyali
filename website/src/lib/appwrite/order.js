@@ -5,6 +5,7 @@ import cartService from './cart';
 import wishlistService from './wishlist';
 import productService from './product';
 import trackerService from './tracker';
+import { paidAmountForOrder } from '../orderMath';
 
 // The statuses below are the real enum values of ronakbyali_orders.status.
 export const ORDER_STATUS = ['pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled', 'returned'];
@@ -282,7 +283,10 @@ export class OrderService {
     async _afterOrder({ profile, order, items }) {
         const productIds = [...new Set(items.map((i) => i.productId))];
         await Promise.allSettled([
-            userService.applyOrderToProfile({ profile, order }),
+            (async () => {
+                await userService.applyOrderToProfile({ profile, order });
+                await this.syncUserTotalSpent(profile.$id);
+            })(),
             trackerService.createForOrder({ order, by: 'customer' }), // timeline starts with "Order placed"
             cartService.markPurchased({ userId: profile.$id, productIds }),
             wishlistService.markPurchased({ userId: profile.$id, productIds }),
@@ -361,8 +365,22 @@ export class OrderService {
             advanceAmount: t.advanceAmount,
             codAmount: t.codAmount,
         };
-        if (['unpaid', 'partial'].includes(order.paymentStatus)) patch.paymentStatus = t.paymentStatus;
-        return this._userUpdate(order.$id, patch);
+        if (order.paymentStatus === 'paid') {
+            const previouslyPaid = Number(order.total) || 0;
+            const paidTotals = this._totals(items, {
+                deliveryCharges: delivery,
+                discount: order.discount,
+                advanceAmount: previouslyPaid,
+            });
+            patch.advanceAmount = paidTotals.advanceAmount;
+            patch.codAmount = paidTotals.codAmount;
+            patch.paymentStatus = paidTotals.paymentStatus;
+        } else if (['unpaid', 'partial'].includes(order.paymentStatus)) {
+            patch.paymentStatus = t.paymentStatus;
+        }
+        const saved = await this._userUpdate(order.$id, patch);
+        if (saved) await this._syncProfileCounts(order, order.status, saved.status);
+        return saved;
     }
 
     // Adds cart items to an earlier order that has not shipped yet.
@@ -600,7 +618,7 @@ export class OrderService {
             const updated = await this.updateOrder(rowId, patch);
             if (!updated) return this._fail('Could not change the status.');
 
-            // Tracker: every status change becomes one timeline step. Customer: ordersCount / totalSpent.
+            // Tracker: every status change becomes one timeline step. Customer totals are reconciled from payments.
             const [title, note] = STATUS_UPDATES[status] || [`Status: ${status}`, ''];
             await Promise.allSettled([
                 trackerService.addUpdate(rowId, { title, note, status, by: 'staff' }, { order }),
@@ -627,26 +645,52 @@ export class OrderService {
         }
     }
 
-    // Gives back / takes again the order in the customer's ordersCount and totalSpent
-    // when it moves into or out of cancelled / returned. Best effort: needs update
-    // permission on the users table (admin label). Never blocks the status change.
+    // Keeps order count aligned with cancelled / returned status and reconciles
+    // spending from recorded payments. Best effort: never blocks an order change.
     async _syncProfileCounts(order, from, to) {
         try {
             const wasCounted = !NOT_COUNTED_STATUSES.includes(from);
             const nowCounted = !NOT_COUNTED_STATUSES.includes(to);
-            if (wasCounted === nowCounted || !order?.userId) return;
-            const sign = nowCounted ? 1 : -1;
-            const profile = await userService.getProfile({ userId: order.userId });
-            if (!profile) return;
-            await userService.updateProfile({
-                userId: order.userId,
-                data: {
-                    ordersCount: Math.max(0, (Number(profile.ordersCount) || 0) + sign),
-                    totalSpent: Math.max(0, (Number(profile.totalSpent) || 0) + sign * (Number(order.total) || 0)),
-                },
-            });
+            if (!order?.userId) return;
+            if (wasCounted !== nowCounted) {
+                const sign = nowCounted ? 1 : -1;
+                const profile = await userService.getProfile({ userId: order.userId });
+                if (profile) {
+                    await userService.updateProfile({
+                        userId: order.userId,
+                        data: { ordersCount: Math.max(0, (Number(profile.ordersCount) || 0) + sign) },
+                    });
+                }
+            }
+            await this.syncUserTotalSpent(order.userId);
         } catch (error) {
             console.error(error.message);
+        }
+    }
+
+    async syncUserTotalSpent(userId) {
+        try {
+            const orders = await this._getAllRows([Query.equal('userId', userId)]);
+            const totalSpent = orders.reduce((total, order) => total + paidAmountForOrder(order), 0);
+            return await userService.updateProfile({ userId, data: { totalSpent } });
+        } catch (error) {
+            console.error(error.message);
+            return false;
+        }
+    }
+
+    async getPaidTotalsByUser() {
+        try {
+            const orders = await this._getAllRows();
+            return orders.reduce((totals, order) => {
+                if (order.userId) {
+                    totals[order.userId] = (totals[order.userId] || 0) + paidAmountForOrder(order);
+                }
+                return totals;
+            }, {});
+        } catch (error) {
+            console.error(error.message);
+            return false;
         }
     }
 
@@ -723,7 +767,11 @@ export class OrderService {
 
     async updatePaymentStatus(rowId, paymentStatus) {
         if (!PAYMENT_STATUS.includes(paymentStatus)) return false;
-        return this.updateOrder(rowId, { paymentStatus });
+        const order = await this.getOrder(rowId);
+        if (!order) return false;
+        const updated = await this.updateOrder(rowId, { paymentStatus });
+        if (updated) await this._syncProfileCounts(order, order.status, order.status);
+        return updated;
     }
 
     async setTracking(rowId, trackingId) {
@@ -740,12 +788,14 @@ export class OrderService {
 
     async deleteOrder(rowId) {
         try {
+            const order = await this.getOrder(rowId);
             await this.table.deleteRow({
                 databaseId: this.databaseId,
                 tableId: this.tableId,
                 rowId,
             });
             await trackerService.deleteForOrder(rowId);
+            if (order?.userId) await this.syncUserTotalSpent(order.userId);
             return true;
         } catch (error) {
             console.error(error.message);

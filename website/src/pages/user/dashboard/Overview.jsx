@@ -5,14 +5,12 @@ import { Link } from 'react-router';
 import {
   ArrowRight,
   Bell,
-  Boxes,
   CalendarDays,
   Check,
   CheckCircle2,
   Clock,
   Heart,
   KeyRound,
-  LineChart as LineIcon,
   Loader2,
   Receipt,
   RefreshCw,
@@ -22,7 +20,6 @@ import {
   Star,
   User,
   UserRound,
-  Wallet,
 } from 'lucide-react';
 
 import { STATUS_TONE, LinkTile, Mini, OverviewCard, StatusBadge } from '../../../components/admin/overview';
@@ -40,6 +37,7 @@ import CountUp from '../../../ui/custom/motion/CountUp';
 import Typewriter from '../../../ui/custom/motion/Typewriter';
 import useEntered from '../../../ui/custom/motion/useEntered';
 import { formatInt, formatMoney } from '../../../components/admin/users/userFields';
+import { paidAmountForOrder } from '../../../lib/orderMath';
 
 /*
  * Route segments are relative to the user dashboard (this page is its index
@@ -213,7 +211,6 @@ function OverviewView({ me }) {
   const spent = Number(me.totalSpent) || 0;
 
   const o = useMemo(() => {
-    const live = orders.filter((x) => x.status !== 'cancelled');
     const counts = {};
     orders.forEach((x) => {
       counts[x.status] = (counts[x.status] || 0) + 1;
@@ -221,11 +218,11 @@ function OverviewView({ me }) {
     const months = lastMonths(6);
     const perMonthSpend = Object.fromEntries(months.map((m) => [m.key, 0]));
     const perMonthCount = Object.fromEntries(months.map((m) => [m.key, 0]));
-    live.forEach((x) => {
-      const k = monthKey(x.$createdAt);
+    orders.forEach((x) => {
+      const k = monthKey(x.$updatedAt || x.$createdAt);
       if (k in perMonthSpend) {
-        perMonthSpend[k] += Number(x.total) || 0;
-        perMonthCount[k] += 1;
+        perMonthSpend[k] += paidAmountForOrder(x);
+        if (x.status !== 'cancelled') perMonthCount[k] += 1;
       }
     });
 
@@ -372,28 +369,28 @@ function OverviewView({ me }) {
 
       {/* Key numbers: every tile opens its page */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <LinkTile to="orders" label="Orders placed" value={orderCount} hint={`${o.delivered} delivered`} icon={ShoppingBag} tone={1} delay={0} />
-        <LinkTile to="orders" label="Total spent" value={spent} format={short} hint={orderCount ? `${short(spent / orderCount)} per order` : 'no orders yet'} icon={Wallet} tone={2} delay={40} />
-        <LinkTile to="orders" label="Orders on the way" value={o.open} hint={`${o.pending} pending`} icon={Clock} tone={3} delay={80} />
-        <LinkTile to="cart" label="Value in cart" value={cartSubtotal} format={short} hint={`${cartCount} ${cartCount === 1 ? 'item' : 'items'}`} icon={ShoppingCart} tone={1} delay={120} />
-        <LinkTile to="wishlist" label="Wishlist" value={o.wish.total} hint={`${o.wish.out} out of stock`} icon={Heart} tone={4} delay={160} />
-        <LinkTile to="reviews" label="Reviews written" value={o.reviews.total} hint={o.reviews.pending ? `${o.reviews.pending} awaiting approval` : 'all reviewed'} icon={Star} tone={5} delay={200} />
-        <LinkTile to="alerts" label="New alerts" value={bars.length} hint="offers and updates" icon={Bell} tone={6} delay={240} />
-        <LinkTile to="profile" label="Profile complete" value={percent} format={(n) => `${Math.round(n)}%`} hint={percent === 100 ? 'all set' : 'finish in Profile'} icon={UserRound} tone={7} delay={280} />
+        <LinkTile to="orders" label="Orders placed" value={orderCount} hint={`${o.delivered} delivered`} appIcon="list" tone={1} delay={0} />
+        <LinkTile to="orders" label="Total spent" value={spent} format={short} hint={orderCount ? `${short(spent / orderCount)} per order` : 'no orders yet'} appIcon="wallet" sensitive tone={2} delay={40} />
+        <LinkTile to="orders" label="Orders on the way" value={o.open} hint={`${o.pending} pending`} appIcon="truck" tone={3} delay={80} />
+        <LinkTile to="cart" label="Value in cart" value={cartSubtotal} format={short} hint={`${cartCount} ${cartCount === 1 ? 'item' : 'items'}`} appIcon="cart" sensitive tone={1} delay={120} />
+        <LinkTile to="wishlist" label="Wishlist" value={o.wish.total} hint={`${o.wish.out} out of stock`} appIcon="popular" tone={4} delay={160} />
+        <LinkTile to="reviews" label="Reviews written" value={o.reviews.total} hint={o.reviews.pending ? `${o.reviews.pending} awaiting approval` : 'all reviewed'} appIcon="reviews" tone={5} delay={200} />
+        <LinkTile to="alerts" label="New alerts" value={bars.length} hint="offers and updates" appIcon="alert" tone={6} delay={240} />
+        <LinkTile to="profile" label="Profile complete" value={percent} format={(n) => `${Math.round(n)}%`} hint={percent === 100 ? 'all set' : 'finish in Profile'} appIcon="user" tone={7} delay={280} />
       </div>
 
       <div className={grid}>
-        <OverviewCard to="orders" cta="Orders" title="Spending trend" subtitle="What you spent, last 6 months" icon={LineIcon} tone={2}>
+        <OverviewCard to="orders" cta="Orders" title="Spending trend" subtitle="What you paid, last 6 months" appIcon="histogram" tone={2}>
           <TrendGraph data={o.spendTrend} color="var(--graph-2)" format={short} />
         </OverviewCard>
-        <OverviewCard to="orders" cta="Orders" title="Orders per month" subtitle="Last 6 months" icon={CalendarDays} tone={1} delay={80}>
+        <OverviewCard to="orders" cta="Orders" title="Orders per month" subtitle="Last 6 months" appIcon="clock" tone={1} delay={80}>
           <TrendGraph data={o.countTrend} color="var(--graph-1)" />
         </OverviewCard>
       </div>
 
       {/* One card per section */}
       <div className={grid}>
-        <OverviewCard to="orders" cta="My orders" title="Orders" subtitle={`${orderCount} in total`} icon={Receipt} tone={1} className="lg:col-span-2">
+        <OverviewCard to="orders" cta="My orders" title="Orders" subtitle={`${orderCount} in total`} appIcon="list" tone={1} className="lg:col-span-2">
           <Mini items={[
             { label: 'Pending', value: o.pending, tone: 3 },
             { label: 'On the way', value: o.open, tone: 5 },
@@ -429,7 +426,7 @@ function OverviewView({ me }) {
           </div>
         </OverviewCard>
 
-        <OverviewCard to="cart" cta="Cart" title="Cart" subtitle="Pick up where you left off" icon={ShoppingCart} tone={3} delay={80}>
+        <OverviewCard to="cart" cta="Cart" title="Cart" subtitle="Pick up where you left off" appIcon="cart" tone={3} delay={80}>
           <Mini items={[
             { label: 'Items', value: cartCount, tone: 1 },
             { label: 'Subtotal', value: cartSubtotal, format: short, tone: 7 },
@@ -445,7 +442,7 @@ function OverviewView({ me }) {
           />
         </OverviewCard>
 
-        <OverviewCard to="wishlist" cta="Wishlist" title="Wishlist" subtitle="Pieces you’ve saved for later" icon={Boxes} tone={4} delay={160}>
+        <OverviewCard to="wishlist" cta="Wishlist" title="Wishlist" subtitle="Pieces you’ve saved for later" appIcon="popular" tone={4} delay={160}>
           <Mini items={[
             { label: 'Saved', value: o.wish.total, tone: 4 },
             { label: 'Available', value: o.wish.total - o.wish.out, tone: 7 },
@@ -465,7 +462,7 @@ function OverviewView({ me }) {
           )}
         </OverviewCard>
 
-        <OverviewCard to="reviews" cta="My reviews" title="Reviews" subtitle={`${o.reviews.total} written`} icon={Star} tone={5} delay={240} className="lg:col-span-2">
+        <OverviewCard to="reviews" cta="My reviews" title="Reviews" subtitle={`${o.reviews.total} written`} appIcon="reviews" tone={5} delay={240} className="lg:col-span-2">
           <Mini items={[
             { label: 'Awaiting approval', value: o.reviews.pending, tone: 3 },
             { label: 'Average rating', value: o.reviews.average ? `${o.reviews.average.toFixed(1)} / 5` : '—', tone: 7 },

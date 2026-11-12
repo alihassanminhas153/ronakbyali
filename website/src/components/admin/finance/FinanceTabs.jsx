@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import {
-  Banknote, BarChart3, CalendarDays, Check, Coins, Flame, Gauge, HandCoins, Heart, Landmark, LineChart, PackageCheck,
-  PackagePlus, PackageX, PieChart, Receipt, ShoppingCart, TrendingDown, TrendingUp, Truck, Wallet, X, Ban, Clock, Percent, Layers, TriangleAlert, Trophy,
+  BarChart3, CalendarDays, Check, Coins, Flame, Heart, LineChart, PackagePlus, PackageX, PieChart, Receipt,
+  ShoppingCart, TrendingDown, TrendingUp, Truck, Wallet, X, Percent, Layers, TriangleAlert, Trophy,
 } from 'lucide-react';
 
 import productService from '../../../lib/appwrite/product';
@@ -13,6 +13,7 @@ import { rs } from './financeSchema';
 
 const grid = 'grid gap-4 lg:grid-cols-2';
 const tiles = 'grid grid-cols-2 gap-3 lg:grid-cols-4';
+const financeTiles = 'grid min-w-[58rem] grid-cols-4 grid-rows-3 gap-3';
 const rsFmt = (n) => rs(n);
 const rsShort = (n) => `Rs ${compact(n)}`;
 const pct = (n) => `${Math.round(n)}%`;
@@ -33,42 +34,41 @@ export function OverviewTab({ m }) {
   ];
   return (
     <div className="space-y-4">
-      <div className={tiles}>
-        <StatTile label={`Revenue (${m.period.label})`} value={now.revenue} format={rsShort} hint={`${m.deliveredCount} delivered orders`} icon={Banknote} tone={1} delay={0} />
-        <StatTile label="Gross profit" value={now.gross} format={rsShort} hint="revenue minus cost of goods" icon={Coins} tone={2} delay={40} />
-        <StatTile label="Operating expenses" value={now.opex} format={rsShort} hint="ads, courier, rent…" icon={Receipt} tone={4} delay={80} />
-        <StatTile
-          label={loss ? 'Net loss' : 'Net profit'}
-          value={Math.abs(now.net)}
-          format={rsShort}
-          hint={now.revenue ? `${Math.round(m.margin)}% margin` : 'no sales yet'}
-          icon={loss ? TrendingDown : TrendingUp}
-          tone={loss ? 4 : 7}
-          delay={120}
-        />
-      </div>
-      <div className={tiles}>
-        <StatTile label="Total investment" value={all.invested} format={rsShort} hint={m.recovered == null ? 'add one in the ledger' : `${Math.round(m.recovered)}% recovered`} icon={Landmark} tone={6} delay={160} />
-        <StatTile label={`Withdrawn (${m.period.label})`} value={now.withdrawn} format={rsShort} icon={HandCoins} tone={3} delay={200} />
-        <StatTile label="Return on investment" value={m.roi == null ? '—' : m.roi} format={pct} hint="all-time net profit / investment" icon={Gauge} tone={5} delay={240} />
-        <StatTile label="Cash in hand (estimate)" value={m.cash} format={rsShort} hint="after stock bought and withdrawals" icon={Wallet} tone={m.cash < 0 ? 4 : 2} delay={280} />
-      </div>
-      <div className={tiles}>
-        <StatTile label="Orders on the way" value={m.pipelineValue} format={rsShort} hint={`${m.pipelineCount} open orders`} icon={Clock} tone={5} delay={320} />
-        <StatTile label="Lost to cancels & returns" value={m.lostValue} format={rsShort} icon={Ban} tone={4} delay={360} />
-        <StatTile label={`Other income (${m.period.label})`} value={now.income} format={rsShort} icon={Layers} tone={7} delay={400} />
-        <StatTile label={`Stock bought (${m.period.label})`} value={now.stockSpend} format={rsShort} icon={PackagePlus} tone={3} delay={440} />
+      <div className="-mx-3 overflow-x-auto px-3 pb-2 sm:-mx-5 sm:px-5" role="region" aria-label="Finance summary metrics" tabIndex={0}>
+        <div className={financeTiles}>
+          <StatTile label={`Revenue (${m.period.label})`} value={now.revenue} format={rsShort} hint={`${m.paidCount} orders with payment received`} appIcon="pkr" sensitive tone={1} delay={0} />
+          <StatTile label="Gross profit" value={now.gross} format={rsShort} hint="revenue minus cost of goods" appIcon="coins" sensitive tone={2} delay={40} />
+          <StatTile label="Operating expenses" value={now.opex} format={rsShort} hint="ads, courier, rent…" appIcon="wallet" sensitive tone={4} delay={80} />
+          <StatTile
+            label={loss ? 'Net loss' : 'Net profit'}
+            value={Math.abs(now.net)}
+            format={rsShort}
+            hint={now.revenue ? `${Math.round(m.margin)}% margin` : 'no sales yet'}
+            appIcon={loss ? 'arrow_trend_down' : 'arrow_trend_up'}
+            sensitive
+            tone={loss ? 4 : 7}
+            delay={120}
+          />
+          <StatTile label="Total investment" value={all.invested} format={rsShort} hint={m.recovered == null ? 'add one in the ledger' : `${Math.round(m.recovered)}% recovered`} appIcon="coins" sensitive tone={6} delay={160} />
+          <StatTile label={`Withdrawn (${m.period.label})`} value={now.withdrawn} format={rsShort} appIcon="wallet" sensitive tone={3} delay={200} />
+          <StatTile label="Return on investment" value={m.roi == null ? '—' : m.roi} format={pct} hint="all-time net profit / investment" appIcon="arrow_trend_up" tone={5} delay={240} />
+          <StatTile label="Cash in hand (estimate)" value={m.cash} format={rsShort} hint="after stock bought and withdrawals" appIcon="wallet" sensitive tone={m.cash < 0 ? 4 : 2} delay={280} />
+          <StatTile label="Orders on the way" value={m.pipelineValue} format={rsShort} hint={`${m.pipelineCount} open orders`} appIcon="clock" sensitive tone={5} delay={320} />
+          <StatTile label="Lost to cancels & returns" value={m.lostValue} format={rsShort} appIcon="alert" sensitive tone={4} delay={360} />
+          <StatTile label={`Other income (${m.period.label})`} value={now.income} format={rsShort} appIcon="coins" sensitive tone={7} delay={400} />
+          <StatTile label={`Stock bought (${m.period.label})`} value={now.stockSpend} format={rsShort} appIcon="single_box" sensitive tone={3} delay={440} />
+        </div>
       </div>
 
       <div className={grid}>
-        <ChartCard title="Revenue trend" subtitle="Delivered orders, last 12 months" icon={LineChart} tone={1}>
+        <ChartCard title="Revenue trend" subtitle="Payments received, last 12 months" icon={LineChart} tone={1}>
           <TrendGraph data={m.months.map((x) => ({ label: x.label, value: x.revenue }))} color="var(--graph-1)" format={rsShort} />
         </ChartCard>
         <ChartCard title="Profit and loss" subtitle="Net per month, below the line = loss" icon={loss ? TrendingDown : TrendingUp} tone={loss ? 4 : 7} delay={80}>
           <TrendGraph data={m.months.map((x) => ({ label: x.label, value: x.profit }))} color="var(--graph-7)" format={rsShort} />
         </ChartCard>
         <ChartCard title="Where the money goes" subtitle={loss ? 'You spent more than you earned this period' : `Share of revenue, ${m.period.label}`} icon={PieChart} tone={3} delay={160}>
-          <Donut data={split} centerLabel="costs + profit" format={rsShort} empty="No delivered orders in this period." />
+          <Donut data={split} centerLabel="costs + profit" format={rsShort} empty="No payments received in this period." />
         </ChartCard>
         <ChartCard title="Orders per day" subtitle="Last 6 months (cancelled and returned left out)" icon={CalendarDays} tone={2} delay={240}>
           <HeatmapCalendar data={m.ordersHeat} weeks={26} label="orders" />
@@ -77,13 +77,13 @@ export function OverviewTab({ m }) {
           <BarChart data={colored(m.expenseByCategory.slice(0, 8))} format={rsShort} empty="No expenses recorded." />
         </ChartCard>
         <ChartCard title="Revenue by payment method" subtitle={m.period.label} icon={Wallet} tone={5} delay={400}>
-          <Donut data={colored(m.revenueByPayment.map((d) => ({ ...d, label: PAY_LABEL[d.label] || d.label })))} centerLabel="revenue" format={rsShort} empty="No delivered orders yet." />
+          <Donut data={colored(m.revenueByPayment.map((d) => ({ ...d, label: PAY_LABEL[d.label] || d.label })))} centerLabel="revenue" format={rsShort} empty="No payments received yet." />
         </ChartCard>
         <ChartCard title="Order status" subtitle={`All orders, ${m.period.label}`} icon={Truck} tone={6} delay={480}>
           <Donut data={colored(m.ordersByStatus.map((d) => ({ ...d, label: cap(d.label) })))} centerLabel="orders" empty="No orders yet." />
         </ChartCard>
-        <ChartCard title="Order value" subtitle="How big delivered orders are (Rs)" icon={BarChart3} tone={3} delay={560}>
-          <Histogram values={m.orderValues} bins={6} format={(n) => compact(n)} empty="No delivered orders yet." />
+        <ChartCard title="Order value" subtitle="Amounts received per order (Rs)" icon={BarChart3} tone={3} delay={560}>
+          <Histogram values={m.orderValues} bins={6} format={(n) => compact(n)} empty="No payments received yet." />
         </ChartCard>
       </div>
     </div>
@@ -134,10 +134,10 @@ export function InventoryTab({ m, onRestock }) {
   return (
     <div className="space-y-4">
       <div className={tiles}>
-        <StatTile label="Products in stock" value={inv.inStock.length} hint={`of ${total} products`} icon={PackageCheck} tone={2} delay={0} />
-        <StatTile label="Out of stock" value={inv.outOfStock.length} icon={PackageX} tone={4} delay={40} />
-        <StatTile label="Stock value (cost)" value={inv.stockCost} format={rsShort} hint="what you paid for it" icon={Wallet} tone={3} delay={80} />
-        <StatTile label="Stock value (selling)" value={inv.stockRetail} format={rsShort} hint={`potential profit ${rsShort(inv.stockRetail - inv.stockCost)}`} icon={TrendingUp} tone={7} delay={120} />
+        <StatTile label="Products in stock" value={inv.inStock.length} hint={`of ${total} products`} appIcon="boxes" tone={2} delay={0} />
+        <StatTile label="Out of stock" value={inv.outOfStock.length} appIcon="single_box" tone={4} delay={40} />
+        <StatTile label="Stock value (cost)" value={inv.stockCost} format={rsShort} hint="what you paid for it" appIcon="pkr" sensitive tone={3} delay={80} />
+        <StatTile label="Stock value (selling)" value={inv.stockRetail} format={rsShort} hint={`potential profit ${rsShort(inv.stockRetail - inv.stockCost)}`} appIcon="arrow_trend_up" sensitive tone={7} delay={120} />
       </div>
       <div className={grid}>
         <ChartCard title="Stock status" subtitle="Products in and out of stock" icon={PieChart} tone={2}>
@@ -172,10 +172,10 @@ export function DemandTab({ m, onRestock }) {
   return (
     <div className="space-y-4">
       <div className={tiles}>
-        <StatTile label="Carts with items" value={d.cartsWithItems} icon={ShoppingCart} tone={1} delay={0} />
-        <StatTile label="Value waiting in carts" value={d.cartValue} format={rsShort} hint="at today's prices" icon={Banknote} tone={7} delay={40} />
-        <StatTile label="Wishlisted items" value={d.wishTotal} icon={Heart} tone={4} delay={80} />
-        <StatTile label="Wanted but out of stock" value={d.wanted.length} hint="lost sales waiting" icon={PackageX} tone={3} delay={120} />
+        <StatTile label="Carts with items" value={d.cartsWithItems} appIcon="cart" tone={1} delay={0} />
+        <StatTile label="Value waiting in carts" value={d.cartValue} format={rsShort} hint="at today's prices" appIcon="pkr" sensitive tone={7} delay={40} />
+        <StatTile label="Wishlisted items" value={d.wishTotal} appIcon="popular" tone={4} delay={80} />
+        <StatTile label="Wanted but out of stock" value={d.wanted.length} hint="lost sales waiting" appIcon="alert" tone={3} delay={120} />
       </div>
       <div className={grid}>
         <ChartCard title="Most in carts" subtitle="Number of carts holding the product" icon={ShoppingCart} tone={1}>
@@ -252,10 +252,10 @@ export function ProfitTab({ m, onChanged }) {
   return (
     <div className="space-y-4">
       <div className={tiles}>
-        <StatTile label="Products sold" value={rows.length} hint={m.period.label} icon={ShoppingCart} tone={1} delay={0} />
-        <StatTile label="Best product" value={rows[0] ? rows[0].name : '—'} hint={rows[0] ? `${rsShort(rows[0].profit)} profit` : undefined} icon={Trophy} tone={7} delay={40} />
-        <StatTile label="Selling at a loss" value={losers.length} icon={TrendingDown} tone={4} delay={80} />
-        <StatTile label="Missing cost price" value={m.noCostProducts.length} hint="profit looks too high" icon={TriangleAlert} tone={3} delay={120} />
+        <StatTile label="Products sold" value={rows.length} hint={m.period.label} appIcon="cart" tone={1} delay={0} />
+        <StatTile label="Best product" value={rows[0] ? rows[0].name : '—'} hint={rows[0] ? `${rsShort(rows[0].profit)} profit` : undefined} appIcon="trophy" tone={7} delay={40} />
+        <StatTile label="Selling at a loss" value={losers.length} appIcon="arrow_trend_down" tone={4} delay={80} />
+        <StatTile label="Missing cost price" value={m.noCostProducts.length} hint="profit looks too high" appIcon="alert" tone={3} delay={120} />
       </div>
 
       <div className={grid}>
@@ -290,7 +290,7 @@ export function ProfitTab({ m, onChanged }) {
 
       <ChartCard title="Profit by product" subtitle={`Everything sold in ${m.period.label}`} icon={Coins} tone={2} delay={320}>
         {rows.length === 0 ? (
-          <div className="grid h-24 place-items-center rounded-md border border-dashed border-border text-xs text-muted">No delivered orders in this period.</div>
+          <div className="grid h-24 place-items-center rounded-md border border-dashed border-border text-xs text-muted">No payments received in this period.</div>
         ) : (
           <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
             <table className="w-full min-w-[34rem] text-left">

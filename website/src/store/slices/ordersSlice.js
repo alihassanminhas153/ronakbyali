@@ -24,6 +24,7 @@ import { orderService, settingsService } from './services';
 import trackerService from '../../lib/appwrite/tracker';
 import { LOGIN_REQUIRED, fail, getUserId, stripToast } from './utils';
 import { isSessionEnded, refreshProfile } from './authSlice';
+import { refreshMyProfile } from './userSlice';
 import { fetchCart, getDeliveryChargesForLines, getProductCheckoutPrice } from './cartSlice';
 import { fetchWishlist } from './wishlistSlice';
 import { openLoginModal } from './uiSlice';
@@ -173,8 +174,8 @@ export const placeOrder = createAsyncThunk('orders/place', async (arg, { getStat
   if (!order) {
     return fail(rejectWithValue, orderService.lastError || 'Could not place your order. Please try again.', arg);
   }
-  // Role, lastCity, lastAddress, ordersCount and totalSpent change, so refresh everything.
-  await Promise.all([dispatch(refreshProfile()), dispatch(fetchCart()), dispatch(fetchWishlist())]);
+  // Role, contact details, order count and paid total may have changed.
+  await Promise.all([dispatch(refreshProfile()), dispatch(refreshMyProfile()), dispatch(fetchCart()), dispatch(fetchWishlist())]);
   return order;
 });
 
@@ -223,7 +224,7 @@ export const placeDirectOrder = createAsyncThunk('orders/placeDirect', async (ar
     return fail(rejectWithValue, orderService.lastError || 'Could not place your order. Please try again.', arg);
   }
 
-  await Promise.all([dispatch(refreshProfile()), dispatch(fetchCart()), dispatch(fetchWishlist())]);
+  await Promise.all([dispatch(refreshProfile()), dispatch(refreshMyProfile()), dispatch(fetchCart()), dispatch(fetchWishlist())]);
   return order;
 });
 

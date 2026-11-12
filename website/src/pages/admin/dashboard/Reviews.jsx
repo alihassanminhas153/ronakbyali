@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import {
-  ArrowRight, Calculator, CalendarDays, Clock, Download, LineChart as LineIcon, MessageSquare,
-  PieChart, RefreshCw, Reply, Star, TrendingUp, Trophy,
+  ArrowRight, Calculator, CalendarDays, Download, LineChart as LineIcon, MessageSquare,
+  PieChart, RefreshCw, Star, TrendingUp, Trophy,
 } from 'lucide-react';
 
 import {
@@ -296,10 +296,10 @@ export default function Reviews() {
       {tab === 'overview' && (
         <TabPanel key="overview" className="space-y-6">
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <StatTile label="Reviews" value={m.total} format={whole} hint={`${m.approved} approved`} icon={MessageSquare} tone={1} />
-            <StatTile label="Average rating" value={m.average} format={(n) => `${n.toFixed(1)} / 5`} hint="approved reviews only" icon={Star} tone={3} delay={50} />
-            <StatTile label="Waiting" value={pending} format={whole} hint="need a decision" icon={Clock} tone={2} delay={100} />
-            <StatTile label="Reply rate" value={m.replyRate} format={(n) => `${Math.round(n)}%`} hint="reviews you answered" icon={Reply} tone={5} delay={150} />
+            <StatTile label="Reviews" value={m.total} format={whole} hint={`${m.approved} approved`} appIcon="reviews" tone={1} />
+            <StatTile label="Average rating" value={m.average} format={(n) => `${n.toFixed(1)} / 5`} hint="approved reviews only" appIcon="trophy" tone={3} delay={50} />
+            <StatTile label="Waiting" value={pending} format={whole} hint="need a decision" appIcon="wrist_watch" tone={2} delay={100} />
+            <StatTile label="Reply rate" value={m.replyRate} format={(n) => `${Math.round(n)}%`} hint="reviews you answered" appIcon="network" tone={5} delay={150} />
           </div>
 
           <div className="grid gap-4 lg:grid-cols-2">

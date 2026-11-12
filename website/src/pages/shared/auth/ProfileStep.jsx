@@ -5,7 +5,6 @@ import { useAppDispatch, useAppSelector } from '../../../store/slices/hooks';
 import {
   saveName,
   clearAuthError,
-  selectAuthError,
   selectAuthStatus,
 } from '../../../store/slices/authSlice';
 
@@ -17,7 +16,6 @@ const MAX_IMAGE_MB = 5;
 //   onDone(profile)    -> called with the saved profile; the parent decides where to go next
 export default function ProfileStep({ profile, onDone }) {
   const dispatch = useAppDispatch();
-  const authError = useAppSelector(selectAuthError);
   const status = useAppSelector(selectAuthStatus);
 
   const nameId = useId();
@@ -32,19 +30,17 @@ export default function ProfileStep({ profile, onDone }) {
   const busy = status === 'loading';
   const imageSrc = localPreview || profile?.avatarUrl || '';
   const showImage = imageSrc && imageSrc !== brokenUrl;
-  const message = error || authError;
+  const message = error;
 
   useEffect(() => {
     dispatch(clearAuthError());
   }, [dispatch]);
 
-  // Preview for a freshly picked file (revoked when replaced or unmounted).
+  // Revoke the object URL when the selected preview is replaced or unmounted.
   useEffect(() => {
-    if (!file) return;
-    const url = URL.createObjectURL(file);
-    setLocalPreview(url);
-    return () => URL.revokeObjectURL(url);
-  }, [file]);
+    if (!localPreview) return undefined;
+    return () => URL.revokeObjectURL(localPreview);
+  }, [localPreview]);
 
   const onPick = (e) => {
     const picked = e.target.files?.[0];
@@ -54,6 +50,7 @@ export default function ProfileStep({ profile, onDone }) {
     if (picked.size > MAX_IMAGE_MB * 1024 * 1024) return setError(`Image must be under ${MAX_IMAGE_MB} MB.`);
     setError('');
     setFile(picked);
+    setLocalPreview(URL.createObjectURL(picked));
   };
 
   const onSubmit = async (e) => {
@@ -65,7 +62,7 @@ export default function ProfileStep({ profile, onDone }) {
     setError('');
 
     // avatarFile is null when the person skipped the photo (or kept the Google one).
-    const result = await dispatch(saveName({ name: clean, avatarFile: file }));
+    const result = await dispatch(saveName({ name: clean, avatarFile: file, toast: true }));
     if (saveName.fulfilled.match(result)) onDone?.(result.payload);
   };
 

@@ -17,7 +17,9 @@ export const toRows = (r) => (Array.isArray(r) ? r : r?.rows || []);
 // Reject with a readable message. Pass the thunk argument so `toast: true` works.
 export const fail = (rejectWithValue, message, arg) =>
   rejectWithValue(message, {
-    toast: Boolean(arg && typeof arg === 'object' && !Array.isArray(arg) && arg.toast),
+    toast: arg && typeof arg === 'object' && !Array.isArray(arg) && arg.toast
+      ? arg.toast
+      : false,
   });
 
 // Remove the `toast` flag before forwarding an argument object to a service.

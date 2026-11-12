@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { AlertCircle, Info } from 'lucide-react';
 
 // One small entrance for the form and a slow drift for the background glow on the image side.
 // Both are switched off for people who prefer reduced motion.
@@ -104,32 +103,6 @@ export function OrDivider() {
       <span className="h-px flex-1 bg-border" />
       or
       <span className="h-px flex-1 bg-border" />
-    </div>
-  );
-}
-
-export function FormError({ message }) {
-  if (!message) return null;
-  return (
-    <div
-      role="alert"
-      className="flex items-start gap-2 rounded-md border border-error/40 bg-error/10 px-3 py-2.5 text-sm text-error"
-    >
-      <AlertCircle size={18} className="mt-0.5 shrink-0" aria-hidden="true" />
-      <span>{message}</span>
-    </div>
-  );
-}
-
-// Neutral information banner (used after too many failed log-ins).
-export function Notice({ children }) {
-  return (
-    <div
-      role="status"
-      className="flex items-start gap-2 rounded-md border border-accent/40 bg-accent/10 px-3 py-2.5 text-sm text-text"
-    >
-      <Info size={18} className="mt-0.5 shrink-0 text-accent" aria-hidden="true" />
-      <span>{children}</span>
     </div>
   );
 }

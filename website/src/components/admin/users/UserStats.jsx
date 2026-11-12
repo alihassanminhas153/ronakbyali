@@ -1,13 +1,16 @@
-import { Ban, ShoppingBag, UserCheck, Users, Wallet } from 'lucide-react';
+import { useState } from 'react';
+import { Eye, EyeOff } from 'lucide-react';
 
 import { useAppSelector } from '../../../store/slices/hooks';
 import { selectUserStats } from '../../../store/slices/userSlice';
+import AppIcon from '../../../ui/custom/AppIcon';
 import CountUp from '../../../ui/custom/motion/CountUp';
 import { tint } from '../../../ui/graphs/utils';
 import { RoleBadge } from './UserBadges';
 import { ROLE_VALUES, formatMoney } from './userFields';
 
-function Tile({ label, icon: Icon, color, index, loading, count, text }) {
+function Tile({ label, icon: Icon, appIcon, color, index, loading, count, text, sensitive = false }) {
+  const [hidden, setHidden] = useState(false);
   return (
     <div
       style={{ animationDelay: `${index * 50}ms`, borderTopColor: color }}
@@ -15,19 +18,34 @@ function Tile({ label, icon: Icon, color, index, loading, count, text }) {
     >
       <div className="flex items-center justify-between gap-2">
         <p className="text-xs text-muted">{label}</p>
-        <span
-          className="grid size-8 place-items-center rounded-lg transition-transform duration-300 group-hover/tile:-rotate-6 group-hover/tile:scale-110"
-          style={{ background: tint(color, 14), color }}
-        >
-          <Icon size={16} aria-hidden="true" />
-        </span>
+        {sensitive && (
+          <button
+            type="button"
+            onClick={() => setHidden((current) => !current)}
+            aria-label={`${hidden ? 'Show' : 'Hide'} ${label}`}
+            aria-pressed={hidden}
+            title={`${hidden ? 'Show' : 'Hide'} amount`}
+            className="grid size-7 shrink-0 place-items-center rounded-md text-muted transition-colors hover:bg-surface-alt hover:text-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+          >
+            {hidden ? <EyeOff size={16} aria-hidden="true" /> : <Eye size={16} aria-hidden="true" />}
+          </button>
+        )}
       </div>
       {loading ? (
         <div className="mt-2 h-7 w-16 animate-pulse rounded-sm bg-surface-alt motion-reduce:animate-none" />
       ) : (
-        <p className="mt-1 text-2xl font-semibold tabular-nums text-text">
-          {text ?? <CountUp value={count} />}
-        </p>
+        <div className="mt-1 flex items-center justify-between gap-2">
+          <p className="min-w-0 truncate text-2xl font-semibold tabular-nums text-text">
+            {hidden ? '••••••' : text ?? <CountUp value={count} />}
+          </p>
+          {appIcon ? (
+            <AppIcon name={appIcon} className="size-9 shrink-0 object-contain transition-transform duration-300 group-hover/tile:scale-105" />
+          ) : Icon ? (
+            <span className="grid size-8 shrink-0 place-items-center rounded-lg" style={{ background: tint(color, 14), color }}>
+              <Icon size={16} aria-hidden="true" />
+            </span>
+          ) : null}
+        </div>
       )}
     </div>
   );
@@ -38,11 +56,11 @@ export default function UserStats({ loading = false }) {
   const stats = useAppSelector(selectUserStats);
 
   const tiles = [
-    { label: 'Total users', icon: Users, color: 'var(--graph-1)', count: stats.total },
-    { label: 'Active', icon: UserCheck, color: 'var(--graph-7)', count: stats.active },
-    { label: 'Blocked', icon: Ban, color: 'var(--graph-4)', count: stats.blocked },
-    { label: 'Orders', icon: ShoppingBag, color: 'var(--graph-5)', count: stats.orders },
-    { label: 'Total spent', icon: Wallet, color: 'var(--graph-3)', text: formatMoney(stats.totalSpent) },
+    { label: 'Total users', appIcon: 'customers', color: 'var(--graph-1)', count: stats.total },
+    { label: 'Active', appIcon: 'user', color: 'var(--graph-7)', count: stats.active },
+    { label: 'Blocked', appIcon: 'alert', color: 'var(--graph-4)', count: stats.blocked },
+    { label: 'Orders', appIcon: 'list', color: 'var(--graph-5)', count: stats.orders },
+    { label: 'Total spent', appIcon: 'pkr', color: 'var(--graph-3)', text: formatMoney(stats.totalSpent), sensitive: true },
   ];
   const roles = ROLE_VALUES.filter((role) => stats.byRole[role]);
 

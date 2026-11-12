@@ -326,7 +326,6 @@ export class UserService {
                     lastCity: order.city || null,
                     lastAddress: order.address || null,
                     ordersCount,
-                    totalSpent: (Number(profile.totalSpent) || 0) + (Number(order.total) || 0),
                     role: this.computeRole(profile.role, ordersCount),
                 },
             });

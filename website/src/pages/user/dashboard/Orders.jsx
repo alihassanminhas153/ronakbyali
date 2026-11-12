@@ -7,8 +7,9 @@ import {
   AlertCircle,
   Check,
   ChevronDown,
-  CircleDollarSign,
   Clock,
+  Eye,
+  EyeOff,
   Loader2,
   MapPin,
   Minus,
@@ -57,6 +58,8 @@ import SearchInput from '../../../ui/custom/input/SearchInput';
 import SelectInput from '../../../ui/custom/input/SelectInput';
 import HeatmapCalendar from '../../../ui/graphs/HeatmapCalendar';
 import { capitalize, formatDateTime, formatMoney } from '../../../components/user/profile/profileMeta';
+import { paidAmountForOrder } from '../../../lib/orderMath';
+import AppIcon from '../../../ui/custom/AppIcon';
 
 /* =====================================================================
    CONFIG
@@ -84,8 +87,6 @@ const SORTS = [
   { value: 'highest', label: 'Highest total' },
   { value: 'lowest', label: 'Lowest total' },
 ];
-
-const NOT_COUNTED = ['cancelled', 'returned'];
 
 /* =====================================================================
    THIN WRAPPERS around your custom components.
@@ -180,21 +181,40 @@ function Notice({ type, text, onDismiss }) {
   );
 }
 
-function StatTile({ icon: Icon, label, color, children }) {
+function StatTile({ icon: Icon, appIcon, label, color, sensitive = false, children }) {
+  const [hidden, setHidden] = useState(false);
   return (
     <div
       className="group flex items-center gap-3 rounded-xl border border-border bg-surface p-4 shadow-soft transition-all duration-200 hover:-translate-y-0.5 hover:border-[color:var(--tile)]"
       style={{ '--tile': color }}
     >
-      <span
-        className="grid size-11 shrink-0 place-items-center rounded-lg transition-transform duration-300 group-hover:scale-110"
-        style={{ background: `color-mix(in srgb, ${color} 15%, transparent)`, color }}
-      >
-        <Icon size={20} aria-hidden="true" />
-      </span>
-      <div className="min-w-0">
-        <p className="truncate text-xs text-muted">{label}</p>
-        <p className="truncate font-display text-xl font-semibold text-text">{children}</p>
+      {appIcon ? (
+        <AppIcon name={appIcon} className="size-11 shrink-0 object-contain transition-transform duration-300 group-hover:scale-105" />
+      ) : (
+        <span
+          className="grid size-11 shrink-0 place-items-center rounded-lg transition-transform duration-300 group-hover:scale-110"
+          style={{ background: `color-mix(in srgb, ${color} 15%, transparent)`, color }}
+        >
+          <Icon size={20} aria-hidden="true" />
+        </span>
+      )}
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center justify-between gap-2">
+          <p className="truncate text-xs text-muted">{label}</p>
+          {sensitive && (
+            <button
+              type="button"
+              onClick={() => setHidden((current) => !current)}
+              aria-label={`${hidden ? 'Show' : 'Hide'} ${label}`}
+              aria-pressed={hidden}
+              title={`${hidden ? 'Show' : 'Hide'} amount`}
+              className="grid size-7 shrink-0 place-items-center rounded-md text-muted transition-colors hover:bg-surface-alt hover:text-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+            >
+              {hidden ? <EyeOff size={16} aria-hidden="true" /> : <Eye size={16} aria-hidden="true" />}
+            </button>
+          )}
+        </div>
+        <p className="truncate font-display text-xl font-semibold text-text">{hidden ? '••••••' : children}</p>
       </div>
     </div>
   );
@@ -615,7 +635,7 @@ export default function Orders() {
     const days = new Map();
     orders.forEach((o) => {
       if (counts[o.status] !== undefined) counts[o.status] += 1;
-      if (!NOT_COUNTED.includes(o.status)) spent += Number(o.total) || 0;
+      spent += paidAmountForOrder(o);
       const key = dayKey(o.$createdAt);
       if (key) days.set(key, (days.get(key) || 0) + 1);
     });
@@ -744,16 +764,16 @@ export default function Orders() {
 
       {/* Stats */}
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <StatTile icon={ShoppingBag} label="Orders placed" color="var(--graph-1)">
+        <StatTile appIcon="list" label="Orders placed" color="var(--graph-1)">
           <CountUp value={orders.length} />
         </StatTile>
-        <StatTile icon={Truck} label="Still changeable" color="var(--graph-3)">
+        <StatTile appIcon="clock" label="Still changeable" color="var(--graph-3)">
           <CountUp value={stats.open} />
         </StatTile>
-        <StatTile icon={PackageCheck} label="Delivered" color="var(--graph-7)">
+        <StatTile appIcon="truck" label="Delivered" color="var(--graph-7)">
           <CountUp value={stats.counts.delivered} />
         </StatTile>
-        <StatTile icon={CircleDollarSign} label="Total spent" color="var(--graph-2)">
+        <StatTile appIcon="wallet" label="Total spent" color="var(--graph-2)" sensitive>
           {formatMoney(stats.spent)}
         </StatTile>
       </div>

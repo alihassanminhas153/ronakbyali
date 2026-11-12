@@ -55,6 +55,13 @@ const profileThunk = (type, call) =>
 export const signUp = profileThunk('auth/signUp', (a) => authService.signUp(a)); // { email, password, name }
 export const signIn = profileThunk('auth/signIn', (a) => authService.signIn(a)); // { email, password }
 export const continueWithEmail = profileThunk('auth/continueWithEmail', (a) => authService.continueWithEmail(a));
+export const authenticateWithEmail = createAsyncThunk('auth/authenticateWithEmail', async (arg, { rejectWithValue }) => {
+  const result = await authService.authenticateWithEmail(stripToast(arg));
+  if (!result) {
+    return fail(rejectWithValue, authService.lastError || 'Could not continue with email. Please try again.', arg);
+  }
+  return result;
+});
 // Step 1 of email signup: account + session + profile row, but NO name yet.
 export const registerWithEmail = createAsyncThunk('auth/registerWithEmail', async (arg, { rejectWithValue }) => {
   const { email, password } = stripToast(arg);
@@ -166,7 +173,7 @@ const profileSetters = [
   refreshProfile, updateProfile, changeAvatar, updateName, saveName,
 ];
 const trackedThunks = [
-  signUp, signIn, continueWithEmail, completeLogin, continueWithGoogle, logout, logoutAll,
+  signUp, signIn, continueWithEmail, authenticateWithEmail, completeLogin, continueWithGoogle, logout, logoutAll,
   registerWithEmail, saveName, updateProfile, changeAvatar, updateName,
   sendPasswordRecovery, confirmPasswordRecovery, sendVerification, confirmVerification, updatePassword,
 ];
@@ -189,6 +196,12 @@ const authSlice = createSlice({
       })
       .addCase(registerWithEmail.fulfilled, (state, action) => {
         state.pendingProfile = action.payload || null;
+      })
+      .addCase(authenticateWithEmail.fulfilled, (state, action) => {
+        const { profile, created } = action.payload;
+        state.pendingProfile = created ? profile : null;
+        state.profile = created ? null : profile;
+        state.roleFlags = flagsFor(state.profile);
       })
       .addCase(saveName.fulfilled, (state) => {
         state.pendingProfile = null;

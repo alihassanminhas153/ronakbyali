@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ArrowRight, Boxes, CalendarDays, Download, Heart, LayoutList, PackagePlus, PieChart, Plus, RefreshCw, TrendingUp, Trophy, LineChart as LineIcon, ArrowDownRight, ArrowUpRight, Scale } from 'lucide-react';
+import { ArrowRight, Boxes, CalendarDays, Download, Heart, LayoutList, PackagePlus, PieChart, Plus, RefreshCw, TrendingUp, Trophy, LineChart as LineIcon } from 'lucide-react';
 
 import {
   DemandTab, InventoryTab, LedgerForm, LedgerTable, OverviewTab, PERIODS, ProfitTab, RestockForm,
@@ -272,9 +272,9 @@ export default function Finance() {
           </div>
 
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-            <StatTile label={isFiltered ? 'Money in (filtered)' : 'Money in'} value={moneyIn} format={(n) => `Rs ${compact(n)}`} hint="investment + other income" icon={ArrowDownRight} tone={7} />
-            <StatTile label={isFiltered ? 'Money out (filtered)' : 'Money out'} value={moneyOut} format={(n) => `Rs ${compact(n)}`} hint="expenses + withdrawals" icon={ArrowUpRight} tone={4} delay={50} />
-            <StatTile label="Difference" value={moneyIn - moneyOut} format={(n) => `${n < 0 ? '-' : ''}Rs ${compact(Math.abs(n))}`} hint={`${filtered.length} ${filtered.length === 1 ? 'entry' : 'entries'}`} icon={Scale} tone={1} delay={100} />
+            <StatTile label={isFiltered ? 'Money in (filtered)' : 'Money in'} value={moneyIn} format={(n) => `Rs ${compact(n)}`} hint="investment + other income" appIcon="pkr" sensitive tone={7} />
+            <StatTile label={isFiltered ? 'Money out (filtered)' : 'Money out'} value={moneyOut} format={(n) => `Rs ${compact(n)}`} hint="expenses + withdrawals" appIcon="wallet" sensitive tone={4} delay={50} />
+            <StatTile label="Difference" value={moneyIn - moneyOut} format={(n) => `${n < 0 ? '-' : ''}Rs ${compact(Math.abs(n))}`} hint={`${filtered.length} ${filtered.length === 1 ? 'entry' : 'entries'}`} appIcon="coins" sensitive tone={1} delay={100} />
           </div>
 
           {ledger.length === 0 && !loading ? (

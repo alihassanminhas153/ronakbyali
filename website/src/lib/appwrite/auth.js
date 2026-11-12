@@ -56,19 +56,46 @@ export class AuthService {
         }
     }
 
-    // One button for both: tries to log in; if there is no such account and
-    // a `name` was given, creates it instead. If the email exists but the
-    // password is wrong you get that error and nothing is created.
+    // Legacy profile-returning wrapper used by callers that optionally collect a name.
     async continueWithEmail({ email, password, name }) {
-        const profile = await this.signIn({ email, password });
-        if (profile) return profile;
-        if (!name) return false; // login mode: keep signIn's error
+        const result = await this.authenticateWithEmail({ email, password });
+        if (!result) return false;
+        if (!result.created || !name) return result.profile;
 
-        const created = await this.signUp({ email, password, name });
-        if (!created && this.lastError?.includes('already exists')) {
-            this.lastError = 'This email already has an account, but the password is wrong.';
+        const userId = result.profile.userId || result.profile.$id;
+        const updated = await userService.updateProfile({ userId, data: { name } });
+        if (!updated) return this._fail('Could not save your name. Please try again.');
+        await this.updateName({ name });
+        return { ...result.profile, ...updated, name };
+    }
+
+    // Both email forms use the same flow. Account creation is only attempted
+    // after Appwrite rejects the session as invalid credentials.
+    async authenticateWithEmail({ email, password }) {
+        this.lastError = null;
+        try {
+            await this.account.createEmailPasswordSession({ email, password });
+            const profile = await this._finishLogin('email');
+            return profile ? { profile, created: false } : false;
+        } catch (loginError) {
+            if (loginError.code !== 401) return this._fail(loginError.message);
         }
-        return created;
+
+        try {
+            const user = await this.account.create({
+                userId: ID.unique(),
+                email,
+                password,
+            });
+            if (!user) return this._fail('Could not create the account.');
+
+            await this.account.createEmailPasswordSession({ email, password });
+            const profile = await this._finishLogin('email');
+            return profile ? { profile, created: true } : false;
+        } catch (createError) {
+            if (createError.code === 409) return this._fail('Wrong email or password.');
+            return this._fail(createError.message);
+        }
     }
 
     // "Continue with Google". Redirects the browser away. Appwrite creates

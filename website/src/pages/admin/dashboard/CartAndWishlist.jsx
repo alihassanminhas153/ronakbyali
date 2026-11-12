@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Activity, AlertTriangle, ArrowRight, Boxes, CalendarDays, Clock, Heart, MapPin, RefreshCw, ShoppingCart, Wallet } from 'lucide-react';
+import { Activity, ArrowRight, Boxes, CalendarDays, Clock, Heart, MapPin, RefreshCw, ShoppingCart, Wallet } from 'lucide-react';
 
 import {
   HolderList,
@@ -252,18 +252,19 @@ export default function CartAndWishlist() {
       </button>
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <StatTile icon={ShoppingCart} tone={1} label="Carts with items" value={stats.shoppers} hint={`${stats.units} items in total`} />
+        <StatTile appIcon="cart" tone={1} label="Carts with items" value={stats.shoppers} hint={`${stats.units} items in total`} />
         <StatTile
-          icon={Wallet}
+          appIcon="wallet"
           tone={2}
           delay={60}
           label="Value in carts"
           value={stats.value}
           format={(n) => money(n)}
           hint={`${money(stats.staleValue)} idle ${STALE_DAYS}+ days`}
+          sensitive
         />
-        <StatTile icon={AlertTriangle} tone={4} delay={120} label="Carts with a stock problem" value={stats.problemCarts} hint="Out of stock or not enough left" />
-        <StatTile icon={Heart} tone={6} delay={180} label="Products on wishlists" value={stats.saved} hint={`${stats.conversion}% already bought`} />
+        <StatTile appIcon="alert" tone={4} delay={120} label="Carts with a stock problem" value={stats.problemCarts} hint="Out of stock or not enough left" />
+        <StatTile appIcon="popular" tone={6} delay={180} label="Products on wishlists" value={stats.saved} hint={`${stats.conversion}% already bought`} />
       </div>
 
       <Tabs tabs={tabs} value={tab} onChange={changeTab} />
