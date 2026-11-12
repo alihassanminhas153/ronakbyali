@@ -13,10 +13,10 @@ export function ChartPanel({ icon: Icon, title, subtitle, tone = 1, delay = 0, a
   return (
     <section
       style={{ animationDelay: `${delay}ms`, borderTopColor: color }}
-      className={`group/panel animate-rise rounded-lg border border-border border-t-2 bg-surface p-4 ${className}`}
+      className={`group/panel animate-rise min-w-0 rounded-lg border border-border border-t-2 bg-surface p-3 sm:p-4 ${className}`}
     >
-      <header className="mb-4 flex items-start justify-between gap-3">
-        <div className="flex min-w-0 items-center gap-3">
+      <header className="mb-3 flex min-w-0 flex-wrap items-start justify-between gap-2 sm:mb-4 sm:flex-nowrap sm:gap-3">
+        <div className="flex min-w-0 items-center gap-2 sm:gap-3">
           <span
             className="grid size-9 shrink-0 place-items-center rounded-lg transition-transform duration-300 group-hover/panel:-rotate-6 group-hover/panel:scale-110"
             style={{ background: tint(color, 14), color }}
@@ -28,9 +28,9 @@ export function ChartPanel({ icon: Icon, title, subtitle, tone = 1, delay = 0, a
             {subtitle && <p className="text-xs text-muted">{subtitle}</p>}
           </div>
         </div>
-        {action}
+        {action && <div className="min-w-0 shrink-0">{action}</div>}
       </header>
-      {children}
+      <div className="min-w-0 max-w-full">{children}</div>
     </section>
   );
 }
@@ -53,10 +53,10 @@ export function ColumnChart({ items, color = 'var(--graph-1)', height = 120, lab
   const peak = items.reduce((best, i) => (i.value > best.value ? i : best), items[0] || { value: 0 });
 
   return (
-    <div>
-      <div className="flex items-end gap-1" style={{ height }}>
+    <div className="w-full min-w-0">
+      <div className="flex w-full min-w-0 items-end gap-1 overflow-hidden" style={{ height }}>
         {items.map((item, i) => (
-          <Tooltip key={item.key} label={item.tip} className="h-full flex-1 items-end">
+          <Tooltip key={item.key} label={item.tip} className="h-full min-w-0 flex-1 items-end">
             <span
               className="w-full rounded-t-sm transition-[height,opacity] duration-700 ease-out hover:opacity-75"
               style={{
@@ -69,9 +69,9 @@ export function ColumnChart({ items, color = 'var(--graph-1)', height = 120, lab
           </Tooltip>
         ))}
       </div>
-      <div className="mt-2 flex gap-1 text-[10px] text-muted">
+      <div className="mt-2 flex min-w-0 gap-1 overflow-hidden text-[10px] text-muted">
         {items.map((item, i) => (
-          <span key={item.key} className="flex-1 text-center">{i % labelEvery === 0 ? item.label : ''}</span>
+          <span key={item.key} className="min-w-0 flex-1 truncate text-center" title={i % labelEvery === 0 ? item.label : undefined}>{i % labelEvery === 0 ? item.label : ''}</span>
         ))}
       </div>
     </div>
@@ -167,8 +167,8 @@ export function RoleDonut({ data, total }) {
   });
 
   return (
-    <div className="flex flex-col items-center gap-6 sm:flex-row">
-      <div className="relative size-44 shrink-0">
+    <div className="flex min-w-0 flex-col items-center gap-4 sm:flex-row sm:gap-6">
+      <div className="relative size-32 shrink-0 sm:size-44 lg:size-52">
         <svg viewBox="0 0 120 120" className="size-full -rotate-90" role="img" aria-label={`${total} users by role`}>
           <circle cx="60" cy="60" r={R} fill="none" strokeWidth="14" style={{ stroke: 'var(--surface-alt)' }} />
           {segs.map((s, i) => (

@@ -255,6 +255,7 @@ export default function Wishlist() {
   const [clearOpen, setClearOpen] = useState(false);
   const [clearBusy, setClearBusy] = useState(false);
   const [errorShown, setErrorShown] = useState(true);
+  const [refreshRequested, setRefreshRequested] = useState(false);
   const [updatedAt, setUpdatedAt] = useState(null);
   const ago = useTimeAgo(updatedAt);
 
@@ -265,8 +266,13 @@ export default function Wishlist() {
   useEffect(() => setVisible(PAGE_SIZE), [query, category, sort, filter]);
 
   const refresh = async () => {
-    await dispatch(fetchWishlist());
-    setUpdatedAt(new Date());
+    setRefreshRequested(true);
+    try {
+      await dispatch(fetchWishlist());
+      setUpdatedAt(new Date());
+    } finally {
+      setRefreshRequested(false);
+    }
   };
 
   // Filtering by ids makes removal instant, and a failed save puts the card back.
@@ -320,8 +326,8 @@ export default function Wishlist() {
     setClearOpen(false);
   };
 
-  const loadingFirst = status === 'idle' || (status === 'loading' && products.length === 0);
-  const refreshing = status === 'loading' && products.length > 0;
+  const loadingFirst = status === 'idle' || (status === 'loading' && products.length === 0 && !refreshRequested);
+  const refreshing = refreshRequested || (status === 'loading' && products.length > 0);
 
   if (loadingFirst) {
     return (
@@ -350,7 +356,7 @@ export default function Wishlist() {
       <header className="flex items-end justify-between gap-3">
         <div className="min-w-0">
           <h1 className="font-display text-3xl font-bold tracking-wide text-text sm:text-4xl">Wishlist</h1>
-          <p className="mt-1 text-sm text-muted">Products you saved for later.</p>
+          <p className="mt-1 hidden text-sm text-muted lg:block">Products you saved for later.</p>
         </div>
         <div className="flex items-center gap-3">
           {ago && (

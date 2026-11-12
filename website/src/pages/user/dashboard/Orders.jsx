@@ -598,8 +598,11 @@ export default function Orders() {
 
   const refresh = async () => {
     setRefreshing(true);
-    await loadAll();
-    setRefreshing(false);
+    try {
+      await loadAll();
+    } finally {
+      setRefreshing(false);
+    }
   };
 
   // Back to the first page whenever the filters change.
@@ -646,7 +649,7 @@ export default function Orders() {
     [stats.open, orders.length]
   );
 
-  const loadingFirst = status === 'idle' || (status === 'loading' && orders.length === 0);
+  const loadingFirst = status === 'idle' || (status === 'loading' && orders.length === 0 && !refreshing);
   const busy = refreshing || updating;
 
   if (loadingFirst) {
@@ -676,7 +679,7 @@ export default function Orders() {
       <header className="flex items-end justify-between gap-3">
         <div className="min-w-0">
           <h1 className="font-display text-3xl font-bold tracking-wide text-text sm:text-4xl">Orders</h1>
-          <p className="mt-1 text-sm text-muted">Track, change or cancel your orders until they ship.</p>
+          <p className="mt-1 hidden text-sm text-muted lg:block">Track, change or cancel your orders until they ship.</p>
         </div>
         <div className="flex items-center gap-3">
           {ago && (

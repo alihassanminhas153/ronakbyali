@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { dayKey, useReveal } from './utils';
 import CountUp from '../custom/motion/CountUp';
 import { TipBubble } from '../custom/tooltip/Tooltip';
@@ -19,7 +19,6 @@ const LEVELS = [
 const DAYS = ['Mon', '', 'Wed', '', 'Fri', '', ''];
 
 export default function HeatmapCalendar({ data = [], weeks = 26, label = 'items' }) {
-  const scroller = useRef(null);
   const on = useReveal([data, weeks]);
   const [tip, setTip] = useState(null); // { rect, value, date } of the hovered day
 
@@ -69,12 +68,6 @@ export default function HeatmapCalendar({ data = [], weeks = 26, label = 'items'
     return { columns: cols, months: monthLabels, total: sum, best: top, max: maxValue };
   }, [data, weeks]);
 
-  // Start scrolled to the most recent weeks.
-  useEffect(() => {
-    const el = scroller.current;
-    if (el) el.scrollLeft = el.scrollWidth;
-  }, [columns]);
-
   const level = (v) => {
     if (!v) return 0;
     const ratio = v / (max || 1);
@@ -89,51 +82,53 @@ export default function HeatmapCalendar({ data = [], weeks = 26, label = 'items'
   };
 
   return (
-    <div>
-      <div ref={scroller} onScroll={() => setTip(null)} className="no-scrollbar -mx-1 overflow-x-auto px-1 pb-1">
-        <div className="inline-flex gap-2">
-          <div className="flex flex-col text-[10px] text-muted" style={{ paddingTop: 18, gap: GAP }}>
+    <div className="w-full min-w-0">
+      <div className="mx-auto w-full max-w-[512px] min-w-0 overflow-hidden pb-1">
+        <div className="flex w-full min-w-0 justify-center gap-2">
+          <div className="hidden shrink-0 flex-col text-[10px] text-muted xl:flex" style={{ paddingTop: 18, gap: GAP }}>
             {DAYS.map((d, i) => (
               <span key={i} style={{ height: CELL, lineHeight: `${CELL}px` }}>{d}</span>
             ))}
           </div>
-          <div>
-            <div className="relative text-[10px] text-muted" style={{ height: 16 }}>
+          <div className="min-w-0 max-w-[491px] flex-1">
+            <div className="relative w-full text-[10px] text-muted" style={{ height: 16 }}>
               {months.map((m) => (
-                <span key={m.index} className="absolute" style={{ left: m.index * (CELL + GAP) }}>{m.text}</span>
+                <span key={m.index} className="absolute whitespace-nowrap" style={{ left: `${(m.index / weeks) * 100}%` }}>{m.text}</span>
               ))}
             </div>
-            <div className="mt-0.5 flex" style={{ gap: GAP }} onMouseOver={showTip} onMouseLeave={() => setTip(null)} onClick={showTip} role="img" aria-label={`${total} ${label} in the last ${weeks} weeks`}>
-              {columns.map((col, ci) => (
-                <div key={ci} className="flex flex-col" style={{ gap: GAP }}>
-                  {col.map((c) => (
-                    <span
-                      key={c.key}
-                      data-key={c.future ? undefined : c.key}
-                      data-value={c.value}
-                      className="rounded-[3px] transition-[opacity,transform] duration-500 hover:scale-125"
-                      style={{
-                        width: CELL,
-                        height: CELL,
-                        background: c.future ? 'transparent' : LEVELS[level(c.value)],
-                        opacity: on ? 1 : 0,
-                        transitionDelay: `${ci * 12}ms`,
-                      }}
-                    />
-                  ))}
-                </div>
-              ))}
+            <div
+              className="mt-0.5 grid w-full grid-flow-col grid-rows-7 gap-x-[2px] gap-y-[2px]"
+              style={{ gridTemplateColumns: `repeat(${weeks}, minmax(0, 1fr))` }}
+              onMouseOver={showTip}
+              onMouseLeave={() => setTip(null)}
+              onClick={showTip}
+              role="img"
+              aria-label={`${total} ${label} in the last ${weeks} weeks`}
+            >
+              {columns.flatMap((col, ci) => col.map((c) => (
+                <span
+                  key={c.key}
+                  data-key={c.future ? undefined : c.key}
+                  data-value={c.value}
+                  className="block aspect-square w-full rounded-[3px] transition-opacity duration-500 hover:brightness-110"
+                  style={{
+                    background: c.future ? 'transparent' : LEVELS[level(c.value)],
+                    opacity: on ? 1 : 0,
+                    transitionDelay: `${ci * 12}ms`,
+                  }}
+                />
+              )))}
             </div>
           </div>
         </div>
       </div>
 
-      <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs text-muted">
-        <span>
+      <div className="mt-3 flex min-w-0 flex-wrap items-center justify-between gap-2 text-xs text-muted">
+        <span className="min-w-0 flex-1 leading-relaxed">
           <b className="font-semibold text-text"><CountUp value={total} /></b> {label} in the last {weeks} weeks
           {best.key && <> · busiest day {pretty(new Date(best.key + 'T00:00:00'))} ({best.value})</>}
         </span>
-        <span className="flex items-center gap-1.5">
+        <span className="flex shrink-0 items-center gap-1.5">
           Less
           {LEVELS.map((c, i) => (
             <span key={i} className="inline-block rounded-[3px]" style={{ width: 11, height: 11, background: c }} />

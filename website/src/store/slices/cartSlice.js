@@ -21,13 +21,32 @@ const initialState = {
   error: null,
 };
 
+export const getProductCheckoutPrice = (product, paymentType = 'cod') => {
+  const field = paymentType === 'advance' ? 'priceAdvance' : 'priceCOD';
+  const methodPrice = product?.[field];
+  return methodPrice != null && Number.isFinite(Number(methodPrice))
+    ? Number(methodPrice)
+    : Number(product?.price) || 0;
+};
+
+export const getDeliveryChargesForLines = async (lines, subtotal) => {
+  if (!lines.length) return 0;
+  if (lines.length && lines.every((line) => line.product?.deliveryCharges != null)) {
+    return lines.reduce(
+      (total, line) => total + (Number(line.product.deliveryCharges) || 0) * (Number(line.quantity) || 0),
+      0
+    );
+  }
+  return settingsService.getDeliveryCharges(subtotal);
+};
+
 export const fetchCart = createAsyncThunk('cart/fetch', async (arg, { getState, rejectWithValue }) => {
   const userId = getUserId(getState().auth.profile);
   if (!userId) return rejectWithValue(LOGIN_REQUIRED, { toast: false });
   const data = await cartService.getCartWithProducts({ userId });
   if (!data) return fail(rejectWithValue, 'Could not load your cart.', arg);
   const subtotal = Number(data.subtotal) || 0;
-  const charges = await settingsService.getDeliveryCharges(subtotal);
+  const charges = await getDeliveryChargesForLines(data.lines || [], subtotal);
   return {
     lines: data.lines || [],
     subtotal,

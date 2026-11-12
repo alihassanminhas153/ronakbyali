@@ -46,8 +46,8 @@ export default function TrendGraph({ data = [], format = (n) => compact(n), colo
   const step = Math.ceil(data.length / 7);
 
   return (
-    <div className="relative">
-      <svg viewBox={`0 0 ${W} ${H}`} className="h-auto w-full" role="img" aria-label="Trend over time" onMouseLeave={() => setHover(null)}>
+    <div className="relative w-full min-w-0">
+      <svg viewBox={`0 0 ${W} ${H}`} className="block h-auto w-full max-w-full" role="img" aria-label="Trend over time" onMouseLeave={() => setHover(null)}>
         <defs>
           <linearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor={color} stopOpacity="0.22" />

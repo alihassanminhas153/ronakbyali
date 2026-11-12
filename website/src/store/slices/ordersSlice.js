@@ -24,7 +24,7 @@ import { orderService, settingsService } from './services';
 import trackerService from '../../lib/appwrite/tracker';
 import { LOGIN_REQUIRED, fail, getUserId, stripToast } from './utils';
 import { isSessionEnded, refreshProfile } from './authSlice';
-import { fetchCart } from './cartSlice';
+import { fetchCart, getDeliveryChargesForLines, getProductCheckoutPrice } from './cartSlice';
 import { fetchWishlist } from './wishlistSlice';
 import { openLoginModal } from './uiSlice';
 import {
@@ -77,11 +77,11 @@ const initialState = adapter.getInitialState({
 
 export const canEditOrder = (order) => !!order && USER_EDITABLE_STATUSES.includes(order.status);
 
-const linesToItems = (lines) =>
+const linesToItems = (lines, paymentType = 'cod') =>
   lines.map((l) => ({
     productId: l.productId,
     name: l.product?.name,
-    price: l.product?.price,
+    price: getProductCheckoutPrice(l.product, paymentType),
     quantity: l.quantity,
     fileId: l.product?.imageIds?.[0] ?? null,
     variant: l.variant,
@@ -144,22 +144,85 @@ export const placeOrder = createAsyncThunk('orders/place', async (arg, { getStat
   const problem = stockProblem(lines);
   if (problem) return fail(rejectWithValue, problem, arg);
 
-  // Delivery charge comes from the cart (settings), never from the form.
+  const paymentType = form.paymentType === 'advance' ? 'advance' : 'cod';
   const deliveryType = form.deliveryType === 'pickup' ? 'pickup' : 'regular';
+  const items = linesToItems(lines, paymentType);
+  const subtotal = subtotalOf(items);
+  let deliveryCharges = 0;
+  if (deliveryType !== 'pickup') {
+    try {
+      deliveryCharges = await getDeliveryChargesForLines(lines, subtotal);
+    } catch (error) {
+      console.error(error.message);
+      return fail(rejectWithValue, 'Could not calculate delivery charges. Please try again.', arg);
+    }
+    if (deliveryCharges === false || !Number.isFinite(Number(deliveryCharges))) {
+      return fail(rejectWithValue, 'Could not calculate delivery charges. Please try again.', arg);
+    }
+  }
   const safeForm = {
     ...form,
     deliveryType,
-    deliveryCharges: deliveryType === 'pickup' ? 0 : state.cart.deliveryCharges,
+    deliveryCharges: Number(deliveryCharges) || 0,
     discount: 0,
     advanceAmount: 0,
-    paymentMethod: 'cod',
+    paymentMethod: paymentType === 'advance' ? 'bank_transfer' : 'cod',
   };
 
-  const order = await orderService.placeOrder({ profile, items: linesToItems(lines), form: safeForm });
+  const order = await orderService.placeOrder({ profile, items, form: safeForm });
   if (!order) {
     return fail(rejectWithValue, orderService.lastError || 'Could not place your order. Please try again.', arg);
   }
   // Role, lastCity, lastAddress, ordersCount and totalSpent change, so refresh everything.
+  await Promise.all([dispatch(refreshProfile()), dispatch(fetchCart()), dispatch(fetchWishlist())]);
+  return order;
+});
+
+export const placeDirectOrder = createAsyncThunk('orders/placeDirect', async (arg, { getState, dispatch, rejectWithValue }) => {
+  const { product, quantity, form = {} } = stripToast(arg);
+  const state = getState();
+  const profile = state.auth.profile;
+  if (!profile) return needLogin(dispatch, rejectWithValue);
+  if (!product?.$id || !Number.isInteger(Number(quantity)) || Number(quantity) < 1) {
+    return fail(rejectWithValue, 'Choose a valid product quantity.', arg);
+  }
+  const paymentType = form.paymentType === 'advance' ? 'advance' : 'cod';
+  const deliveryType = form.deliveryType || 'regular';
+  if (!DELIVERY_TYPES.includes(deliveryType)) {
+    return fail(rejectWithValue, 'Choose a valid delivery option.', arg);
+  }
+
+  const lines = [{ productId: product.$id, product, quantity: Number(quantity) }];
+  const problem = stockProblem(lines);
+  if (problem) return fail(rejectWithValue, problem, arg);
+
+  const items = linesToItems(lines, paymentType);
+  const subtotal = subtotalOf(items);
+  let charge = 0;
+  if (deliveryType !== 'pickup') {
+    try {
+      charge = await getDeliveryChargesForLines(lines, subtotal);
+    } catch (error) {
+      console.error(error.message);
+      return fail(rejectWithValue, 'Could not calculate delivery charges. Please try again.', arg);
+    }
+    if (charge === false || !Number.isFinite(Number(charge))) {
+      return fail(rejectWithValue, 'Could not calculate delivery charges. Please try again.', arg);
+    }
+  }
+  const safeForm = {
+    ...form,
+    deliveryType,
+    deliveryCharges: Number(charge) || 0,
+    discount: 0,
+    advanceAmount: 0,
+    paymentMethod: paymentType === 'advance' ? 'bank_transfer' : 'cod',
+  };
+  const order = await orderService.placeOrder({ profile, items, form: safeForm });
+  if (!order) {
+    return fail(rejectWithValue, orderService.lastError || 'Could not place your order. Please try again.', arg);
+  }
+
   await Promise.all([dispatch(refreshProfile()), dispatch(fetchCart()), dispatch(fetchWishlist())]);
   return order;
 });
@@ -421,6 +484,22 @@ const ordersSlice = createSlice({
         adapter.upsertOne(state, action.payload);
         if (!state.openIds.includes(action.payload.$id)) state.openIds.unshift(action.payload.$id);
         state.total += 1;
+      })
+      .addCase(placeDirectOrder.pending, (state) => {
+        state.placeStatus = 'loading';
+        state.placeError = null;
+      })
+      .addCase(placeDirectOrder.fulfilled, (state, action) => {
+        state.placeStatus = 'succeeded';
+        state.lastPlacedOrder = action.payload;
+        state.lastPlacedKind = 'new';
+        adapter.upsertOne(state, action.payload);
+        if (!state.openIds.includes(action.payload.$id)) state.openIds.unshift(action.payload.$id);
+        state.total += 1;
+      })
+      .addCase(placeDirectOrder.rejected, (state, action) => {
+        state.placeStatus = 'failed';
+        if (action.payload !== LOGIN_REQUIRED) state.placeError = action.payload || action.error?.message;
       })
       .addCase(placeOrder.rejected, (state, action) => {
         state.placeStatus = 'failed';

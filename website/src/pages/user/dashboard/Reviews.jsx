@@ -476,7 +476,7 @@ function ReviewsView({ me }) {
       <header className="flex items-end justify-between gap-3">
         <div className="min-w-0">
           <h1 className="font-display text-3xl font-bold tracking-wide text-text sm:text-4xl">Reviews</h1>
-          <p className="mt-1 text-sm text-muted">Everything you’ve written about the products you’ve tried.</p>
+          <p className="mt-1 hidden text-sm text-muted lg:block">Everything you’ve written about the products you’ve tried.</p>
         </div>
 
         <div className="flex items-center gap-3">

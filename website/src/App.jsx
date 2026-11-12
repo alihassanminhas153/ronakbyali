@@ -31,6 +31,7 @@ import AuthCallback from "./pages/shared/account/AuthCallback";
 import UserProfile from "./pages/user/dashboard/Profile";
 import UserOrders from "./pages/user/dashboard/Orders";
 import UserCart from "./pages/user/dashboard/Cart";
+import UserCheckout from "./pages/user/dashboard/CheckoutPage";
 import UserWishlist from "./pages/user/dashboard/Wishlist";
 import UserReviews from "./pages/user/dashboard/Reviews";
 import UserAlerts from "./pages/user/dashboard/Alerts";
@@ -46,6 +47,16 @@ import AdminCartAndWishlist from "./pages/admin/dashboard/CartAndWishlist";
 import AdminReviews from "./pages/admin/dashboard/Reviews";
 import AdminAlerts from "./pages/admin/dashboard/Alerts";
 import AdminSettings from "./pages/admin/dashboard/Settings";
+import Contact from "./pages/static/Contact";
+import Privacy from "./pages/static/Privacy";
+import FAQs from "./pages/static/FAQs";
+
+const SITE_PAGES = [
+  { name: "Shop", link: PATHS.products },
+  { name: "Contact", link: PATHS.contact },
+  { name: "Privacy", link: PATHS.privacy },
+  { name: "FAQs", link: PATHS.faqs },
+];
 
 export default function App() {
   const dispatch = useDispatch();
@@ -72,7 +83,7 @@ export default function App() {
           Blocked page, whatever URL they type. */}
       <Route element={<BlockedGate />}>
         {/* ---------- Home: the only page that keeps the site header ---------- */}
-        <Route element={<MainLayout />}>
+        <Route element={<MainLayout pages={SITE_PAGES} />}>
           <Route index element={<Home />} />                                   {/* /  */}
         </Route>
 
@@ -88,9 +99,13 @@ export default function App() {
           element={<RedirectRoute to={(p) => PATHS.product(p.category, p.group, p.productId)} />}
         />
 
-        {/* ---------- Public pages without the header ---------- */}
-        <Route element={<PlainLayout />}>
-          <Route path="products" element={<AllProducts />} />                  {/* /products */}
+        <Route path="products" element={<AllProducts pages={SITE_PAGES} />} /> {/* /products */}
+
+        {/* ---------- Public pages ---------- */}
+        <Route element={<PlainLayout pages={SITE_PAGES} />}>
+          <Route path="contact" element={<Contact />} />
+          <Route path="privacy" element={<Privacy />} />
+          <Route path="faqs" element={<FAQs />} />
           {/* One product: /:category/:group/:productId (productId is the slug).
               The short form /:productId is resolved by SlugRoute below, next to /:username. */}
           <Route path=":category/:group/:productId" element={<Product />} />
@@ -137,6 +152,7 @@ export default function App() {
               <Route path="profile" element={<UserProfile />} />
               <Route path="orders" element={<UserOrders />} />
               <Route path="cart" element={<UserCart />} />
+              <Route path="checkout" element={<UserCheckout />} />
               <Route path="wishlist" element={<UserWishlist />} />
               <Route path="reviews" element={<UserReviews />} />
               <Route path="alerts" element={<UserAlerts />} />

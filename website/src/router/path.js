@@ -21,6 +21,9 @@ export const PRODUCT_LIST_ALIASES = [
 
 export const PATHS = {
   home: "/",
+  contact: "/contact",
+  privacy: "/privacy",
+  faqs: "/faqs",
 
   // accounts
   signin: "/welcome-back",
@@ -38,6 +41,7 @@ export const PATHS = {
     profile: (u) => `${at(u)}/profile`,
     orders: (u) => `${at(u)}/orders`,
     cart: (u) => `${at(u)}/cart`,
+    checkout: (u) => `${at(u)}/checkout`,
     wishlist: (u) => `${at(u)}/wishlist`,
     reviews: (u) => `${at(u)}/reviews`,
     alerts: (u) => `${at(u)}/alerts`,

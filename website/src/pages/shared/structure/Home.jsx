@@ -87,7 +87,7 @@ export default function Home() {
 
   return (
     <div className="flex h-dvh w-screen flex-col overflow-hidden bg-[radial-gradient(60rem_30rem_at_50%_8%,var(--glow),transparent_70%)] bg-page text-ink">
-      <header className="flex shrink-0 items-center justify-between px-4 py-3 sm:px-10 sm:py-5">
+      {/* <header className="flex shrink-0 items-center justify-between px-4 py-3 sm:px-10 sm:py-5">
         <span className="font-serif text-2xl font-semibold tracking-[0.01em] sm:text-[1.75rem]">
           Ronak By Ali
         </span>
@@ -104,7 +104,7 @@ export default function Home() {
           </a>
           <ThemeToggle />
         </div>
-      </header>
+      </header> */}
 
       {/* Main: fills the remaining viewport height, content is spread evenly */}
       <main

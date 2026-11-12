@@ -6,6 +6,20 @@ import Sidebar from './Sidebar';
 
 const STORAGE_KEY = 'dashboard-sidebar-collapsed';
 const DURATION = 300; // ms: sidebar width, drawer slide and backdrop fade (matches duration-300 in SidebarFold)
+const PAGE_TITLES = {
+  alerts: 'Alerts',
+  cart: 'Cart',
+  'cart-and-wishlist': 'Carts & wishlists',
+  checkout: 'Checkout',
+  finance: 'Finance',
+  orders: 'Orders',
+  products: 'Products',
+  profile: 'Profile',
+  reviews: 'Reviews',
+  settings: 'Settings',
+  users: 'Users',
+  wishlist: 'Wishlist',
+};
 
 const readCollapsed = () => {
   try {
@@ -28,7 +42,15 @@ export default function DashboardShell({ area = 'user', children }) {
   const [collapsed, setCollapsed] = useState(readCollapsed);
   const panelRef = useRef(null);
   const { pathname } = useLocation();
-  const title = area === 'admin' ? 'Admin panel' : 'My account';
+  const panelTitle = area === 'admin' ? 'Admin panel' : 'My account';
+  const pathSegments = pathname.split('/').filter(Boolean);
+  const pageTitle =
+    PAGE_TITLES[pathSegments[pathSegments.length - 1]] ||
+    (pathSegments.length === (area === 'admin' ? 2 : 1) ? 'Overview' : panelTitle);
+
+  useEffect(() => {
+    document.title = `${pageTitle} | Ronak By Ali`;
+  }, [pageTitle]);
 
   // remember the collapsed state (kept out of the state updater so it stays pure)
   useEffect(() => {
@@ -131,12 +153,12 @@ export default function DashboardShell({ area = 'user', children }) {
         >
           <Menu size={20} aria-hidden="true" />
         </button>
-        <span className="font-heading text-base font-semibold text-text">{title}</span>
+        <span className="font-heading text-base font-semibold text-text">{pageTitle}</span>
       </div>
 
       {/* mobile drawer */}
       {(open || mounted) && (
-        <div className={`fixed inset-0 z-40 lg:hidden ${open ? '' : 'pointer-events-none'}`}>
+        <div className={`fixed inset-x-0 top-0 z-40 h-dvh lg:hidden ${open ? '' : 'pointer-events-none'}`}>
           <button
             type="button"
             aria-label="Close menu"
@@ -152,7 +174,7 @@ export default function DashboardShell({ area = 'user', children }) {
             tabIndex={-1}
             role="dialog"
             aria-modal="true"
-            aria-label={title}
+            aria-label={panelTitle}
             style={speed}
             className={`absolute inset-y-0 left-0 w-72 max-w-[85%] border-r border-border shadow-soft outline-none transition-transform ease-out motion-reduce:transition-none ${
               shown ? 'translate-x-0' : '-translate-x-full'

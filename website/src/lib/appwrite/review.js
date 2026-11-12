@@ -251,10 +251,10 @@ export class ReviewService {
                 tableId: this.tableId,
                 queries,
             });
-            return { rows: res?.rows || [], total: res?.total || 0 };
+            return { rows: res?.rows || [], total: res?.total || 0, error: null };
         } catch (error) {
             console.error(error.message);
-            return { rows: [], total: 0 };
+            return { rows: [], total: 0, error: error.message };
         }
     }
 

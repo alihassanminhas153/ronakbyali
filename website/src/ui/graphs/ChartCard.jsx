@@ -7,10 +7,10 @@ export default function ChartCard({ title, subtitle, icon: Icon, tone = 1, actio
   return (
     <section
       style={{ animationDelay: `${delay}ms`, '--card-tone': color }}
-      className={`group/card animate-rise rounded-lg border border-border bg-surface p-4 transition-all duration-300 hover:-translate-y-0.5 hover:border-[color-mix(in_srgb,var(--card-tone)_45%,var(--border))] sm:p-5 ${className}`}
+      className={`group/card animate-rise min-w-0 rounded-lg border border-border bg-surface p-3 transition-all duration-300 hover:-translate-y-0.5 hover:border-[color-mix(in_srgb,var(--card-tone)_45%,var(--border))] sm:p-5 ${className}`}
     >
-      <header className="mb-4 flex items-start justify-between gap-3">
-        <div className="flex min-w-0 items-center gap-3">
+      <header className="mb-3 flex min-w-0 flex-wrap items-start justify-between gap-2 sm:mb-4 sm:flex-nowrap sm:gap-3">
+        <div className="flex min-w-0 items-center gap-2 sm:gap-3">
           {Icon && (
             <span
               className="grid h-9 w-9 shrink-0 place-items-center rounded-lg transition-transform duration-300 group-hover/card:-rotate-6 group-hover/card:scale-110"
@@ -24,9 +24,9 @@ export default function ChartCard({ title, subtitle, icon: Icon, tone = 1, actio
             {subtitle && <p className="mt-0.5 truncate text-xs text-muted">{subtitle}</p>}
           </div>
         </div>
-        {action}
+        {action && <div className="min-w-0 shrink-0">{action}</div>}
       </header>
-      {children}
+      <div className="min-w-0 max-w-full">{children}</div>
     </section>
   );
 }

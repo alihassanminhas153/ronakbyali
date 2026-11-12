@@ -237,7 +237,7 @@ export default function Users() {
       <header className="flex items-end justify-between gap-3">
         <div className="min-w-0">
           <h1 className="font-display text-3xl font-bold tracking-wide text-text sm:text-4xl">Users</h1>
-          <p className="mt-1 text-sm text-muted" aria-live="polite">
+          <p className="mt-1 hidden text-sm text-muted lg:block" aria-live="polite">
             {loadedOnce ? (
               <>
                 <CountUp value={users.length} className="font-semibold text-text" /> of {stats.total} {stats.total === 1 ? 'user' : 'users'}

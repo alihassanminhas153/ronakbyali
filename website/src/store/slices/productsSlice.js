@@ -284,8 +284,18 @@ export const selectFeaturedStatus = (s) => s.products.featured.status;
 export const selectRelatedStatus = (s) => s.products.related.status;
 export const selectProductDetailStatus = (s) => s.products.detail.status;
 export const selectProductDetailError = (s) => s.products.detail.error;
-export const selectCategories = (s) => s.products.categories.items;
-export const selectGroups = (s) => s.products.groups.items;
+export const selectCategories = (s) => s.products.categories.items; // { name: count }
+export const selectGroups = (s) => s.products.groups.items; // { name: count }
+
+// [{ value, label }] lists for dropdowns (SelectInput). Memoized, sorted A-Z.
+const toOptions = (items) => {
+  if (Array.isArray(items)) return items.map((o) => (o !== null && typeof o === 'object' ? o : { value: o, label: String(o) }));
+  return Object.keys(items || {})
+    .sort((a, b) => a.localeCompare(b))
+    .map((name) => ({ value: name, label: name }));
+};
+export const selectCategoryOptions = createSelector([selectCategories], toOptions);
+export const selectGroupOptions = createSelector([selectGroups], toOptions);
 export const selectCategoriesWithSample = (s) => s.products.categoriesWithSample.items;
 export const selectGroupsWithSample = (s) => s.products.groupsWithSample.items;
 export const selectPriceRange = (s) => s.products.priceRange;

@@ -23,8 +23,8 @@ export default function Donut({ data = [], centerLabel = 'total', format = (n) =
   const shown = active != null ? segments[active] : null;
 
   return (
-    <div className="flex flex-col items-center gap-5 sm:flex-row sm:items-center">
-      <div className="relative h-40 w-40 shrink-0">
+    <div className="flex min-w-0 flex-col items-center gap-3 sm:flex-row sm:gap-5 sm:items-center">
+      <div className="relative size-32 shrink-0 sm:size-40 lg:size-48">
         <svg viewBox="0 0 100 100" className="h-full w-full -rotate-90" role="img" aria-label={`${format(total)} ${centerLabel}`}>
           <circle cx="50" cy="50" r={R} fill="none" stroke="var(--surface-alt)" strokeWidth="11" />
           {segments.map((s, i) => (
@@ -59,12 +59,12 @@ export default function Donut({ data = [], centerLabel = 'total', format = (n) =
             key={s.label + i}
             onMouseEnter={() => setActive(i)}
             onMouseLeave={() => setActive(null)}
-            className="flex cursor-default items-center gap-2 rounded-md px-2 py-1 text-xs transition-colors hover:bg-surface-alt"
+            className="flex min-w-0 cursor-default items-center gap-1.5 rounded-md px-1.5 py-1 text-[11px] transition-colors hover:bg-surface-alt sm:gap-2 sm:px-2 sm:text-xs"
           >
             <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: s.color }} />
             <span className="min-w-0 flex-1 truncate text-text">{s.label}</span>
-            <span className="text-muted tabular-nums">{format(s.value)}</span>
-            <span className="w-9 text-right text-muted tabular-nums">{s.pct}%</span>
+            <span className="min-w-0 max-w-[35%] truncate text-right text-muted tabular-nums" title={format(s.value)}>{format(s.value)}</span>
+            <span className="w-9 shrink-0 text-right text-muted tabular-nums">{s.pct}%</span>
           </li>
         ))}
       </ul>

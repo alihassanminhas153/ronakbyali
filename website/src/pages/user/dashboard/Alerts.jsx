@@ -330,7 +330,7 @@ function AlertsView({ me }) {
       <header className="flex items-end justify-between gap-3">
         <div className="min-w-0">
           <h1 className="font-display text-3xl font-bold tracking-wide text-text sm:text-4xl">Alerts</h1>
-          <p className="mt-1 text-sm text-muted">News, offers and notices from the store.</p>
+          <p className="mt-1 hidden text-sm text-muted lg:block">News, offers and notices from the store.</p>
         </div>
 
         <div className="flex items-center gap-3">

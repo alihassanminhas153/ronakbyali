@@ -157,7 +157,7 @@ export default function Sidebar({ area = 'user', collapsed = false, onNavigate, 
   const profileTo = isAdminArea ? PATHS.admin.settings(username) : PATHS.user.profile(username);
 
   return (
-    <div className="flex h-full flex-col bg-surface">
+    <div className="flex h-full min-h-0 flex-col bg-surface">
       {/* header: favicon + brand name + panel name, collapse button inside while open */}
       <div className="flex h-16 shrink-0 items-center border-b border-border px-3">
         <IconCell>
@@ -221,7 +221,7 @@ export default function Sidebar({ area = 'user', collapsed = false, onNavigate, 
       </div>
 
       {/* main links */}
-      <nav aria-label={title} className="no-scrollbar flex-1 overflow-y-auto overflow-x-hidden px-3 pb-3">
+      <nav aria-label={title} className="no-scrollbar min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-contain px-3 pb-3">
         <ul className="flex flex-col gap-1">
           <SectionLabel collapsed={collapsed}>Menu</SectionLabel>
           {links.map((l) => (
@@ -231,7 +231,7 @@ export default function Sidebar({ area = 'user', collapsed = false, onNavigate, 
       </nav>
 
       {/* shop + sign out */}
-      <div className="shrink-0 border-t border-border p-3">
+      <div className="sticky bottom-0 z-10 shrink-0 border-t border-border bg-surface p-3">
         <ul className="flex flex-col gap-1">
           <Item to={PATHS.products} icon={Store} label="Browse shop" collapsed={collapsed} onNavigate={onNavigate} />
           <li>

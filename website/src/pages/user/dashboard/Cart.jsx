@@ -228,6 +228,7 @@ export default function Cart() {
   const [clearOpen, setClearOpen] = useState(false);
   const [updatedAt, setUpdatedAt] = useState(null);
   const [errorShown, setErrorShown] = useState(true);
+  const [refreshRequested, setRefreshRequested] = useState(false);
   const ago = useTimeAgo(updatedAt);
 
   // Refresh prices and stock whenever the page opens.
@@ -239,8 +240,13 @@ export default function Cart() {
   useEffect(() => setErrorShown(true), [error]);
 
   const refresh = async () => {
-    await dispatch(fetchCart());
-    setUpdatedAt(new Date());
+    setRefreshRequested(true);
+    try {
+      await dispatch(fetchCart());
+      setUpdatedAt(new Date());
+    } finally {
+      setRefreshRequested(false);
+    }
   };
 
   const setQty = (line, quantity) =>
@@ -266,8 +272,8 @@ export default function Cart() {
     [count, total]
   );
 
-  const loadingFirst = status === 'idle' || (status === 'loading' && lines.length === 0);
-  const refreshing = status === 'loading' && lines.length > 0;
+  const loadingFirst = status === 'idle' || (status === 'loading' && lines.length === 0 && !refreshRequested);
+  const refreshing = refreshRequested || (status === 'loading' && lines.length > 0);
   const busy = updating || refreshing;
 
   if (loadingFirst) {
@@ -297,7 +303,7 @@ export default function Cart() {
       <header className="flex items-end justify-between gap-3">
         <div className="min-w-0">
           <h1 className="font-display text-3xl font-bold tracking-wide text-text sm:text-4xl">Cart</h1>
-          <p className="mt-1 text-sm text-muted">Review your items, then check out.</p>
+          <p className="mt-1 hidden text-sm text-muted lg:block">Review your items, then check out.</p>
         </div>
         <div className="flex items-center gap-3">
           {ago && (

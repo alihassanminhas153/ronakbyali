@@ -249,7 +249,7 @@ function ProfileView({ me }) {
       <header className="flex items-end justify-between gap-3">
         <div className="min-w-0">
           <h1 className="font-display text-3xl font-bold tracking-wide text-text sm:text-4xl">Profile</h1>
-          <p className="mt-1 text-sm text-muted">Manage your photo, contact details and password.</p>
+          <p className="mt-1 hidden text-sm text-muted lg:block">Manage your photo, contact details and password.</p>
         </div>
 
         <div className="flex items-center gap-3">

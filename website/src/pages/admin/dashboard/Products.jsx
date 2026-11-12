@@ -180,7 +180,7 @@ export default function Products() {
       <header className="flex items-end justify-between gap-3">
         <div className="min-w-0">
           <h1 className="font-display text-3xl font-bold tracking-wide text-text sm:text-4xl">Products</h1>
-          <p className="mt-1 text-sm text-muted">
+          <p className="mt-1 hidden text-sm text-muted lg:block">
             {loading && !products.length ? (
               'Loading…'
             ) : (

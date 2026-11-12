@@ -19,7 +19,7 @@ export default function BarChart({
 
   if (orientation === 'vertical') {
     return (
-      <div className="flex items-end gap-1.5 sm:gap-2" style={{ height }}>
+      <div className="flex w-full min-w-0 items-end gap-1 sm:gap-2" style={{ height }}>
         {data.map((d, i) => {
           const pct = ((Number(d.value) || 0) / max) * 100;
           return (
@@ -35,7 +35,7 @@ export default function BarChart({
                   transitionDelay: `${i * 50}ms`,
                 }}
               />
-              <span className="mt-1.5 truncate text-center text-[10px] text-muted">{d.short || d.label}</span>
+              <span className="mt-1.5 block min-w-0 max-w-full truncate text-center text-[10px] text-muted" title={d.short || d.label}>{d.short || d.label}</span>
             </div>
           );
         })}
@@ -44,14 +44,14 @@ export default function BarChart({
   }
 
   return (
-    <ul className="space-y-3">
+    <ul className="w-full min-w-0 space-y-3">
       {data.map((d, i) => {
         const pct = ((Number(d.value) || 0) / max) * 100;
         return (
           <li key={d.label + i} className="group">
-            <div className="mb-1 flex items-baseline justify-between gap-3 text-xs">
+            <div className="mb-1 flex min-w-0 items-baseline justify-between gap-2 text-[11px] sm:gap-3 sm:text-xs">
               <span className="truncate text-text">{d.label}</span>
-              <span className="shrink-0 text-muted tabular-nums">
+              <span className="min-w-0 shrink text-right text-muted tabular-nums">
                 {format(d.value)}
                 {d.hint && <span className="ml-1 text-[10px]">{d.hint}</span>}
               </span>

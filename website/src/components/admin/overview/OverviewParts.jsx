@@ -11,11 +11,11 @@ export function LinkTile({ to, label, value, format, hint, icon: Icon, tone = 1,
     <Link
       to={to}
       style={{ animationDelay: `${delay}ms`, '--tile-tone': color }}
-      className="group/tile animate-rise relative flex items-center gap-3 rounded-lg border border-border bg-surface p-4 transition-all duration-300 hover:-translate-y-0.5 hover:border-[color-mix(in_srgb,var(--tile-tone)_45%,var(--border))]"
+      className="group/tile animate-rise relative flex min-w-0 items-center gap-2 rounded-lg border border-border bg-surface p-3 transition-all duration-300 hover:-translate-y-0.5 hover:border-[color-mix(in_srgb,var(--tile-tone)_45%,var(--border))] sm:gap-3 sm:p-4"
     >
       {Icon && (
-        <span className="grid h-11 w-11 shrink-0 place-items-center rounded-lg transition-transform duration-300 group-hover/tile:rotate-6 group-hover/tile:scale-110" style={{ background: tint(color, 14), color }}>
-          <Icon size={20} />
+        <span className="grid size-9 shrink-0 place-items-center rounded-lg transition-transform duration-300 group-hover/tile:rotate-6 group-hover/tile:scale-110 sm:size-11" style={{ background: tint(color, 14), color }}>
+          <Icon size={18} className="sm:size-5" />
         </span>
       )}
       <div className="min-w-0">
@@ -33,7 +33,7 @@ export function LinkTile({ to, label, value, format, hint, icon: Icon, tone = 1,
 // A whole chart card that is a link to its page.
 export function OverviewCard({ to, cta, className = '', children, ...card }) {
   return (
-    <Link to={to} className={`group/link block rounded-lg ${className}`}>
+    <Link to={to} className={`group/link block min-w-0 rounded-lg ${className}`}>
       <ChartCard
         {...card}
         className="h-full"
@@ -53,9 +53,9 @@ export function OverviewCard({ to, cta, className = '', children, ...card }) {
 // Row of small numbers at the top of a card.
 export function Mini({ items }) {
   return (
-    <div className="mb-4 grid grid-cols-3 gap-2">
+    <div className="mb-3 grid min-w-0 grid-cols-3 gap-1.5 sm:mb-4 sm:gap-2">
       {items.map((it) => (
-        <div key={it.label} className="rounded-md bg-surface-alt/60 px-3 py-2">
+        <div key={it.label} className="min-w-0 rounded-md bg-surface-alt/60 px-2 py-2 sm:px-3">
           <p className="truncate text-[11px] text-muted">{it.label}</p>
           <p className="heading truncate text-lg leading-tight" style={{ color: toneVar(it.tone) }}>
             {typeof it.value === 'number' ? <CountUp value={it.value} format={it.format} duration={800} /> : it.value}

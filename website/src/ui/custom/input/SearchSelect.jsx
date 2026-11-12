@@ -69,7 +69,7 @@ export default function SearchSelect({
         aria-label={ariaLabel}
         onClick={() => setOpen((o) => !o)}
         className={`flex min-h-11 w-full items-center gap-2 rounded-md border bg-surface px-3 text-left text-sm transition-colors ${
-          error ? 'border-error' : open ? 'border-graph-1' : 'border-border hover:border-graph-1/60'
+          error ? 'border-error' : open ? 'border-accent' : 'border-border hover:border-accent/60'
         }`}
       >
         <span className="min-w-0 flex-1">
