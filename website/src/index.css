@@ -36,8 +36,7 @@
 }
 
 /* ---------- Theme variables: LIGHT (default) ----------
-   Neutral base + ONE accent (orange) and its shades.
-   Green is reserved for success states only. */
+   Neutral base + one orange accent family. */
 :root {
   color-scheme: light;
 
@@ -61,25 +60,22 @@
   --brown-hover: #5a3419;
   --on-brown: #ffffff;
 
-  /* Graph palette: independent of the theme colours. Change these to recolour every chart. */
-  --graph-1: #4457d9;   /* indigo */
-  --graph-2: #0f8f8c;   /* teal */
-  --graph-3: #b9770e;   /* amber */
-  --graph-4: #d6405a;   /* rose */
-  --graph-5: #2486c9;   /* sky */
-  --graph-6: #7a54c6;   /* violet */
-  --graph-7: #2f9460;   /* emerald */
-  --graph-8: #6b7886;   /* slate */
-  --graph-heat: var(--graph-2);   /* heatmap calendar */
-  --graph-line: var(--graph-1);   /* trend lines */
+  /* Warm accent shades for panel cards, navigation, and charts. */
+  --accent-tone-1: #c2571a;
+  --accent-tone-2: #9c4313;
+  --accent-tone-3: #7a4a2b;
+  --accent-tone-4: #b45019;
+  --accent-tone-5: #a84c19;
+  --accent-tone-6: #984716;
+  --accent-tone-7: #874014;
+  --accent-tone-8: #783b13;
 
-  /* Big call-to-action button (add product) */
-  --cta-1: #3f4fd1;
-  --cta-2: #12898a;
+  --cta-1: var(--brown);
+  --cta-2: var(--accent);
 
-  /* Status colors (green only for success, used sparingly) */
-  --success: #3f7a4f;
-  --warning: #c9822b;
+  /* Status accents stay within the warm theme. */
+  --success: var(--accent-tone-7);
+  --warning: var(--accent-tone-2);
   --error: #c0392b;
   --shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
 
@@ -120,26 +116,21 @@
   --on-accent: #141414;
   --link: var(--accent);
 
-  --graph-1: #8397ff;
-  --graph-2: #4fd1c5;
-  --graph-3: #f2b84b;
-  --graph-4: #ff7a90;
-  --graph-5: #63b8f5;
-  --graph-6: #b394f2;
-  --graph-7: #5fcf8d;
-  --graph-8: #a3afbb;
-  --graph-heat: var(--graph-2);
-  --graph-line: var(--graph-1);
-
-  --cta-1: #4a5ae0;
-  --cta-2: #168f8c;
-
   --brown: #9a5f35;
   --brown-hover: #b4743f;
   --on-brown: #ffffff;
 
-  --success: #7fb08a;
-  --warning: #e0a030;
+  --accent-tone-1: #f0803c;
+  --accent-tone-2: #ff9a5c;
+  --accent-tone-3: #b4743f;
+  --accent-tone-4: #e97837;
+  --accent-tone-5: #d96f32;
+  --accent-tone-6: #c86730;
+  --accent-tone-7: #b55f2d;
+  --accent-tone-8: #a55529;
+
+  --success: var(--accent-tone-7);
+  --warning: var(--accent-tone-2);
   --error: #e0674f;
   --shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
   --card-shadow: rgba(0, 0, 0, 0.5);
@@ -158,14 +149,14 @@
   --color-accent: var(--accent);
   --color-accent-hover: var(--accent-hover);
   --color-accent-soft: var(--accent-soft);
-  --color-graph-1: var(--graph-1);
-  --color-graph-2: var(--graph-2);
-  --color-graph-3: var(--graph-3);
-  --color-graph-4: var(--graph-4);
-  --color-graph-5: var(--graph-5);
-  --color-graph-6: var(--graph-6);
-  --color-graph-7: var(--graph-7);
-  --color-graph-8: var(--graph-8);
+  --color-accent-tone-1: var(--accent-tone-1);
+  --color-accent-tone-2: var(--accent-tone-2);
+  --color-accent-tone-3: var(--accent-tone-3);
+  --color-accent-tone-4: var(--accent-tone-4);
+  --color-accent-tone-5: var(--accent-tone-5);
+  --color-accent-tone-6: var(--accent-tone-6);
+  --color-accent-tone-7: var(--accent-tone-7);
+  --color-accent-tone-8: var(--accent-tone-8);
   --color-link: var(--link);
   --color-brown: var(--brown);
   --color-brown-hover: var(--brown-hover);
@@ -359,6 +350,15 @@
 
   .no-scrollbar { scrollbar-width: none; }
   .no-scrollbar::-webkit-scrollbar { display: none; }
+
+  * {
+    scrollbar-width: none !important;
+  }
+  *::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+  }
 
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }

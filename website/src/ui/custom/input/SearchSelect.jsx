@@ -130,14 +130,14 @@ export default function SearchSelect({
               >
                 {isCreate ? (
                   <>
-                    <Plus size={14} className="text-graph-1" />
+                    <Plus size={14} className="text-accent-tone-1" />
                     <span className="truncate text-text">Create “{label}”</span>
                   </>
                 ) : (
                   <>
                     <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: colorFor(label) }} />
                     <span className="min-w-0 flex-1 truncate text-text">{label}</span>
-                    {label === value && <Check size={14} className="text-graph-1" />}
+                    {label === value && <Check size={14} className="text-accent-tone-1" />}
                   </>
                 )}
               </li>

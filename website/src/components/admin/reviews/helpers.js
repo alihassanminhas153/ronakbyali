@@ -1,6 +1,6 @@
 import { Check, Clock, X } from 'lucide-react';
 
-// tone = which --graph-N colour the status uses everywhere (badges, donut, left edge of a card)
+// tone = which theme accent shade the status uses in badges, charts, and cards
 export const STATUS_META = {
   pending: { label: 'Pending', tone: 3, icon: Clock },
   approved: { label: 'Approved', tone: 7, icon: Check },

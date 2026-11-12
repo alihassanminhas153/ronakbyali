@@ -65,8 +65,8 @@ export function TypesTab({ rows }) {
           orientation="vertical"
           height={170}
           data={[
-            { label: 'Popups', value: a.popups, color: 'var(--graph-5)' },
-            { label: 'Bars', value: a.bars, color: 'var(--graph-1)' },
+            { label: 'Popups', value: a.popups, color: 'var(--accent-tone-5)' },
+            { label: 'Bars', value: a.bars, color: 'var(--accent-tone-1)' },
           ]}
           empty="No alerts yet."
         />

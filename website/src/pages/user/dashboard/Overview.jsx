@@ -1,5 +1,6 @@
 // user overview page (styled like the admin overview, wired to the user's own slices)
 
+import PanelPageTitle from '../../../ui/custom/PanelPageTitle';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router';
 import {
@@ -113,7 +114,7 @@ function CompletionRing({ percent }) {
           fill="none"
           strokeWidth="9"
           strokeLinecap="round"
-          stroke="var(--graph-7)"
+          stroke="var(--accent-tone-7)"
           strokeDasharray={circumference}
           strokeDashoffset={entered ? circumference * (1 - percent / 100) : circumference}
           className="transition-[stroke-dashoffset] duration-1000 ease-out motion-reduce:transition-none"
@@ -277,7 +278,7 @@ function OverviewView({ me }) {
     <div className="space-y-5">
       <header className="flex items-end justify-between gap-3">
         <div className="min-w-0">
-          <h1 className="font-display text-3xl font-bold tracking-wide text-text sm:text-4xl">Overview</h1>
+          <PanelPageTitle icon="histogram" className="font-display text-3xl font-bold tracking-wide text-text sm:text-4xl">Overview</PanelPageTitle>
           <p className="mt-1 hidden text-sm text-muted lg:block">
             {new Date().toLocaleDateString('en', { weekday: 'long', day: 'numeric', month: 'long' })} · everything in your account
           </p>
@@ -285,7 +286,7 @@ function OverviewView({ me }) {
         <div className="flex items-center gap-3">
           {ago && (
             <span className="hidden items-center gap-1.5 text-xs text-muted sm:flex" aria-live="polite">
-              <span className={`h-1.5 w-1.5 rounded-full ${busy ? 'animate-pulse bg-graph-3' : 'bg-graph-7'}`} />
+              <span className={`h-1.5 w-1.5 rounded-full ${busy ? 'animate-pulse bg-accent-tone-3' : 'bg-accent-tone-7'}`} />
               {busy ? 'Syncing…' : `Updated ${ago}`}
             </span>
           )}
@@ -294,7 +295,7 @@ function OverviewView({ me }) {
             onClick={refresh}
             disabled={busy}
             title="Fetch your latest account details"
-            className="group inline-flex h-10 items-center gap-2 rounded-lg border border-border bg-surface pl-3 pr-3.5 text-sm font-medium text-text shadow-soft transition-all duration-200 hover:-translate-y-px hover:border-graph-1 hover:bg-surface-alt hover:text-graph-1 active:translate-y-0 active:scale-95 disabled:translate-y-0 disabled:opacity-70 disabled:hover:border-border disabled:hover:bg-surface disabled:hover:text-text"
+            className="group inline-flex h-10 items-center gap-2 rounded-lg border border-border bg-surface pl-3 pr-3.5 text-sm font-medium text-text shadow-soft transition-all duration-200 hover:-translate-y-px hover:border-accent-tone-1 hover:bg-surface-alt hover:text-accent-tone-1 active:translate-y-0 active:scale-95 disabled:translate-y-0 disabled:opacity-70 disabled:hover:border-border disabled:hover:bg-surface disabled:hover:text-text"
           >
             <RefreshCw size={16} className={busy ? 'animate-spin' : 'transition-transform duration-500 group-hover:rotate-180'} />
             <span>{busy ? 'Refreshing' : 'Refresh'}</span>
@@ -381,10 +382,10 @@ function OverviewView({ me }) {
 
       <div className={grid}>
         <OverviewCard to="orders" cta="Orders" title="Spending trend" subtitle="What you paid, last 6 months" appIcon="histogram" tone={2}>
-          <TrendGraph data={o.spendTrend} color="var(--graph-2)" format={short} />
+          <TrendGraph data={o.spendTrend} color="var(--accent-tone-2)" format={short} />
         </OverviewCard>
         <OverviewCard to="orders" cta="Orders" title="Orders per month" subtitle="Last 6 months" appIcon="clock" tone={1} delay={80}>
-          <TrendGraph data={o.countTrend} color="var(--graph-1)" />
+          <TrendGraph data={o.countTrend} color="var(--accent-tone-1)" />
         </OverviewCard>
       </div>
 
@@ -471,7 +472,7 @@ function OverviewView({ me }) {
           <BarChart
             orientation="vertical"
             height={150}
-            data={o.reviews.stars.map((s, i) => ({ ...s, color: `var(--graph-${[4, 3, 8, 5, 7][i]})` }))}
+            data={o.reviews.stars.map((s, i) => ({ ...s, color: `var(--accent-tone-${[4, 3, 8, 5, 7][i]})` }))}
             format={(n) => n}
             empty="No approved reviews yet."
           />
@@ -480,7 +481,7 @@ function OverviewView({ me }) {
 
       {/* Account */}
       <div className={grid}>
-        <section className="rounded-xl border border-border border-t-2 bg-surface p-4 sm:p-5" style={{ borderTopColor: 'var(--graph-7)' }}>
+        <section className="rounded-xl border border-border border-t-2 bg-surface p-4 sm:p-5" style={{ borderTopColor: 'var(--accent-tone-7)' }}>
           <div className="flex items-center gap-4">
             <CompletionRing percent={percent} />
             <div className="min-w-0">
@@ -495,7 +496,7 @@ function OverviewView({ me }) {
               <li key={item.label} className="flex items-center gap-2 text-sm">
                 <span
                   className={`grid size-5 shrink-0 place-items-center rounded-full border transition-colors ${
-                    item.done ? 'border-graph-7 bg-graph-7 text-white' : 'border-dashed border-border text-transparent'
+                    item.done ? 'border-accent-tone-7 bg-accent-tone-7 text-white' : 'border-dashed border-border text-transparent'
                   }`}
                 >
                   <Check size={12} aria-hidden="true" />

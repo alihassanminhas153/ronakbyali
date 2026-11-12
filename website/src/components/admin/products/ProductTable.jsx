@@ -31,13 +31,13 @@ function StockBadge({ product }) {
   const total = Number(product.totalAvailable) || 0;
   const out = product.status === 'outOfStock' || remaining <= 0;
   const low = !out && total > 0 && remaining / total <= 0.2;
-  const tone = out ? 'bg-graph-4/10 text-graph-4' : low ? 'bg-graph-3/10 text-graph-3' : 'bg-graph-2/10 text-graph-2';
+  const tone = out ? 'bg-accent-tone-4/10 text-accent-tone-4' : low ? 'bg-accent-tone-3/10 text-accent-tone-3' : 'bg-accent-tone-2/10 text-accent-tone-2';
   const pct = total ? Math.min(100, Math.round((remaining / total) * 100)) : 0;
   return (
     <div className="min-w-24">
       <span className={`inline-block rounded-full px-2 py-0.5 text-xs ${tone}`}>{out ? 'Out of stock' : low ? 'Low stock' : 'In stock'}</span>
       <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-surface-alt">
-        <div className="h-full rounded-full bg-current transition-[width] duration-700" style={{ width: `${pct}%`, color: out ? 'var(--graph-4)' : low ? 'var(--graph-3)' : 'var(--graph-2)' }} />
+        <div className="h-full rounded-full bg-current transition-[width] duration-700" style={{ width: `${pct}%`, color: out ? 'var(--accent-tone-4)' : low ? 'var(--accent-tone-3)' : 'var(--accent-tone-2)' }} />
       </div>
       <p className="mt-1 text-[11px] text-muted tabular-nums">{remaining} left · {Number(product.sold) || 0} sold</p>
     </div>
@@ -51,7 +51,7 @@ function Price({ product }) {
       <p className="text-sm font-medium text-text tabular-nums">{product.priceFormat || rs(product.price)}</p>
       {discounted && (
         <p className="text-xs text-muted">
-          <s>{rs(product.originalPrice)}</s> <span className="text-graph-4">-{product.discountPercentage}%</span>
+          <s>{rs(product.originalPrice)}</s> <span className="text-accent-tone-4">-{product.discountPercentage}%</span>
         </p>
       )}
     </div>
@@ -135,7 +135,7 @@ export default function ProductTable({ products = [], busyId, onEdit, onDelete, 
                     <Thumb product={p} />
                     <div className="min-w-0">
                       <p className="max-w-64 truncate text-sm font-medium text-text">{p.name}</p>
-                      <p className="max-w-64 truncate text-xs text-muted transition-colors duration-200 group-hover/row:text-graph-7">/{p.slug}</p>
+                      <p className="max-w-64 truncate text-xs text-muted transition-colors duration-200 group-hover/row:text-accent-tone-7">/{p.slug}</p>
                     </div>
                   </div>
                 </td>

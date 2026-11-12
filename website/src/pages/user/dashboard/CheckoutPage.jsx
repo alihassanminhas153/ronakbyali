@@ -1,4 +1,5 @@
 // src/pages/user/dashboard/Checkout.jsx   (route: /:username/checkout)
+import PanelPageTitle from "../../../ui/custom/PanelPageTitle";
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { useDispatch, useSelector } from "react-redux";
@@ -401,7 +402,7 @@ function Field({ label, error, children }) {
 function Shell({ children }) {
   return (
     <section className="w-full">
-      <h1 className="mb-5 font-['Barlow_Condensed',sans-serif] text-3xl font-bold text-neutral-900 dark:text-white sm:text-4xl">Checkout</h1>
+      <PanelPageTitle icon="cart" className="mb-5 font-['Barlow_Condensed',sans-serif] text-3xl font-bold text-neutral-900 dark:text-white sm:text-4xl">Checkout</PanelPageTitle>
       {children}
     </section>
   );

@@ -1,8 +1,10 @@
-import React from 'react'
+import PanelPageTitle from '../../../ui/custom/PanelPageTitle';
 
 function Settings() {
   return (
-    <div>Settings</div>
+    <PanelPageTitle icon="ruler" className="font-display text-3xl font-bold tracking-wide text-text sm:text-4xl">
+      Settings
+    </PanelPageTitle>
   )
 }
 

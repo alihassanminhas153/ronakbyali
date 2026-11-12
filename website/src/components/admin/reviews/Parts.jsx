@@ -6,7 +6,7 @@ export function Stars({ rating = 0, size = 16, className = '' }) {
   return (
     <span className={`inline-flex items-center gap-0.5 ${className}`} role="img" aria-label={`${rating} out of 5 stars`}>
       {[1, 2, 3, 4, 5].map((n) => (
-        <Star key={n} size={size} className={n <= full ? 'fill-current text-graph-3' : 'text-border'} />
+        <Star key={n} size={size} className={n <= full ? 'fill-current text-accent-tone-3' : 'text-border'} />
       ))}
     </span>
   );
@@ -18,7 +18,7 @@ export function StatusBadge({ status }) {
   return (
     <span
       style={{
-        '--tone': `var(--graph-${meta.tone})`,
+        '--tone': `var(--accent-tone-${meta.tone})`,
         color: 'var(--tone)',
         background: 'color-mix(in srgb, var(--tone) 12%, transparent)',
         borderColor: 'color-mix(in srgb, var(--tone) 35%, transparent)',
@@ -42,10 +42,10 @@ export function RatingBars({ counts, total }) {
           <li key={n} className="flex items-center gap-3 text-sm">
             <span className="flex w-9 shrink-0 items-center gap-1 font-medium tabular-nums text-text">
               {n}
-              <Star size={13} className="fill-current text-graph-3" />
+              <Star size={13} className="fill-current text-accent-tone-3" />
             </span>
             <span className="h-2.5 min-w-0 flex-1 overflow-hidden rounded-full bg-surface-alt">
-              <span className="block h-full rounded-full bg-graph-3 transition-[width] duration-700" style={{ width: `${pct}%` }} />
+              <span className="block h-full rounded-full bg-accent-tone-3 transition-[width] duration-700" style={{ width: `${pct}%` }} />
             </span>
             <span className="w-8 shrink-0 text-right text-xs tabular-nums text-muted">{c}</span>
           </li>
@@ -64,7 +64,7 @@ export function ProductRatingRow({ product, busy, onRecalculate, index = 0 }) {
     >
       <div className="min-w-0 flex-1 basis-48">
         {product.slug ? (
-          <a href={`/${product.slug}`} target="_blank" rel="noreferrer" className="block truncate font-semibold text-text transition-colors hover:text-graph-1">
+          <a href={`/${product.slug}`} target="_blank" rel="noreferrer" className="block truncate font-semibold text-text transition-colors hover:text-accent-tone-1">
             {product.name}
           </a>
         ) : (
@@ -85,7 +85,7 @@ export function ProductRatingRow({ product, busy, onRecalculate, index = 0 }) {
         onClick={() => onRecalculate(product.productId)}
         disabled={busy}
         title="Rewrite this product's rating and review count from its approved reviews"
-        style={{ '--op': 'var(--graph-2)' }}
+        style={{ '--op': 'var(--accent-tone-2)' }}
         className="group inline-flex h-9 items-center gap-1.5 rounded-lg border border-border bg-surface px-3 text-sm font-medium text-text transition-all duration-200 hover:-translate-y-px hover:border-[var(--op)] hover:text-[var(--op)] active:translate-y-0 active:scale-95 disabled:pointer-events-none disabled:opacity-60"
       >
         <RefreshCw size={15} className={busy ? 'animate-spin' : 'transition-transform duration-500 group-hover:rotate-180'} />

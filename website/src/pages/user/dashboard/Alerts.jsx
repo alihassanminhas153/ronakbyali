@@ -1,3 +1,4 @@
+import PanelPageTitle from '../../../ui/custom/PanelPageTitle';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   AlertCircle,
@@ -41,11 +42,11 @@ import { formatDateTime } from '../../../components/user/profile/profileMeta';
 
 // Look of each alert type. `tone` is the graph colour number used by <Segmented>.
 const TYPES = {
-  info: { label: 'Info', icon: Info, color: 'var(--graph-5)', tone: 5 },
+  info: { label: 'Info', icon: Info, color: 'var(--accent-tone-5)', tone: 5 },
   success: { label: 'Success', icon: CheckCircle2, color: 'var(--success)', tone: 7 },
   warning: { label: 'Warning', icon: AlertTriangle, color: 'var(--warning)', tone: 3 },
   error: { label: 'Important', icon: XCircle, color: 'var(--error)', tone: 4 },
-  promo: { label: 'Offer', icon: Sparkles, color: 'var(--graph-6)', tone: 6 },
+  promo: { label: 'Offer', icon: Sparkles, color: 'var(--accent-tone-6)', tone: 6 },
 };
 const typeOf = (alert) => TYPES[alert?.type] || TYPES.info;
 
@@ -316,9 +317,9 @@ function AlertsView({ me }) {
   const busy = refreshing || status === 'loading';
 
   const tabs = [
-    { id: 'all', label: 'All', icon: Layers, color: 'var(--graph-1)' },
-    { id: 'announcements', label: 'Announcements', icon: Megaphone, color: 'var(--graph-2)' },
-    { id: 'popups', label: 'Popups', icon: BellRing, color: 'var(--graph-6)' },
+    { id: 'all', label: 'All', icon: Layers, color: 'var(--accent-tone-1)' },
+    { id: 'announcements', label: 'Announcements', icon: Megaphone, color: 'var(--accent-tone-2)' },
+    { id: 'popups', label: 'Popups', icon: BellRing, color: 'var(--accent-tone-6)' },
   ];
 
   return (
@@ -329,14 +330,14 @@ function AlertsView({ me }) {
     >
       <header className="flex items-end justify-between gap-3">
         <div className="min-w-0">
-          <h1 className="font-display text-3xl font-bold tracking-wide text-text sm:text-4xl">Alerts</h1>
+          <PanelPageTitle icon="alert" className="font-display text-3xl font-bold tracking-wide text-text sm:text-4xl">Alerts</PanelPageTitle>
           <p className="mt-1 hidden text-sm text-muted lg:block">News, offers and notices from the store.</p>
         </div>
 
         <div className="flex items-center gap-3">
           {ago && (
             <span className="hidden items-center gap-1.5 text-xs text-muted sm:flex" aria-live="polite">
-              <span className={`h-1.5 w-1.5 rounded-full ${busy ? 'animate-pulse bg-graph-3' : 'bg-graph-7'}`} />
+              <span className={`h-1.5 w-1.5 rounded-full ${busy ? 'animate-pulse bg-accent-tone-3' : 'bg-accent-tone-7'}`} />
               {busy ? 'Syncing…' : `Updated ${ago}`}
             </span>
           )}
@@ -345,7 +346,7 @@ function AlertsView({ me }) {
             onClick={refresh}
             disabled={busy}
             title="Fetch your latest alerts from the database"
-            className="group inline-flex h-10 items-center gap-2 rounded-lg border border-border bg-surface pl-3 pr-3.5 text-sm font-medium text-text shadow-soft transition-all duration-200 hover:-translate-y-px hover:border-graph-1 hover:bg-surface-alt hover:text-graph-1 active:translate-y-0 active:scale-95 disabled:translate-y-0 disabled:opacity-70 disabled:hover:border-border disabled:hover:bg-surface disabled:hover:text-text"
+            className="group inline-flex h-10 items-center gap-2 rounded-lg border border-border bg-surface pl-3 pr-3.5 text-sm font-medium text-text shadow-soft transition-all duration-200 hover:-translate-y-px hover:border-accent-tone-1 hover:bg-surface-alt hover:text-accent-tone-1 active:translate-y-0 active:scale-95 disabled:translate-y-0 disabled:opacity-70 disabled:hover:border-border disabled:hover:bg-surface disabled:hover:text-text"
           >
             <RefreshCw size={16} className={refreshing ? 'animate-spin' : 'transition-transform duration-500 group-hover:rotate-180'} />
             <span>{refreshing ? 'Refreshing' : 'Refresh'}</span>
@@ -389,16 +390,16 @@ function AlertsView({ me }) {
 
       {/* Stats */}
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <StatTile icon={BellRing} label="Alerts for you" color="var(--graph-1)">
+        <StatTile icon={BellRing} label="Alerts for you" color="var(--accent-tone-1)">
           <CountUp value={all.length} />
         </StatTile>
-        <StatTile icon={Megaphone} label="Announcements" color="var(--graph-2)">
+        <StatTile icon={Megaphone} label="Announcements" color="var(--accent-tone-2)">
           <CountUp value={bars.length} />
         </StatTile>
-        <StatTile icon={Sparkles} label="Offers" color="var(--graph-6)">
+        <StatTile icon={Sparkles} label="Offers" color="var(--accent-tone-6)">
           <CountUp value={offers} />
         </StatTile>
-        <StatTile icon={AlertTriangle} label="Needs attention" color="var(--graph-3)">
+        <StatTile icon={AlertTriangle} label="Needs attention" color="var(--accent-tone-3)">
           <CountUp value={urgent} />
         </StatTile>
       </div>
@@ -414,7 +415,7 @@ function AlertsView({ me }) {
 
       {isStaff && (
         <div role="status" className="flex items-center gap-3 rounded-lg border border-border bg-surface px-4 py-3 text-sm text-muted">
-          <Info size={16} className="shrink-0 text-graph-5" aria-hidden="true" />
+          <Info size={16} className="shrink-0 text-accent-tone-5" aria-hidden="true" />
           Staff accounts don’t receive customer alerts. Manage them from the admin panel.
         </div>
       )}

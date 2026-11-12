@@ -1,5 +1,6 @@
 // src/pages/user/dashboard/Wishlist.jsx   (route: /:username/wishlist)
 // Same look as Profile.jsx / Orders.jsx. Uses the existing wishlistSlice and cartSlice unchanged.
+import PanelPageTitle from '../../../ui/custom/PanelPageTitle';
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router';
 import {
@@ -53,9 +54,9 @@ const SORTS = [
 
 const FILTERS = [
   { key: 'all', label: 'All', color: 'var(--accent)' },
-  { key: 'in', label: 'In stock', color: 'var(--graph-7)' },
-  { key: 'out', label: 'Out of stock', color: 'var(--graph-4)' },
-  { key: 'sale', label: 'On sale', color: 'var(--graph-3)' },
+  { key: 'in', label: 'In stock', color: 'var(--accent-tone-7)' },
+  { key: 'out', label: 'Out of stock', color: 'var(--accent-tone-4)' },
+  { key: 'sale', label: 'On sale', color: 'var(--accent-tone-3)' },
 ];
 
 /* ---------- helpers ---------- */
@@ -169,7 +170,7 @@ function WishCard({ product: p, inCart, cartBusy, onRemove, onAdd, index }) {
             </span>
           )}
           {sale && !out && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-graph-3 px-2.5 py-1 text-[11px] font-semibold text-white">
+            <span className="inline-flex items-center gap-1 rounded-full bg-accent-tone-3 px-2.5 py-1 text-[11px] font-semibold text-white">
               <Tag size={12} aria-hidden="true" />
               {off}% off
             </span>
@@ -199,7 +200,7 @@ function WishCard({ product: p, inCart, cartBusy, onRemove, onAdd, index }) {
 
         {rating > 0 && (
           <p className="mt-1 inline-flex items-center gap-1 text-xs text-muted">
-            <Star size={13} fill="currentColor" className="text-graph-3" aria-hidden="true" />
+            <Star size={13} fill="currentColor" className="text-accent-tone-3" aria-hidden="true" />
             {rating.toFixed(1)}
             {Number(p.reviewCount) > 0 && <span>({p.reviewCount})</span>}
           </p>
@@ -211,7 +212,7 @@ function WishCard({ product: p, inCart, cartBusy, onRemove, onAdd, index }) {
           disabled={out || cartBusy}
           className={`mt-3 inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border px-4 py-2 text-sm font-semibold transition-all duration-200 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 ${
             inCart
-              ? 'border-graph-7 bg-graph-7/10 text-graph-7 hover:bg-graph-7/20'
+              ? 'border-accent-tone-7 bg-accent-tone-7/10 text-accent-tone-7 hover:bg-accent-tone-7/20'
               : 'border-brown bg-brown text-on-brown hover:bg-brown-hover'
           }`}
         >
@@ -355,13 +356,13 @@ export default function Wishlist() {
     >
       <header className="flex items-end justify-between gap-3">
         <div className="min-w-0">
-          <h1 className="font-display text-3xl font-bold tracking-wide text-text sm:text-4xl">Wishlist</h1>
+          <PanelPageTitle icon="popular" className="font-display text-3xl font-bold tracking-wide text-text sm:text-4xl">Wishlist</PanelPageTitle>
           <p className="mt-1 hidden text-sm text-muted lg:block">Products you saved for later.</p>
         </div>
         <div className="flex items-center gap-3">
           {ago && (
             <span className="hidden items-center gap-1.5 text-xs text-muted sm:flex" aria-live="polite">
-              <span className={`h-1.5 w-1.5 rounded-full ${refreshing ? 'animate-pulse bg-graph-3' : 'bg-graph-7'}`} />
+              <span className={`h-1.5 w-1.5 rounded-full ${refreshing ? 'animate-pulse bg-accent-tone-3' : 'bg-accent-tone-7'}`} />
               {refreshing ? 'Syncing…' : `Updated ${ago}`}
             </span>
           )}
@@ -370,7 +371,7 @@ export default function Wishlist() {
             onClick={refresh}
             disabled={refreshing}
             title="Fetch the latest prices and stock"
-            className="group inline-flex h-10 items-center gap-2 rounded-lg border border-border bg-surface pl-3 pr-3.5 text-sm font-medium text-text shadow-soft transition-all duration-200 hover:-translate-y-px hover:border-graph-1 hover:bg-surface-alt hover:text-graph-1 active:translate-y-0 active:scale-95 disabled:translate-y-0 disabled:opacity-70 disabled:hover:border-border disabled:hover:bg-surface disabled:hover:text-text"
+            className="group inline-flex h-10 items-center gap-2 rounded-lg border border-border bg-surface pl-3 pr-3.5 text-sm font-medium text-text shadow-soft transition-all duration-200 hover:-translate-y-px hover:border-accent-tone-1 hover:bg-surface-alt hover:text-accent-tone-1 active:translate-y-0 active:scale-95 disabled:translate-y-0 disabled:opacity-70 disabled:hover:border-border disabled:hover:bg-surface disabled:hover:text-text"
           >
             <RefreshCw size={16} className={refreshing ? 'animate-spin' : 'transition-transform duration-500 group-hover:rotate-180'} />
             <span>{refreshing ? 'Refreshing' : 'Refresh'}</span>
@@ -432,16 +433,16 @@ export default function Wishlist() {
         <>
           {/* Stats */}
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <StatTile icon={Heart} label="Saved products" color="var(--graph-4)">
+            <StatTile icon={Heart} label="Saved products" color="var(--accent-tone-4)">
               <CountUp value={items.length} />
             </StatTile>
-            <StatTile icon={Check} label="In stock" color="var(--graph-7)">
+            <StatTile icon={Check} label="In stock" color="var(--accent-tone-7)">
               <CountUp value={stats.inStock} />
             </StatTile>
-            <StatTile icon={Tag} label="On sale" color="var(--graph-3)">
+            <StatTile icon={Tag} label="On sale" color="var(--accent-tone-3)">
               <CountUp value={stats.sale} />
             </StatTile>
-            <StatTile icon={ShoppingCart} label="Already in cart" color="var(--graph-1)">
+            <StatTile icon={ShoppingCart} label="Already in cart" color="var(--accent-tone-1)">
               <CountUp value={stats.inCart} />
             </StatTile>
           </div>

@@ -46,10 +46,10 @@ export default function DatePicker({ value, onChange, max, error = false, placeh
         aria-label={ariaLabel}
         onClick={toggle}
         className={`flex min-h-11 w-full items-center gap-2 rounded-md border bg-surface px-3 text-left text-sm transition-colors ${
-          error ? 'border-error' : open ? 'border-graph-1' : 'border-border hover:border-graph-1/60'
+          error ? 'border-error' : open ? 'border-accent-tone-1' : 'border-border hover:border-accent-tone-1/60'
         }`}
       >
-        <CalendarDays size={16} className="shrink-0 text-graph-1" />
+        <CalendarDays size={16} className="shrink-0 text-accent-tone-1" />
         <span className={`flex-1 truncate ${value ? 'text-text' : 'text-muted/70'}`}>
           {value ? parse(value).toLocaleDateString('en', { day: 'numeric', month: 'short', year: 'numeric' }) : placeholder}
         </span>
@@ -83,7 +83,7 @@ export default function DatePicker({ value, onChange, max, error = false, placeh
                 disabled={disabled}
                 onClick={() => pick(d)}
                 className={`grid h-9 place-items-center rounded-md text-sm tabular-nums transition-colors disabled:opacity-30 ${
-                  selected ? 'bg-graph-1 font-semibold text-white' : k === todayKey ? 'border border-graph-1/60 text-graph-1 hover:bg-surface-alt' : 'text-text hover:bg-surface-alt'
+                  selected ? 'bg-accent-tone-1 font-semibold text-white' : k === todayKey ? 'border border-accent-tone-1/60 text-accent-tone-1 hover:bg-surface-alt' : 'text-text hover:bg-surface-alt'
                 }`}
               >
                 {d.getDate()}
@@ -92,7 +92,7 @@ export default function DatePicker({ value, onChange, max, error = false, placeh
           })}
         </div>
         <div className="mt-2 flex justify-between border-t border-border pt-2 text-xs">
-          <button type="button" onClick={() => pick(new Date())} className="rounded-md px-2 py-1 font-medium text-graph-1 transition-colors hover:bg-surface-alt">Today</button>
+          <button type="button" onClick={() => pick(new Date())} className="rounded-md px-2 py-1 font-medium text-accent-tone-1 transition-colors hover:bg-surface-alt">Today</button>
           <button type="button" onClick={() => setOpen(false)} className="rounded-md px-2 py-1 text-muted transition-colors hover:bg-surface-alt hover:text-text">Close</button>
         </div>
       </div>

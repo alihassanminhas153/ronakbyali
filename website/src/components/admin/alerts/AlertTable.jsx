@@ -52,7 +52,7 @@ export function Pager({ page, pageSize, total, onPage, disabled }) {
               aria-current={p === page ? 'page' : undefined}
               disabled={disabled}
               onClick={() => onPage(p)}
-              className={`${btn} ${p === page ? 'border-graph-1 bg-graph-1/10 font-semibold text-graph-1' : 'border-border hover:bg-surface-alt'}`}
+              className={`${btn} ${p === page ? 'border-accent-tone-1 bg-accent-tone-1/10 font-semibold text-accent-tone-1' : 'border-border hover:bg-surface-alt'}`}
             >
               {p}
             </button>
@@ -147,7 +147,7 @@ export default function AlertTable({ rows, loading, busyId, page, pageSize, tota
                         <span className="grid h-9 w-9 place-items-center text-muted/60" title="Expired alerts cannot be changed"><Lock size={15} /></span>
                       ) : (
                         <IconButton label={a.status === 'active' ? 'Turn off' : 'Turn on'} onClick={() => onToggle(a)} disabled={rowBusy}>
-                          <Power size={16} className={a.status === 'active' ? 'text-graph-2' : ''} />
+                          <Power size={16} className={a.status === 'active' ? 'text-accent-tone-2' : ''} />
                         </IconButton>
                       )}
                       {a.popup && !expired && (

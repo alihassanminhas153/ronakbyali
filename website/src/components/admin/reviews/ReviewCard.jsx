@@ -36,7 +36,7 @@ export default function ReviewCard({ review, busy, index = 0, onApprove, onRejec
 
   return (
     <article
-      style={{ borderLeftColor: `var(--graph-${tone})`, animationDelay: `${Math.min(index, 8) * 40}ms` }}
+      style={{ borderLeftColor: `var(--accent-tone-${tone})`, animationDelay: `${Math.min(index, 8) * 40}ms` }}
       className="animate-rise rounded-2xl border border-l-4 border-border bg-surface p-4 shadow-soft sm:p-5"
     >
       {/* who + status */}
@@ -50,7 +50,7 @@ export default function ReviewCard({ review, busy, index = 0, onApprove, onRejec
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
             <p className="truncate font-semibold text-text">{name}</p>
             {review.isVerifiedPurchase && (
-              <span className="inline-flex items-center gap-1 text-xs font-medium text-graph-7" title="Bought this product">
+              <span className="inline-flex items-center gap-1 text-xs font-medium text-accent-tone-7" title="Bought this product">
                 <BadgeCheck size={14} /> Verified
               </span>
             )}
@@ -84,7 +84,7 @@ export default function ReviewCard({ review, busy, index = 0, onApprove, onRejec
         <p className="mt-3 text-xs text-muted">
           On{' '}
           {review.productSlug ? (
-            <a href={`/${review.productSlug}`} target="_blank" rel="noreferrer" className="font-medium text-text underline-offset-2 hover:text-graph-1 hover:underline">
+            <a href={`/${review.productSlug}`} target="_blank" rel="noreferrer" className="font-medium text-text underline-offset-2 hover:text-accent-tone-1 hover:underline">
               {review.productName}
             </a>
           ) : (
@@ -113,7 +113,7 @@ export default function ReviewCard({ review, busy, index = 0, onApprove, onRejec
             autoFocus
             placeholder="Write a public reply to this customer…"
             aria-label="Reply to review"
-            className="w-full resize-y rounded-lg border border-border bg-surface px-3 py-2.5 text-sm text-text placeholder:text-muted transition-colors duration-200 focus:border-graph-1 focus:outline-none"
+            className="w-full resize-y rounded-lg border border-border bg-surface px-3 py-2.5 text-sm text-text placeholder:text-muted transition-colors duration-200 focus:border-accent-tone-1 focus:outline-none"
           />
           <div className="flex flex-wrap items-center justify-between gap-2">
             <span className="text-xs tabular-nums text-muted">
@@ -121,18 +121,18 @@ export default function ReviewCard({ review, busy, index = 0, onApprove, onRejec
             </span>
             <div className="flex flex-wrap gap-2">
               {review.adminReply && (
-                <button type="button" onClick={() => saveReply('')} disabled={saving} style={{ '--op': 'var(--graph-4)' }} className={ACTION}>
+                <button type="button" onClick={() => saveReply('')} disabled={saving} style={{ '--op': 'var(--accent-tone-4)' }} className={ACTION}>
                   Remove reply
                 </button>
               )}
-              <button type="button" onClick={() => setReplying(false)} disabled={saving} style={{ '--op': 'var(--graph-2)' }} className={ACTION}>
+              <button type="button" onClick={() => setReplying(false)} disabled={saving} style={{ '--op': 'var(--accent-tone-2)' }} className={ACTION}>
                 Cancel
               </button>
               <button
                 type="button"
                 onClick={() => saveReply(text)}
                 disabled={saving || !text.trim()}
-                style={{ '--op': 'var(--graph-1)' }}
+                style={{ '--op': 'var(--accent-tone-1)' }}
                 className={ACTION}
               >
                 {saving ? 'Saving…' : 'Save reply'}
@@ -150,24 +150,24 @@ export default function ReviewCard({ review, busy, index = 0, onApprove, onRejec
             onClick={() => onApprove(review)}
             disabled={busy}
             title="Make it public and update the product's rating"
-            style={{ '--op': 'var(--graph-7)' }}
+            style={{ '--op': 'var(--accent-tone-7)' }}
             className={ACTION}
           >
             <Check size={16} className="transition-transform duration-300 group-hover:scale-110" /> Approve
           </button>
         )}
         {review.status !== 'rejected' && (
-          <button type="button" onClick={() => onReject(review)} disabled={busy} title="Hide it from the shop" style={{ '--op': 'var(--graph-4)' }} className={ACTION}>
+          <button type="button" onClick={() => onReject(review)} disabled={busy} title="Hide it from the shop" style={{ '--op': 'var(--accent-tone-4)' }} className={ACTION}>
             <X size={16} className="transition-transform duration-300 group-hover:rotate-90" /> Reject
           </button>
         )}
         {!replying && (
-          <button type="button" onClick={openReply} disabled={busy} style={{ '--op': 'var(--graph-1)' }} className={ACTION}>
+          <button type="button" onClick={openReply} disabled={busy} style={{ '--op': 'var(--accent-tone-1)' }} className={ACTION}>
             <Reply size={16} className="transition-transform duration-300 group-hover:-rotate-6" />
             {review.adminReply ? 'Edit reply' : 'Reply'}
           </button>
         )}
-        <button type="button" onClick={() => onDelete(review)} disabled={busy} style={{ '--op': 'var(--graph-4)' }} className={`${ACTION} ml-auto`}>
+        <button type="button" onClick={() => onDelete(review)} disabled={busy} style={{ '--op': 'var(--accent-tone-4)' }} className={`${ACTION} ml-auto`}>
           <Trash2 size={16} className="transition-transform duration-300 group-hover:-rotate-6" /> Delete
         </button>
       </div>

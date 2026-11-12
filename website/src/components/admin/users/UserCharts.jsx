@@ -39,7 +39,7 @@ export function ChartPanel({ icon: Icon, title, subtitle, tone = 1, delay = 0, a
 export function CalendarPanel({ data, label = 'logins', weeks = 26, ...panel }) {
   return (
     <ChartPanel {...panel}>
-      <div style={{ '--graph-heat': toneVar(panel.tone) }}>
+      <div style={{ '--accent': toneVar(panel.tone) }}>
         <HeatmapCalendar data={data} weeks={weeks} label={label} />
       </div>
     </ChartPanel>
@@ -47,7 +47,7 @@ export function CalendarPanel({ data, label = 'logins', weeks = 26, ...panel }) 
 }
 
 // Vertical bars with a custom hover label. items: [{ key, label, value, tip }]
-export function ColumnChart({ items, color = 'var(--graph-1)', height = 120, labelEvery = 1, highlightPeak = false }) {
+export function ColumnChart({ items, color = 'var(--accent-tone-1)', height = 120, labelEvery = 1, highlightPeak = false }) {
   const on = useReveal([items]);
   const max = Math.max(1, ...items.map((i) => i.value));
   const peak = items.reduce((best, i) => (i.value > best.value ? i : best), items[0] || { value: 0 });
@@ -233,7 +233,7 @@ export function SpenderList({ users, onView }) {
               <span className="mt-1.5 block h-1 overflow-hidden rounded-full bg-surface-alt">
                 <span
                   className="block h-full rounded-full transition-[width] duration-700 ease-out"
-                  style={{ width: on ? `${((Number(u.totalSpent) || 0) / max) * 100}%` : '0%', background: 'var(--graph-3)', transitionDelay: `${i * 80}ms` }}
+                  style={{ width: on ? `${((Number(u.totalSpent) || 0) / max) * 100}%` : '0%', background: 'var(--accent-tone-3)', transitionDelay: `${i * 80}ms` }}
                 />
               </span>
             </span>

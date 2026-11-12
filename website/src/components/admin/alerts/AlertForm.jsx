@@ -13,8 +13,8 @@ import { toForm, toPayload, validate } from './alertSchema';
 /* ---------- small field helpers (self-contained, theme tokens only) ---------- */
 
 const inputCls = (err) =>
-  `w-full rounded-md border bg-surface px-3 text-sm text-text transition-colors placeholder:text-muted/70 focus:border-graph-1 disabled:cursor-not-allowed disabled:opacity-70 ${
-    err ? 'border-error' : 'border-border hover:border-graph-1/50'
+  `w-full rounded-md border bg-surface px-3 text-sm text-text transition-colors placeholder:text-muted/70 focus:border-accent-tone-1 disabled:cursor-not-allowed disabled:opacity-70 ${
+    err ? 'border-error' : 'border-border hover:border-accent-tone-1/50'
   }`;
 
 function Field({ label, hint, error, optional, children, className = '', as: Tag = 'label' }) {
@@ -66,7 +66,7 @@ function Switch({ checked, onChange, label, hint, tone = 3 }) {
       role="switch"
       aria-checked={checked}
       onClick={() => onChange(!checked)}
-      className="flex w-full items-center justify-between gap-3 rounded-md border border-border bg-surface px-3 py-2.5 text-left transition-colors hover:border-graph-3/60 disabled:cursor-not-allowed disabled:opacity-70"
+      className="flex w-full items-center justify-between gap-3 rounded-md border border-border bg-surface px-3 py-2.5 text-left transition-colors hover:border-accent-tone-3/60 disabled:cursor-not-allowed disabled:opacity-70"
     >
       <span>
         <span className="block text-sm font-medium text-text">{label}</span>
@@ -242,7 +242,7 @@ export default function AlertForm({ open, alert, onClose, onSaved }) {
                         title={meta.hint}
                         onClick={() => set('type')(t)}
                         style={selected ? { borderColor: color, background: tint(color, 12), color } : undefined}
-                        className="flex flex-col items-center gap-1 rounded-md border border-border bg-surface px-2 py-2.5 text-xs font-medium text-muted transition-colors hover:border-graph-1/50 disabled:cursor-not-allowed disabled:opacity-70"
+                        className="flex flex-col items-center gap-1 rounded-md border border-border bg-surface px-2 py-2.5 text-xs font-medium text-muted transition-colors hover:border-accent-tone-1/50 disabled:cursor-not-allowed disabled:opacity-70"
                       >
                         <Icon size={18} />
                         {meta.label}
@@ -289,7 +289,7 @@ export default function AlertForm({ open, alert, onClose, onSaved }) {
             </Section>
           </fieldset>
 
-          <section style={{ animationDelay: '180ms', borderTopColor: 'var(--graph-6)' }} className="group/sec animate-rise rounded-lg border border-border border-t-2 bg-surface-alt/40 p-4">
+          <section style={{ animationDelay: '180ms', borderTopColor: 'var(--accent-tone-6)' }} className="group/sec animate-rise rounded-lg border border-border border-t-2 bg-surface-alt/40 p-4">
             <SectionHead icon={Eye} tone={6} title="Preview" subtitle={form.popup ? 'As a popup' : 'As an announcement bar'} />
             <div className="mt-4"><AlertPreview alert={form} /></div>
           </section>

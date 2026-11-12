@@ -7,8 +7,8 @@ import { tint, toneVar } from '../../../ui/graphs/utils';
 // Pieces shared by the drawer forms. Same look as ProductForm / UserForm.
 
 export const inputCls = (err) =>
-  `w-full rounded-md border bg-surface px-3 text-sm text-text transition-colors placeholder:text-muted/70 focus:border-graph-1 disabled:opacity-60 ${
-    err ? 'border-error' : 'border-border hover:border-graph-1/50'
+  `w-full rounded-md border bg-surface px-3 text-sm text-text transition-colors placeholder:text-muted/70 focus:border-accent-tone-1 disabled:opacity-60 ${
+    err ? 'border-error' : 'border-border hover:border-accent-tone-1/50'
   }`;
 
 export function SectionHead({ icon: Icon, title, subtitle, tone, lockLabel }) {

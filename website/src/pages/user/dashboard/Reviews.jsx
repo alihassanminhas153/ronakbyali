@@ -1,3 +1,4 @@
+import PanelPageTitle from '../../../ui/custom/PanelPageTitle';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router';
 import {
@@ -149,7 +150,7 @@ function Stars({ value = 0, size = 16 }) {
           key={n}
           size={size}
           aria-hidden="true"
-          className={n <= Math.round(value) ? 'fill-graph-3 text-graph-3' : 'text-border'}
+          className={n <= Math.round(value) ? 'fill-accent-tone-3 text-accent-tone-3' : 'text-border'}
         />
       ))}
     </span>
@@ -174,7 +175,7 @@ function StarPicker({ value, onChange, disabled }) {
           onClick={() => onChange(n)}
           className="rounded p-0.5 transition-transform duration-150 hover:scale-125 active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
         >
-          <Star size={26} aria-hidden="true" className={n <= shown ? 'fill-graph-3 text-graph-3' : 'text-border'} />
+          <Star size={26} aria-hidden="true" className={n <= shown ? 'fill-accent-tone-3 text-accent-tone-3' : 'text-border'} />
         </button>
       ))}
     </div>
@@ -463,8 +464,8 @@ function ReviewsView({ me }) {
   const maxStar = Math.max(1, ...Object.values(counts.stars));
 
   const tabs = [
-    { id: 'reviews', label: 'My reviews', icon: Star, color: 'var(--graph-3)' },
-    { id: 'insights', label: 'Insights', icon: CheckCircle2, color: 'var(--graph-2)' },
+    { id: 'reviews', label: 'My reviews', icon: Star, color: 'var(--accent-tone-3)' },
+    { id: 'insights', label: 'Insights', icon: CheckCircle2, color: 'var(--accent-tone-2)' },
   ];
 
   return (
@@ -475,14 +476,14 @@ function ReviewsView({ me }) {
     >
       <header className="flex items-end justify-between gap-3">
         <div className="min-w-0">
-          <h1 className="font-display text-3xl font-bold tracking-wide text-text sm:text-4xl">Reviews</h1>
+          <PanelPageTitle icon="reviews" className="font-display text-3xl font-bold tracking-wide text-text sm:text-4xl">Reviews</PanelPageTitle>
           <p className="mt-1 hidden text-sm text-muted lg:block">Everything you’ve written about the products you’ve tried.</p>
         </div>
 
         <div className="flex items-center gap-3">
           {ago && (
             <span className="hidden items-center gap-1.5 text-xs text-muted sm:flex" aria-live="polite">
-              <span className={`h-1.5 w-1.5 rounded-full ${busy ? 'animate-pulse bg-graph-3' : 'bg-graph-7'}`} />
+              <span className={`h-1.5 w-1.5 rounded-full ${busy ? 'animate-pulse bg-accent-tone-3' : 'bg-accent-tone-7'}`} />
               {busy ? 'Syncing…' : `Updated ${ago}`}
             </span>
           )}
@@ -491,7 +492,7 @@ function ReviewsView({ me }) {
             onClick={refresh}
             disabled={busy}
             title="Fetch your latest reviews from the database"
-            className="group inline-flex h-10 items-center gap-2 rounded-lg border border-border bg-surface pl-3 pr-3.5 text-sm font-medium text-text shadow-soft transition-all duration-200 hover:-translate-y-px hover:border-graph-1 hover:bg-surface-alt hover:text-graph-1 active:translate-y-0 active:scale-95 disabled:translate-y-0 disabled:opacity-70 disabled:hover:border-border disabled:hover:bg-surface disabled:hover:text-text"
+            className="group inline-flex h-10 items-center gap-2 rounded-lg border border-border bg-surface pl-3 pr-3.5 text-sm font-medium text-text shadow-soft transition-all duration-200 hover:-translate-y-px hover:border-accent-tone-1 hover:bg-surface-alt hover:text-accent-tone-1 active:translate-y-0 active:scale-95 disabled:translate-y-0 disabled:opacity-70 disabled:hover:border-border disabled:hover:bg-surface disabled:hover:text-text"
           >
             <RefreshCw size={16} className={refreshing ? 'animate-spin' : 'transition-transform duration-500 group-hover:rotate-180'} />
             <span>{refreshing ? 'Refreshing' : 'Refresh'}</span>
@@ -544,16 +545,16 @@ function ReviewsView({ me }) {
 
       {/* Stats */}
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <StatTile icon={Star} label="Reviews written" color="var(--graph-1)">
+        <StatTile icon={Star} label="Reviews written" color="var(--accent-tone-1)">
           <CountUp value={counts.total} />
         </StatTile>
-        <StatTile icon={CheckCircle2} label="Published" color="var(--graph-7)">
+        <StatTile icon={CheckCircle2} label="Published" color="var(--accent-tone-7)">
           <CountUp value={counts.approved} />
         </StatTile>
-        <StatTile icon={Clock} label="Waiting for approval" color="var(--graph-3)">
+        <StatTile icon={Clock} label="Waiting for approval" color="var(--accent-tone-3)">
           <CountUp value={counts.pending} />
         </StatTile>
-        <StatTile icon={XCircle} label="Not published" color="var(--graph-4)">
+        <StatTile icon={XCircle} label="Not published" color="var(--accent-tone-4)">
           <CountUp value={counts.rejected} />
         </StatTile>
       </div>
@@ -633,11 +634,11 @@ function ReviewsView({ me }) {
                 <div key={n} className="flex items-center gap-3 text-sm">
                   <span className="flex w-8 shrink-0 items-center gap-1 text-muted">
                     {n}
-                    <Star size={13} className="fill-graph-3 text-graph-3" aria-hidden="true" />
+                    <Star size={13} className="fill-accent-tone-3 text-accent-tone-3" aria-hidden="true" />
                   </span>
                   <div className="h-2.5 flex-1 overflow-hidden rounded-full bg-surface-alt">
                     <div
-                      className="h-full rounded-full bg-graph-3 transition-[width] duration-1000 ease-out motion-reduce:transition-none"
+                      className="h-full rounded-full bg-accent-tone-3 transition-[width] duration-1000 ease-out motion-reduce:transition-none"
                       style={{ width: entered ? `${(counts.stars[n] / maxStar) * 100}%` : '0%' }}
                     />
                   </div>

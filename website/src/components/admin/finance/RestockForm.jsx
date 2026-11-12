@@ -84,7 +84,7 @@ export default function RestockForm({ open, products = [], preset = null, onClos
         </>
       }
     >
-      <section style={{ borderTopColor: 'var(--graph-2)' }} className="animate-rise rounded-lg border border-border border-t-2 bg-surface-alt/40 p-4">
+      <section style={{ borderTopColor: 'var(--accent-tone-2)' }} className="animate-rise rounded-lg border border-border border-t-2 bg-surface-alt/40 p-4">
         <div className="grid gap-4 sm:grid-cols-2">
           <Field as="div" label="Product" error={errors.product} className="sm:col-span-2">
             <SearchSelect aria-label="Product" options={products.map((p) => p.name)} value={name} onChange={pickProduct} creatable={false} placeholder="Search a product" searchPlaceholder="Search products…" error={Boolean(errors.product)} />
@@ -98,8 +98,8 @@ export default function RestockForm({ open, products = [], preset = null, onClos
         </div>
 
         <div className="mt-4 flex items-center justify-between rounded-md bg-surface px-3 py-2.5 text-sm">
-          <span className="flex items-center gap-2 text-muted"><Boxes size={15} className="text-graph-2" />Units left</span>
-          <span className="tabular-nums text-text">{before} <span className="text-muted">to</span> <b className="text-graph-2">{before + n}</b></span>
+          <span className="flex items-center gap-2 text-muted"><Boxes size={15} className="text-accent-tone-2" />Units left</span>
+          <span className="tabular-nums text-text">{before} <span className="text-muted">to</span> <b className="text-accent-tone-2">{before + n}</b></span>
         </div>
         {cost > 0 && n > 0 && (
           <p className="animate-rise mt-2 text-right text-xs text-muted">Total cost <b className="text-text">{rs(n * cost)}</b></p>

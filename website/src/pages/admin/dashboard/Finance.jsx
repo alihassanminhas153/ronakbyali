@@ -1,3 +1,4 @@
+import PanelPageTitle from '../../../ui/custom/PanelPageTitle';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ArrowRight, Boxes, CalendarDays, Download, Heart, LayoutList, PackagePlus, PieChart, Plus, RefreshCw, TrendingUp, Trophy, LineChart as LineIcon } from 'lucide-react';
 
@@ -150,11 +151,11 @@ export default function Finance() {
   };
 
   const tabs = [
-    { id: 'overview', label: 'Overview', icon: TrendingUp, color: 'var(--graph-1)' },
-    { id: 'ledger', label: 'Ledger', icon: LayoutList, color: 'var(--graph-4)', badge: ledger.length || undefined },
-    { id: 'inventory', label: 'Inventory', icon: Boxes, color: 'var(--graph-2)' },
-    { id: 'demand', label: 'Carts & wishlists', icon: Heart, color: 'var(--graph-6)' },
-    { id: 'profit', label: 'Product profit', icon: Trophy, color: 'var(--graph-3)' },
+    { id: 'overview', label: 'Overview', icon: TrendingUp, color: 'var(--accent-tone-1)' },
+    { id: 'ledger', label: 'Ledger', icon: LayoutList, color: 'var(--accent-tone-4)', badge: ledger.length || undefined },
+    { id: 'inventory', label: 'Inventory', icon: Boxes, color: 'var(--accent-tone-2)' },
+    { id: 'demand', label: 'Carts & wishlists', icon: Heart, color: 'var(--accent-tone-6)' },
+    { id: 'profit', label: 'Product profit', icon: Trophy, color: 'var(--accent-tone-3)' },
   ];
   const showPeriod = tab === 'overview' || tab === 'profit';
 
@@ -162,7 +163,7 @@ export default function Finance() {
     <div className="space-y-5">
       <header className="flex items-end justify-between gap-3">
         <div className="min-w-0">
-          <h1 className="font-display text-3xl font-bold tracking-wide text-text sm:text-4xl">Finance</h1>
+          <PanelPageTitle icon="wallet" className="font-display text-3xl font-bold tracking-wide text-text sm:text-4xl">Finance</PanelPageTitle>
           <p className="mt-1 hidden text-sm text-muted lg:block">
             {loading && !ledger.length && !products.length ? (
               'Loading…'
@@ -178,7 +179,7 @@ export default function Finance() {
         <div className="flex items-center gap-3">
           {ago && (
             <span className="hidden items-center gap-1.5 text-xs text-muted sm:flex" aria-live="polite">
-              <span className={`h-1.5 w-1.5 rounded-full ${loading ? 'animate-pulse bg-graph-3' : 'bg-graph-7'}`} />
+              <span className={`h-1.5 w-1.5 rounded-full ${loading ? 'animate-pulse bg-accent-tone-3' : 'bg-accent-tone-7'}`} />
               {loading ? 'Syncing…' : `Updated ${ago}`}
             </span>
           )}
@@ -187,7 +188,7 @@ export default function Finance() {
             onClick={reload}
             disabled={loading}
             title="Fetch the latest orders, products, carts and entries"
-            className="group inline-flex h-10 items-center gap-2 rounded-lg border border-border bg-surface pl-3 pr-3.5 text-sm font-medium text-text shadow-soft transition-all duration-200 hover:-translate-y-px hover:border-graph-1 hover:bg-surface-alt hover:text-graph-1 active:translate-y-0 active:scale-95 disabled:translate-y-0 disabled:opacity-70 disabled:hover:border-border disabled:hover:bg-surface disabled:hover:text-text"
+            className="group inline-flex h-10 items-center gap-2 rounded-lg border border-border bg-surface pl-3 pr-3.5 text-sm font-medium text-text shadow-soft transition-all duration-200 hover:-translate-y-px hover:border-accent-tone-1 hover:bg-surface-alt hover:text-accent-tone-1 active:translate-y-0 active:scale-95 disabled:translate-y-0 disabled:opacity-70 disabled:hover:border-border disabled:hover:bg-surface disabled:hover:text-text"
           >
             <RefreshCw size={16} className={loading ? 'animate-spin' : 'transition-transform duration-500 group-hover:rotate-180'} />
             <span>{loading ? 'Refreshing' : 'Refresh'}</span>
@@ -242,7 +243,7 @@ export default function Finance() {
             key={a.label}
             type="button"
             onClick={a.onClick}
-            style={{ '--op': `var(--graph-${a.tone})` }}
+            style={{ '--op': `var(--accent-tone-${a.tone})` }}
             className="group inline-flex h-10 items-center gap-2 rounded-lg border border-border bg-surface px-3.5 text-sm font-medium text-text transition-all duration-200 hover:-translate-y-px hover:border-[var(--op)] hover:text-[var(--op)] active:translate-y-0 active:scale-95"
           >
             <a.icon size={16} className="transition-transform duration-300 group-hover:scale-110 group-hover:-rotate-6" />
@@ -287,7 +288,7 @@ export default function Finance() {
             <div className="rounded-lg border border-dashed border-border p-10 text-center">
               <p className="font-display text-2xl font-semibold text-text">No entries match</p>
               <p className="mt-1 text-sm text-muted">Try a different search or clear the filters.</p>
-              <button type="button" onClick={resetFilters} className="mt-4 text-sm font-medium text-graph-1 underline">Clear filters</button>
+              <button type="button" onClick={resetFilters} className="mt-4 text-sm font-medium text-accent-tone-1 underline">Clear filters</button>
             </div>
           ) : (
             <>
@@ -305,7 +306,7 @@ export default function Finance() {
               <HeatmapCalendar data={countByDay(ledger, (e) => e.date)} weeks={26} label="entries" />
             </ChartCard>
             <ChartCard title="Expenses per month" subtitle="Operating expenses, last 12 months" icon={LineIcon} tone={4} delay={80}>
-              <TrendGraph data={m.months.map((x) => ({ label: x.label, value: x.expenses }))} color="var(--graph-4)" format={(n) => `Rs ${compact(n)}`} />
+              <TrendGraph data={m.months.map((x) => ({ label: x.label, value: x.expenses }))} color="var(--accent-tone-4)" format={(n) => `Rs ${compact(n)}`} />
             </ChartCard>
             <ChartCard title="Money by type" subtitle="All entries" icon={PieChart} tone={6} delay={160} className="lg:col-span-2">
               <Donut
@@ -314,7 +315,7 @@ export default function Finance() {
                 data={TYPE_ORDER.map((t) => ({
                   label: TYPE_META[t].label,
                   value: ledger.filter((e) => e.type === t).reduce((s, e) => s + Number(e.amount || 0), 0),
-                  color: `var(--graph-${TYPE_META[t].tone})`,
+                  color: `var(--accent-tone-${TYPE_META[t].tone})`,
                 }))}
                 empty="No entries yet."
               />

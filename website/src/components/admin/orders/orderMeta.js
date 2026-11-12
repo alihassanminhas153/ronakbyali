@@ -1,6 +1,6 @@
 import { CheckCircle2, Clock, Cog, PackageCheck, Truck, Undo2, XCircle } from 'lucide-react';
 
-// tone = the --graph-N colour used by the badge, tab and timeline dot
+// tone = the theme accent shade used by the badge, tab, and timeline dot
 export const STATUS_META = {
   pending: { label: 'Pending', tone: 3, icon: Clock },
   confirmed: { label: 'Confirmed', tone: 1, icon: CheckCircle2 },
@@ -52,4 +52,4 @@ export const timeAgo = (iso) => {
   return new Date(iso).toLocaleDateString('en-PK', { day: 'numeric', month: 'short', year: 'numeric' });
 };
 
-export const toneColor = (tone) => `var(--graph-${tone})`;
+export const toneColor = (tone) => `var(--accent-tone-${tone})`;

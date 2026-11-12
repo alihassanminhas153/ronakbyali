@@ -1,3 +1,4 @@
+import PanelPageTitle from '../../../ui/custom/PanelPageTitle';
 import { useEffect, useMemo, useState } from 'react';
 import {
   CalendarDays,
@@ -217,10 +218,10 @@ export default function Users() {
   };
 
   const tabs = [
-    { id: 'overview', label: 'Overview', icon: UsersIcon, color: 'var(--graph-1)', badge: stats.total || undefined },
-    { id: 'activity', label: 'Activity', icon: CalendarDays, color: 'var(--graph-5)' },
-    { id: 'methods', label: 'Sign-in methods', icon: KeyRound, color: 'var(--graph-6)' },
-    { id: 'roles', label: 'Roles', icon: ShieldCheck, color: 'var(--graph-3)' },
+    { id: 'overview', label: 'Overview', icon: UsersIcon, color: 'var(--accent-tone-1)', badge: stats.total || undefined },
+    { id: 'activity', label: 'Activity', icon: CalendarDays, color: 'var(--accent-tone-5)' },
+    { id: 'methods', label: 'Sign-in methods', icon: KeyRound, color: 'var(--accent-tone-6)' },
+    { id: 'roles', label: 'Roles', icon: ShieldCheck, color: 'var(--accent-tone-3)' },
   ];
 
   const signupItems = analytics.signups.map((b) => ({ key: b.key, label: b.label, value: b.value, tip: `${b.value} new ${b.value === 1 ? 'user' : 'users'} in ${b.label}` }));
@@ -236,7 +237,7 @@ export default function Users() {
     <div className={`space-y-5 transition-opacity duration-300 motion-reduce:transition-none ${entered ? 'opacity-100' : 'opacity-0'}`}>
       <header className="flex items-end justify-between gap-3">
         <div className="min-w-0">
-          <h1 className="font-display text-3xl font-bold tracking-wide text-text sm:text-4xl">Users</h1>
+          <PanelPageTitle icon="customers" className="font-display text-3xl font-bold tracking-wide text-text sm:text-4xl">Users</PanelPageTitle>
           <p className="mt-1 hidden text-sm text-muted lg:block" aria-live="polite">
             {loadedOnce ? (
               <>
@@ -251,7 +252,7 @@ export default function Users() {
         <div className="flex items-center gap-3">
           {ago && (
             <span className="hidden items-center gap-1.5 text-xs text-muted sm:flex" aria-live="polite">
-              <span className={`h-1.5 w-1.5 rounded-full ${busy ? 'animate-pulse bg-graph-3' : 'bg-graph-7'}`} />
+              <span className={`h-1.5 w-1.5 rounded-full ${busy ? 'animate-pulse bg-accent-tone-3' : 'bg-accent-tone-7'}`} />
               {busy ? 'Syncing…' : `Updated ${ago}`}
             </span>
           )}
@@ -260,7 +261,7 @@ export default function Users() {
             onClick={() => dispatch(fetchUsers())}
             disabled={busy || failed || loading}
             title="Fetch the latest users from the database"
-            className="group inline-flex h-10 items-center gap-2 rounded-lg border border-border bg-surface pl-3 pr-3.5 text-sm font-medium text-text shadow-soft transition-all duration-200 hover:-translate-y-px hover:border-graph-1 hover:bg-surface-alt hover:text-graph-1 active:translate-y-0 active:scale-95 disabled:translate-y-0 disabled:opacity-70 disabled:hover:border-border disabled:hover:bg-surface disabled:hover:text-text"
+            className="group inline-flex h-10 items-center gap-2 rounded-lg border border-border bg-surface pl-3 pr-3.5 text-sm font-medium text-text shadow-soft transition-all duration-200 hover:-translate-y-px hover:border-accent-tone-1 hover:bg-surface-alt hover:text-accent-tone-1 active:translate-y-0 active:scale-95 disabled:translate-y-0 disabled:opacity-70 disabled:hover:border-border disabled:hover:bg-surface disabled:hover:text-text"
           >
             <RefreshCw size={16} className={busy ? 'animate-spin' : 'transition-transform duration-500 group-hover:rotate-180'} />
             <span>{busy ? 'Refreshing' : 'Refresh'}</span>
@@ -386,7 +387,7 @@ export default function Users() {
                     subtitle="Sign-ups per month, last 12 months"
                     action={<span className="text-xs text-muted">{analytics.newThisMonth} this month</span>}
                   >
-                    <TrendGraph data={analytics.signupsYear} color="var(--graph-1)" empty="No sign-ups yet." />
+                    <TrendGraph data={analytics.signupsYear} color="var(--accent-tone-1)" empty="No sign-ups yet." />
                   </ChartPanel>
                 </div>
               )}
@@ -412,7 +413,7 @@ export default function Users() {
                       subtitle="Last 6 months"
                       action={<span className="text-xs text-muted">{analytics.newThisMonth} this month</span>}
                     >
-                      <ColumnChart items={signupItems} color="var(--graph-1)" />
+                      <ColumnChart items={signupItems} color="var(--accent-tone-1)" />
                     </ChartPanel>
                     <ChartPanel
                       icon={Clock}
@@ -422,7 +423,7 @@ export default function Users() {
                       subtitle={analytics.peakHour === null ? 'Hour of the last login (your local time)' : `Busiest around ${String(analytics.peakHour).padStart(2, '0')}:00`}
                       action={<span className="text-xs text-muted">{analytics.today} today · {analytics.never} never</span>}
                     >
-                      <ColumnChart items={hourItems} color="var(--graph-6)" height={120} labelEvery={3} highlightPeak />
+                      <ColumnChart items={hourItems} color="var(--accent-tone-6)" height={120} labelEvery={3} highlightPeak />
                     </ChartPanel>
                   </div>
                 </>

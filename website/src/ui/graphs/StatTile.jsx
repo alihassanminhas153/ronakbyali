@@ -14,6 +14,7 @@ export default function StatTile({
   hint,
   icon: Icon,
   appIcon,
+  valueClassName,
   sensitive = false,
   tone = 1,
   delay = 0,
@@ -54,7 +55,7 @@ export default function StatTile({
             </button>
           )}
         </div>
-        <p className="heading truncate text-xl leading-tight text-text sm:text-2xl" aria-live={sensitive ? 'polite' : undefined}>
+        <p className={`heading leading-tight text-text ${valueClassName || 'truncate text-xl sm:text-2xl'}`} aria-live={sensitive ? 'polite' : undefined}>
           {hidden ? '••••••' : typeof value === 'number' ? <CountUp value={value} format={format} /> : value}
         </p>
         {hint && <p className="truncate text-xs text-muted">{hidden ? 'Hidden' : hint}</p>}

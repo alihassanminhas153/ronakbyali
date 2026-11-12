@@ -2,7 +2,7 @@ import { useLayoutEffect, useRef, useState } from 'react';
 import { tint, toneVar } from '../../graphs/utils';
 
 // Custom button group (replaces <select> / radio buttons).
-//   options: [{ value, label, icon?, tone? }]   tone = 1-8 graph colour
+//   options: [{ value, label, icon?, tone? }]   tone = 1-8 theme accent shade
 //   <Segmented options={...} value={v} onChange={setV} />
 export default function Segmented({ options, value, onChange, className = '', 'aria-label': ariaLabel }) {
   const refs = useRef({});

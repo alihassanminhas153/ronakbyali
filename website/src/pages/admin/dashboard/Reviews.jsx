@@ -1,3 +1,4 @@
+import PanelPageTitle from '../../../ui/custom/PanelPageTitle';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import {
@@ -169,16 +170,16 @@ export default function Reviews() {
   };
 
   const tabs = [
-    { id: 'overview', label: 'Overview', icon: TrendingUp, color: 'var(--graph-1)' },
-    { id: 'reviews', label: 'Reviews', icon: MessageSquare, color: 'var(--graph-4)', badge: pending || undefined },
-    { id: 'products', label: 'Product ratings', icon: Star, color: 'var(--graph-3)' },
+    { id: 'overview', label: 'Overview', icon: TrendingUp, color: 'var(--accent-tone-1)' },
+    { id: 'reviews', label: 'Reviews', icon: MessageSquare, color: 'var(--accent-tone-4)', badge: pending || undefined },
+    { id: 'products', label: 'Product ratings', icon: Star, color: 'var(--accent-tone-3)' },
   ];
 
   return (
     <div className="space-y-5">
       <header className="flex items-end justify-between gap-3">
         <div className="min-w-0">
-          <h1 className="font-display text-3xl font-bold tracking-wide text-text sm:text-4xl">Reviews</h1>
+          <PanelPageTitle icon="reviews" className="font-display text-3xl font-bold tracking-wide text-text sm:text-4xl">Reviews</PanelPageTitle>
           <p className="mt-1 hidden text-sm text-muted lg:block">
             {loading && !items.length ? (
               'Loading…'
@@ -195,7 +196,7 @@ export default function Reviews() {
         <div className="flex items-center gap-3">
           {ago && (
             <span className="hidden items-center gap-1.5 text-xs text-muted sm:flex" aria-live="polite">
-              <span className={`h-1.5 w-1.5 rounded-full ${loading ? 'animate-pulse bg-graph-3' : 'bg-graph-7'}`} />
+              <span className={`h-1.5 w-1.5 rounded-full ${loading ? 'animate-pulse bg-accent-tone-3' : 'bg-accent-tone-7'}`} />
               {loading ? 'Syncing…' : `Updated ${ago}`}
             </span>
           )}
@@ -204,7 +205,7 @@ export default function Reviews() {
             onClick={reload}
             disabled={loading}
             title="Fetch the latest reviews"
-            className="group inline-flex h-10 items-center gap-2 rounded-lg border border-border bg-surface pl-3 pr-3.5 text-sm font-medium text-text shadow-soft transition-all duration-200 hover:-translate-y-px hover:border-graph-1 hover:bg-surface-alt hover:text-graph-1 active:translate-y-0 active:scale-95 disabled:translate-y-0 disabled:opacity-70 disabled:hover:border-border disabled:hover:bg-surface disabled:hover:text-text"
+            className="group inline-flex h-10 items-center gap-2 rounded-lg border border-border bg-surface pl-3 pr-3.5 text-sm font-medium text-text shadow-soft transition-all duration-200 hover:-translate-y-px hover:border-accent-tone-1 hover:bg-surface-alt hover:text-accent-tone-1 active:translate-y-0 active:scale-95 disabled:translate-y-0 disabled:opacity-70 disabled:hover:border-border disabled:hover:bg-surface disabled:hover:text-text"
           >
             <RefreshCw size={16} className={loading ? 'animate-spin' : 'transition-transform duration-500 group-hover:rotate-180'} />
             <span>{loading ? 'Refreshing' : 'Refresh'}</span>
@@ -274,7 +275,7 @@ export default function Reviews() {
             type="button"
             onClick={a.onClick}
             disabled={a.disabled}
-            style={{ '--op': `var(--graph-${a.tone})` }}
+            style={{ '--op': `var(--accent-tone-${a.tone})` }}
             className="group inline-flex h-10 items-center gap-2 rounded-lg border border-border bg-surface px-3.5 text-sm font-medium text-text transition-all duration-200 hover:-translate-y-px hover:border-[var(--op)] hover:text-[var(--op)] active:translate-y-0 active:scale-95 disabled:pointer-events-none disabled:opacity-60"
           >
             <a.icon size={16} className={`transition-transform duration-300 group-hover:scale-110 group-hover:-rotate-6 ${a.disabled && syncing ? 'animate-pulse' : ''}`} />
@@ -313,7 +314,7 @@ export default function Reviews() {
                 data={STATUS_ORDER.map((s) => ({
                   label: STATUS_META[s].label,
                   value: m.statusCounts[s],
-                  color: `var(--graph-${STATUS_META[s].tone})`,
+                  color: `var(--accent-tone-${STATUS_META[s].tone})`,
                 }))}
                 empty="No reviews yet."
               />
@@ -322,7 +323,7 @@ export default function Reviews() {
               <HeatmapCalendar data={countByDay(items, (r) => r.$createdAt)} weeks={26} label="reviews" />
             </ChartCard>
             <ChartCard title="Reviews per month" subtitle="Last 12 months" icon={LineIcon} tone={1} delay={240}>
-              <TrendGraph data={m.months} color="var(--graph-1)" format={whole} />
+              <TrendGraph data={m.months} color="var(--accent-tone-1)" format={whole} />
             </ChartCard>
           </div>
         </TabPanel>
@@ -353,7 +354,7 @@ export default function Reviews() {
             <div className="rounded-lg border border-dashed border-border p-10 text-center">
               <p className="font-display text-2xl font-semibold text-text">No reviews match</p>
               <p className="mt-1 text-sm text-muted">Try a different search or clear the filters.</p>
-              <button type="button" onClick={resetFilters} className="mt-4 text-sm font-medium text-graph-1 underline">Clear filters</button>
+              <button type="button" onClick={resetFilters} className="mt-4 text-sm font-medium text-accent-tone-1 underline">Clear filters</button>
             </div>
           ) : (
             <>

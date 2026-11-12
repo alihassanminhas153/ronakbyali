@@ -53,7 +53,7 @@ function When({ value, live = false }) {
   return (
     <Tooltip label={fullDate(value)}>
       <time dateTime={value} className="inline-flex items-center gap-1.5 whitespace-nowrap text-sm text-muted">
-        {recent && <span aria-hidden="true" className="size-1.5 animate-pulse rounded-full bg-graph-7" />}
+        {recent && <span aria-hidden="true" className="size-1.5 animate-pulse rounded-full bg-accent-tone-7" />}
         {timeAgo(value)}
       </time>
     </Tooltip>
@@ -133,7 +133,7 @@ const UserRow = memo(function UserRow({ user, index, meId, pending, onView, onTo
               <span className="truncate text-sm font-medium text-text">{user.name || '—'}</span>
               {isSelf && <span className="shrink-0 text-xs text-muted">(you)</span>}
             </p>
-            <p className="truncate text-xs text-muted transition-colors duration-200 group-hover/row:text-graph-7">@{user.username || '—'}</p>
+            <p className="truncate text-xs text-muted transition-colors duration-200 group-hover/row:text-accent-tone-7">@{user.username || '—'}</p>
           </div>
         </div>
       </td>
@@ -192,7 +192,7 @@ const UserCard = memo(function UserCard({ user, index, meId, pending, onView, on
             <span className="truncate text-sm font-medium text-text">{user.name || '—'}</span>
             {isSelf && <span className="shrink-0 text-xs text-muted">(you)</span>}
           </p>
-          <p className="truncate text-xs text-muted transition-colors group-hover/row:text-graph-7">@{user.username || '—'}</p>
+          <p className="truncate text-xs text-muted transition-colors group-hover/row:text-accent-tone-7">@{user.username || '—'}</p>
           <p className="mt-0.5 truncate text-xs text-muted">{user.email}</p>
           <div className="mt-2 flex flex-wrap items-center gap-1.5">
             <RoleBadge role={user.role} />

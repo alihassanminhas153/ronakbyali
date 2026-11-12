@@ -7,7 +7,7 @@ const W = 600;
 const H = 210;
 const PAD = { top: 14, right: 12, bottom: 26, left: 44 };
 
-export default function TrendGraph({ data = [], format = (n) => compact(n), color = 'var(--graph-line)', empty }) {
+export default function TrendGraph({ data = [], format = (n) => compact(n), color = 'var(--accent)', empty }) {
   const gid = useId();
   const on = useReveal([data]);
   const [hover, setHover] = useState(null);

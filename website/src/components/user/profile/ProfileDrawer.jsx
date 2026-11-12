@@ -26,8 +26,8 @@ import { ALLOWED_TYPES, MAX_IMAGE_MB, clean, toForm, validateDetails, validatePa
 /* ---------- small field helpers (same look as the admin ProductForm) ---------- */
 
 const inputCls = (err) =>
-  `w-full rounded-md border bg-surface px-3 text-sm text-text transition-colors placeholder:text-muted/70 focus:border-graph-1 ${
-    err ? 'border-error' : 'border-border hover:border-graph-1/50'
+  `w-full rounded-md border bg-surface px-3 text-sm text-text transition-colors placeholder:text-muted/70 focus:border-accent-tone-1 ${
+    err ? 'border-error' : 'border-border hover:border-accent-tone-1/50'
   }`;
 
 function Field({ label, hint, error, optional, children, className = '' }) {
@@ -343,7 +343,7 @@ export default function ProfileDrawer({ open, me, section = 'details', canChange
         <div className="flex-1 space-y-4 overflow-y-auto px-4 py-4 sm:px-6">
           {/* Photo: first section, first input */}
           <section
-            style={{ animationDelay: '0ms', borderTopColor: 'var(--graph-6)' }}
+            style={{ animationDelay: '0ms', borderTopColor: 'var(--accent-tone-6)' }}
             className="group/sec animate-rise rounded-lg border border-border border-t-2 bg-surface-alt/40 p-4"
           >
             <SectionHead icon={Camera} tone={6} title="Profile photo" subtitle={`JPG, PNG or WebP, up to ${MAX_IMAGE_MB} MB. Saved when you press Save changes.`} />
@@ -365,7 +365,7 @@ export default function ProfileDrawer({ open, me, section = 'details', canChange
                   )}
                 </div>
                 {staged && (
-                  <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 rounded-full bg-graph-6 px-2 py-0.5 text-[10px] font-medium text-white">New</span>
+                  <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 rounded-full bg-accent-tone-6 px-2 py-0.5 text-[10px] font-medium text-white">New</span>
                 )}
               </div>
 
@@ -378,7 +378,7 @@ export default function ProfileDrawer({ open, me, section = 'details', canChange
                   onDragLeave={() => setDragOver(false)}
                   onDrop={(e) => { e.preventDefault(); setDragOver(false); if (!saving) pickFile(e.dataTransfer.files); }}
                   className={`flex w-full items-center justify-center gap-3 rounded-md border border-dashed px-4 py-4 text-sm transition-colors disabled:opacity-60 ${
-                    dragOver ? 'border-graph-6 bg-graph-6/10 text-graph-6' : 'border-border bg-surface text-muted hover:border-graph-6 hover:bg-graph-6/10 hover:text-graph-6'
+                    dragOver ? 'border-accent-tone-6 bg-accent-tone-6/10 text-accent-tone-6' : 'border-border bg-surface text-muted hover:border-accent-tone-6 hover:bg-accent-tone-6/10 hover:text-accent-tone-6'
                   }`}
                 >
                   <ImagePlus size={22} className="shrink-0" />

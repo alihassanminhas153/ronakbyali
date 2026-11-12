@@ -51,7 +51,7 @@ export default function LedgerTable({ entries = [], onEdit, onDelete }) {
     <>
       <ul className="space-y-3 md:hidden">
         {entries.map((e, i) => (
-          <li key={e.$id} style={rise(i)} className="animate-rise rounded-lg border border-border bg-surface p-3 transition-colors hover:border-graph-1/40">
+          <li key={e.$id} style={rise(i)} className="animate-rise rounded-lg border border-border bg-surface p-3 transition-colors hover:border-accent-tone-1/40">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <p className="truncate text-sm font-medium text-text">{e.title}</p>

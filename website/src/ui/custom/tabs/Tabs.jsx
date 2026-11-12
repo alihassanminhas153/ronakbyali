@@ -30,17 +30,15 @@ export default function Tabs({ tabs, value, onChange, className = '' }) {
               type="button"
               aria-selected={active}
               onClick={() => onChange(t.id)}
-              style={active && t.color ? { color: t.color } : undefined}
               className={`group flex min-h-11 items-center gap-2 px-3.5 text-sm font-medium transition-colors sm:px-4 ${
-                active ? (t.color ? '' : 'text-accent') : 'text-muted hover:text-text'
+                active ? 'text-accent' : 'text-muted hover:text-text'
               }`}
             >
               {Icon && <Icon size={16} className="transition-transform duration-300 group-hover:scale-125 group-hover:-rotate-6" />}
               {t.label}
               {t.badge != null && (
                 <span
-                  style={active && t.color ? { background: `color-mix(in srgb, ${t.color} 14%, transparent)`, color: t.color } : undefined}
-                  className={`rounded-full px-1.5 py-0.5 text-[10px] transition-colors ${active ? (t.color ? '' : 'bg-accent-soft text-accent') : 'bg-surface-alt text-muted'}`}
+                  className={`rounded-full px-1.5 py-0.5 text-[10px] transition-colors ${active ? 'bg-accent-soft text-accent' : 'bg-surface-alt text-muted'}`}
                 >
                   {t.badge}
                 </span>
@@ -51,7 +49,7 @@ export default function Tabs({ tabs, value, onChange, className = '' }) {
         <span
           aria-hidden="true"
           className="absolute -bottom-px h-0.5 rounded-full bg-accent transition-[left,width,background-color] duration-300 ease-out"
-          style={{ left: bar.left, width: bar.width, background: tabs.find((t) => t.id === value)?.color }}
+          style={{ left: bar.left, width: bar.width }}
         />
       </div>
     </div>

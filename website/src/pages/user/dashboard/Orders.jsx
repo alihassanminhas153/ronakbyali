@@ -1,6 +1,7 @@
 // src/pages/user/dashboard/Orders.jsx   (route: /:username/orders)
 // Same look as Profile.jsx: gradient hero, StatTile cards, rounded-xl bordered surfaces,
 // graph-colour accents, Notice banner, Refresh button with "Updated x ago".
+import PanelPageTitle from '../../../ui/custom/PanelPageTitle';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router';
 import {
@@ -71,13 +72,13 @@ const STEPS = ['pending', 'confirmed', 'processing', 'shipped', 'delivered'];
 
 // One colour per real status (graph palette, so it follows light/dark).
 const STATUS = {
-  pending:    { label: 'Received',       color: 'var(--graph-3)', icon: Clock,        note: 'We have your order and will confirm it soon.' },
-  confirmed:  { label: 'Confirmed',      color: 'var(--graph-5)', icon: Check,        note: 'Your order is confirmed.' },
-  processing: { label: 'Being prepared', color: 'var(--graph-1)', icon: PackageCheck, note: 'We are getting your order ready.' },
-  shipped:    { label: 'Shipped',        color: 'var(--graph-6)', icon: Truck,        note: 'Your order is on its way. It can no longer be changed.' },
-  delivered:  { label: 'Delivered',      color: 'var(--graph-7)', icon: Check,        note: 'Your order was delivered.' },
-  cancelled:  { label: 'Cancelled',      color: 'var(--graph-8)', icon: XCircle,      note: 'This order was cancelled.' },
-  returned:   { label: 'Returned',       color: 'var(--graph-4)', icon: Undo2,        note: 'This order was returned.' },
+  pending:    { label: 'Received',       color: 'var(--accent-tone-3)', icon: Clock,        note: 'We have your order and will confirm it soon.' },
+  confirmed:  { label: 'Confirmed',      color: 'var(--accent-tone-5)', icon: Check,        note: 'Your order is confirmed.' },
+  processing: { label: 'Being prepared', color: 'var(--accent-tone-1)', icon: PackageCheck, note: 'We are getting your order ready.' },
+  shipped:    { label: 'Shipped',        color: 'var(--accent-tone-6)', icon: Truck,        note: 'Your order is on its way. It can no longer be changed.' },
+  delivered:  { label: 'Delivered',      color: 'var(--accent-tone-7)', icon: Check,        note: 'Your order was delivered.' },
+  cancelled:  { label: 'Cancelled',      color: 'var(--accent-tone-8)', icon: XCircle,      note: 'This order was cancelled.' },
+  returned:   { label: 'Returned',       color: 'var(--accent-tone-4)', icon: Undo2,        note: 'This order was returned.' },
 };
 const FILTERS = ['all', ...Object.keys(STATUS)];
 
@@ -221,7 +222,7 @@ function StatTile({ icon: Icon, appIcon, label, color, sensitive = false, childr
 }
 
 function StatusPill({ status }) {
-  const meta = STATUS[status] || { label: capitalize(status), color: 'var(--graph-8)', icon: Clock };
+  const meta = STATUS[status] || { label: capitalize(status), color: 'var(--accent-tone-8)', icon: Clock };
   const Icon = meta.icon;
   return (
     <span
@@ -246,7 +247,7 @@ function Stepper({ status }) {
         <div className="absolute left-0 right-0 top-[7px] h-1 rounded-full bg-surface-alt" />
         <div
           className="absolute left-0 top-[7px] h-1 rounded-full transition-[width] duration-1000 ease-out motion-reduce:transition-none"
-          style={{ width: entered ? `${pct}%` : '0%', background: 'linear-gradient(90deg, var(--graph-1), var(--graph-7))' }}
+          style={{ width: entered ? `${pct}%` : '0%', background: 'linear-gradient(90deg, var(--accent-tone-1), var(--accent-tone-7))' }}
         />
         <ol className="relative flex justify-between">
           {STEPS.map((step, i) => {
@@ -256,8 +257,8 @@ function Stepper({ status }) {
                 <span
                   className="size-4 rounded-full border-2 transition-colors duration-500"
                   style={{
-                    borderColor: done ? 'var(--graph-1)' : 'var(--border)',
-                    background: done ? 'var(--graph-1)' : 'var(--surface)',
+                    borderColor: done ? 'var(--accent-tone-1)' : 'var(--border)',
+                    background: done ? 'var(--accent-tone-1)' : 'var(--surface)',
                   }}
                 />
                 <span className={`hidden text-[11px] sm:block ${done ? 'font-medium text-text' : 'text-muted'}`}>
@@ -499,7 +500,7 @@ function OrderCard({ order, busy, username, index }) {
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="rounded-xl border border-border bg-surface p-4">
                 <div className="flex items-center gap-2 text-xs font-medium text-muted">
-                  <Phone size={15} style={{ color: 'var(--graph-3)' }} aria-hidden="true" />
+                  <Phone size={15} style={{ color: 'var(--accent-tone-3)' }} aria-hidden="true" />
                   Contact
                 </div>
                 <p className="mt-2 text-sm font-medium text-text">{order.customerName}</p>
@@ -510,7 +511,7 @@ function OrderCard({ order, busy, username, index }) {
               </div>
               <div className="rounded-xl border border-border bg-surface p-4">
                 <div className="flex items-center gap-2 text-xs font-medium text-muted">
-                  <MapPin size={15} style={{ color: 'var(--graph-7)' }} aria-hidden="true" />
+                  <MapPin size={15} style={{ color: 'var(--accent-tone-7)' }} aria-hidden="true" />
                   Delivery address
                 </div>
                 <p className="mt-2 break-words text-sm font-medium text-text">
@@ -698,13 +699,13 @@ export default function Orders() {
     >
       <header className="flex items-end justify-between gap-3">
         <div className="min-w-0">
-          <h1 className="font-display text-3xl font-bold tracking-wide text-text sm:text-4xl">Orders</h1>
+          <PanelPageTitle icon="list" className="font-display text-3xl font-bold tracking-wide text-text sm:text-4xl">Orders</PanelPageTitle>
           <p className="mt-1 hidden text-sm text-muted lg:block">Track, change or cancel your orders until they ship.</p>
         </div>
         <div className="flex items-center gap-3">
           {ago && (
             <span className="hidden items-center gap-1.5 text-xs text-muted sm:flex" aria-live="polite">
-              <span className={`h-1.5 w-1.5 rounded-full ${busy ? 'animate-pulse bg-graph-3' : 'bg-graph-7'}`} />
+              <span className={`h-1.5 w-1.5 rounded-full ${busy ? 'animate-pulse bg-accent-tone-3' : 'bg-accent-tone-7'}`} />
               {busy ? 'Syncing…' : `Updated ${ago}`}
             </span>
           )}
@@ -713,7 +714,7 @@ export default function Orders() {
             onClick={refresh}
             disabled={busy}
             title="Fetch your latest orders from the database"
-            className="group inline-flex h-10 items-center gap-2 rounded-lg border border-border bg-surface pl-3 pr-3.5 text-sm font-medium text-text shadow-soft transition-all duration-200 hover:-translate-y-px hover:border-graph-1 hover:bg-surface-alt hover:text-graph-1 active:translate-y-0 active:scale-95 disabled:translate-y-0 disabled:opacity-70 disabled:hover:border-border disabled:hover:bg-surface disabled:hover:text-text"
+            className="group inline-flex h-10 items-center gap-2 rounded-lg border border-border bg-surface pl-3 pr-3.5 text-sm font-medium text-text shadow-soft transition-all duration-200 hover:-translate-y-px hover:border-accent-tone-1 hover:bg-surface-alt hover:text-accent-tone-1 active:translate-y-0 active:scale-95 disabled:translate-y-0 disabled:opacity-70 disabled:hover:border-border disabled:hover:bg-surface disabled:hover:text-text"
           >
             <RefreshCw size={16} className={refreshing ? 'animate-spin' : 'transition-transform duration-500 group-hover:rotate-180'} />
             <span>{refreshing ? 'Refreshing' : 'Refresh'}</span>
@@ -764,16 +765,16 @@ export default function Orders() {
 
       {/* Stats */}
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <StatTile appIcon="list" label="Orders placed" color="var(--graph-1)">
+        <StatTile appIcon="list" label="Orders placed" color="var(--accent-tone-1)">
           <CountUp value={orders.length} />
         </StatTile>
-        <StatTile appIcon="clock" label="Still changeable" color="var(--graph-3)">
+        <StatTile appIcon="clock" label="Still changeable" color="var(--accent-tone-3)">
           <CountUp value={stats.open} />
         </StatTile>
-        <StatTile appIcon="truck" label="Delivered" color="var(--graph-7)">
+        <StatTile appIcon="truck" label="Delivered" color="var(--accent-tone-7)">
           <CountUp value={stats.counts.delivered} />
         </StatTile>
-        <StatTile appIcon="wallet" label="Total spent" color="var(--graph-2)" sensitive>
+        <StatTile appIcon="wallet" label="Total spent" color="var(--accent-tone-2)" sensitive>
           {formatMoney(stats.spent)}
         </StatTile>
       </div>

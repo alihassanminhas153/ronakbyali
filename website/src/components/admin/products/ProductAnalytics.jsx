@@ -46,8 +46,8 @@ export function StockTab({ rows }) {
           <Donut
             centerLabel="products"
             data={[
-              { label: 'In stock', value: rows.length - out.length, color: 'var(--graph-2)' },
-              { label: 'Out of stock', value: out.length, color: 'var(--graph-4)' },
+              { label: 'In stock', value: rows.length - out.length, color: 'var(--accent-tone-2)' },
+              { label: 'Out of stock', value: out.length, color: 'var(--accent-tone-4)' },
             ]}
           />
         </ChartCard>

@@ -13,13 +13,25 @@ import { rs } from './financeSchema';
 
 const grid = 'grid gap-4 lg:grid-cols-2';
 const tiles = 'grid grid-cols-2 gap-3 lg:grid-cols-4';
-const financeTiles = 'grid min-w-[58rem] grid-cols-4 grid-rows-3 gap-3';
 const rsFmt = (n) => rs(n);
 const rsShort = (n) => `Rs ${compact(n)}`;
 const pct = (n) => `${Math.round(n)}%`;
 const colored = (data) => data.map((d) => ({ ...d, color: colorFor(d.label) }));
 const PAY_LABEL = { cod: 'Cash on delivery', bank_transfer: 'Bank transfer', card: 'Card', easypaisa: 'Easypaisa', jazzcash: 'JazzCash', unknown: 'Not set' };
 const cap = (s) => String(s).charAt(0).toUpperCase() + String(s).slice(1);
+
+function FinanceMetricRow({ label, children }) {
+  return (
+    <div
+      className="-mx-3 overflow-x-auto no-scrollbar px-3 pb-2 sm:-mx-5 sm:px-5"
+      role="region"
+      aria-label={label}
+      tabIndex={0}
+    >
+      <div className="grid min-w-[64rem] grid-cols-4 gap-3">{children}</div>
+    </div>
+  );
+}
 
 /* ------------------------------------------------------------------ */
 /* Overview: profit, loss, investment, trends                          */
@@ -28,44 +40,46 @@ export function OverviewTab({ m }) {
   const { now, all } = m;
   const loss = now.net < 0;
   const split = [
-    { label: 'Cost of goods', value: Math.max(0, now.cogs), color: 'var(--graph-3)' },
-    { label: 'Expenses', value: Math.max(0, now.opex), color: 'var(--graph-4)' },
-    { label: 'Net profit', value: Math.max(0, now.net), color: 'var(--graph-7)' },
+    { label: 'Cost of goods', value: Math.max(0, now.cogs), color: 'var(--accent-tone-3)' },
+    { label: 'Expenses', value: Math.max(0, now.opex), color: 'var(--accent-tone-4)' },
+    { label: 'Net profit', value: Math.max(0, now.net), color: 'var(--accent-tone-7)' },
   ];
   return (
     <div className="space-y-4">
-      <div className="-mx-3 overflow-x-auto px-3 pb-2 sm:-mx-5 sm:px-5" role="region" aria-label="Finance summary metrics" tabIndex={0}>
-        <div className={financeTiles}>
-          <StatTile label={`Revenue (${m.period.label})`} value={now.revenue} format={rsShort} hint={`${m.paidCount} orders with payment received`} appIcon="pkr" sensitive tone={1} delay={0} />
-          <StatTile label="Gross profit" value={now.gross} format={rsShort} hint="revenue minus cost of goods" appIcon="coins" sensitive tone={2} delay={40} />
-          <StatTile label="Operating expenses" value={now.opex} format={rsShort} hint="ads, courier, rent…" appIcon="wallet" sensitive tone={4} delay={80} />
+      <FinanceMetricRow label="Finance summary: revenue and profit">
+        <StatTile label={`Revenue (${m.period.label})`} value={now.revenue} format={rsFmt} appIcon="pkr" sensitive valueClassName="whitespace-nowrap text-lg sm:text-xl" tone={1} delay={0} />
+        <StatTile label="Gross profit" value={now.gross} format={rsFmt} appIcon="coins" sensitive valueClassName="whitespace-nowrap text-lg sm:text-xl" tone={2} delay={40} />
+        <StatTile label="Operating expenses" value={now.opex} format={rsFmt} appIcon="wallet" sensitive valueClassName="whitespace-nowrap text-lg sm:text-xl" tone={4} delay={80} />
           <StatTile
             label={loss ? 'Net loss' : 'Net profit'}
             value={Math.abs(now.net)}
-            format={rsShort}
-            hint={now.revenue ? `${Math.round(m.margin)}% margin` : 'no sales yet'}
-            appIcon={loss ? 'arrow_trend_down' : 'arrow_trend_up'}
-            sensitive
-            tone={loss ? 4 : 7}
-            delay={120}
-          />
-          <StatTile label="Total investment" value={all.invested} format={rsShort} hint={m.recovered == null ? 'add one in the ledger' : `${Math.round(m.recovered)}% recovered`} appIcon="coins" sensitive tone={6} delay={160} />
-          <StatTile label={`Withdrawn (${m.period.label})`} value={now.withdrawn} format={rsShort} appIcon="wallet" sensitive tone={3} delay={200} />
-          <StatTile label="Return on investment" value={m.roi == null ? '—' : m.roi} format={pct} hint="all-time net profit / investment" appIcon="arrow_trend_up" tone={5} delay={240} />
-          <StatTile label="Cash in hand (estimate)" value={m.cash} format={rsShort} hint="after stock bought and withdrawals" appIcon="wallet" sensitive tone={m.cash < 0 ? 4 : 2} delay={280} />
-          <StatTile label="Orders on the way" value={m.pipelineValue} format={rsShort} hint={`${m.pipelineCount} open orders`} appIcon="clock" sensitive tone={5} delay={320} />
-          <StatTile label="Lost to cancels & returns" value={m.lostValue} format={rsShort} appIcon="alert" sensitive tone={4} delay={360} />
-          <StatTile label={`Other income (${m.period.label})`} value={now.income} format={rsShort} appIcon="coins" sensitive tone={7} delay={400} />
-          <StatTile label={`Stock bought (${m.period.label})`} value={now.stockSpend} format={rsShort} appIcon="single_box" sensitive tone={3} delay={440} />
-        </div>
-      </div>
+            format={rsFmt}
+          appIcon={loss ? 'arrow_trend_down' : 'arrow_trend_up'}
+          sensitive
+          valueClassName="whitespace-nowrap text-lg sm:text-xl"
+          tone={loss ? 4 : 7}
+          delay={120}
+        />
+      </FinanceMetricRow>
+      <FinanceMetricRow label="Finance summary: investment and cash">
+        <StatTile label="Total investment" value={all.invested} format={rsFmt} appIcon="coins" sensitive valueClassName="whitespace-nowrap text-lg sm:text-xl" tone={6} delay={160} />
+        <StatTile label={`Withdrawn (${m.period.label})`} value={now.withdrawn} format={rsFmt} appIcon="wallet" sensitive valueClassName="whitespace-nowrap text-lg sm:text-xl" tone={3} delay={200} />
+        <StatTile label="Return on investment" value={m.roi == null ? '—' : m.roi} format={pct} appIcon="arrow_trend_up" tone={5} delay={240} />
+        <StatTile label="Cash in hand" value={m.cash} format={rsFmt} appIcon="wallet" sensitive valueClassName="whitespace-nowrap text-lg sm:text-xl" tone={m.cash < 0 ? 4 : 2} delay={280} />
+      </FinanceMetricRow>
+      <FinanceMetricRow label="Finance summary: orders and other amounts">
+        <StatTile label="Orders on the way" value={m.pipelineValue} format={rsFmt} appIcon="clock" sensitive valueClassName="whitespace-nowrap text-lg sm:text-xl" tone={5} delay={320} />
+        <StatTile label="Lost to cancels & returns" value={m.lostValue} format={rsFmt} appIcon="alert" sensitive valueClassName="whitespace-nowrap text-lg sm:text-xl" tone={4} delay={360} />
+        <StatTile label={`Other income (${m.period.label})`} value={now.income} format={rsFmt} appIcon="coins" sensitive valueClassName="whitespace-nowrap text-lg sm:text-xl" tone={7} delay={400} />
+        <StatTile label={`Stock bought (${m.period.label})`} value={now.stockSpend} format={rsFmt} appIcon="single_box" sensitive valueClassName="whitespace-nowrap text-lg sm:text-xl" tone={3} delay={440} />
+      </FinanceMetricRow>
 
       <div className={grid}>
         <ChartCard title="Revenue trend" subtitle="Payments received, last 12 months" icon={LineChart} tone={1}>
-          <TrendGraph data={m.months.map((x) => ({ label: x.label, value: x.revenue }))} color="var(--graph-1)" format={rsShort} />
+          <TrendGraph data={m.months.map((x) => ({ label: x.label, value: x.revenue }))} color="var(--accent-tone-1)" format={rsShort} />
         </ChartCard>
         <ChartCard title="Profit and loss" subtitle="Net per month, below the line = loss" icon={loss ? TrendingDown : TrendingUp} tone={loss ? 4 : 7} delay={80}>
-          <TrendGraph data={m.months.map((x) => ({ label: x.label, value: x.profit }))} color="var(--graph-7)" format={rsShort} />
+          <TrendGraph data={m.months.map((x) => ({ label: x.label, value: x.profit }))} color="var(--accent-tone-7)" format={rsShort} />
         </ChartCard>
         <ChartCard title="Where the money goes" subtitle={loss ? 'You spent more than you earned this period' : `Share of revenue, ${m.period.label}`} icon={PieChart} tone={3} delay={160}>
           <Donut data={split} centerLabel="costs + profit" format={rsShort} empty="No payments received in this period." />
@@ -114,7 +128,7 @@ function ProductList({ rows, onRestock, empty }) {
             <p className="truncate text-sm font-medium text-text">{product.name}</p>
             <p className="truncate text-xs text-muted">{note}</p>
           </div>
-          <button type="button" onClick={() => onRestock(product)} className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-md border border-border px-3 text-xs font-medium text-text transition-all hover:border-graph-2 hover:bg-graph-2/10 hover:text-graph-2 active:scale-95">
+          <button type="button" onClick={() => onRestock(product)} className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-md border border-border px-3 text-xs font-medium text-text transition-all hover:border-accent-tone-2 hover:bg-accent-tone-2/10 hover:text-accent-tone-2 active:scale-95">
             <PackagePlus size={14} />
             Restock
           </button>
@@ -144,8 +158,8 @@ export function InventoryTab({ m, onRestock }) {
           <Donut
             centerLabel="products"
             data={[
-              { label: 'In stock', value: inv.inStock.length, color: 'var(--graph-2)' },
-              { label: 'Out of stock', value: inv.outOfStock.length, color: 'var(--graph-4)' },
+              { label: 'In stock', value: inv.inStock.length, color: 'var(--accent-tone-2)' },
+              { label: 'Out of stock', value: inv.outOfStock.length, color: 'var(--accent-tone-4)' },
             ]}
           />
         </ChartCard>
@@ -218,7 +232,7 @@ function CostEditor({ product, onSaved }) {
   };
   if (!open) {
     return (
-      <button type="button" onClick={() => setOpen(true)} className="h-9 shrink-0 rounded-md border border-border px-3 text-xs font-medium text-text transition-all hover:border-graph-3 hover:bg-graph-3/10 hover:text-graph-3 active:scale-95">
+      <button type="button" onClick={() => setOpen(true)} className="h-9 shrink-0 rounded-md border border-border px-3 text-xs font-medium text-text transition-all hover:border-accent-tone-3 hover:bg-accent-tone-3/10 hover:text-accent-tone-3 active:scale-95">
         Set cost
       </button>
     );
@@ -239,7 +253,7 @@ function CostEditor({ product, onSaved }) {
         aria-label={`Cost price of ${product.name}`}
         className={`${inputCls(err)} min-h-9! w-24 px-2!`}
       />
-      <button type="button" onClick={save} disabled={busy} aria-label="Save cost" className="grid h-9 w-9 place-items-center rounded-md bg-graph-7/15 text-graph-7 transition-all hover:bg-graph-7/25 active:scale-95 disabled:opacity-60"><Check size={16} /></button>
+      <button type="button" onClick={save} disabled={busy} aria-label="Save cost" className="grid h-9 w-9 place-items-center rounded-md bg-accent-tone-7/15 text-accent-tone-7 transition-all hover:bg-accent-tone-7/25 active:scale-95 disabled:opacity-60"><Check size={16} /></button>
       <button type="button" onClick={() => setOpen(false)} aria-label="Cancel" className="grid h-9 w-9 place-items-center rounded-md text-muted transition-colors hover:bg-surface-alt hover:text-text"><X size={16} /></button>
     </div>
   );
@@ -313,9 +327,9 @@ export function ProfitTab({ m, onChanged }) {
                     <td className="py-2.5 pl-4">
                       <div className="flex items-center gap-2">
                         <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-surface-alt">
-                          <div className="h-full rounded-full transition-[width] duration-700" style={{ width: `${(Math.abs(r.profit) / maxAbs) * 100}%`, background: r.profit < 0 ? 'var(--graph-4)' : 'var(--graph-7)' }} />
+                          <div className="h-full rounded-full transition-[width] duration-700" style={{ width: `${(Math.abs(r.profit) / maxAbs) * 100}%`, background: r.profit < 0 ? 'var(--accent-tone-4)' : 'var(--accent-tone-7)' }} />
                         </div>
-                        <span className="w-16 text-right text-xs font-medium tabular-nums" style={{ color: r.profit < 0 ? 'var(--graph-4)' : 'var(--graph-7)' }}>{rsShort(r.profit)}</span>
+                        <span className="w-16 text-right text-xs font-medium tabular-nums" style={{ color: r.profit < 0 ? 'var(--accent-tone-4)' : 'var(--accent-tone-7)' }}>{rsShort(r.profit)}</span>
                       </div>
                     </td>
                   </tr>

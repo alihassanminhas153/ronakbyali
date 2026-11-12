@@ -1,3 +1,4 @@
+import PanelPageTitle from '../../../ui/custom/PanelPageTitle';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { ArrowRight, ListOrdered, PackageCheck, RefreshCw } from 'lucide-react';
@@ -162,7 +163,7 @@ export default function Orders() {
   );
 
   const tabs = [
-    { id: 'all', label: 'All', icon: ListOrdered, color: 'var(--graph-1)', badge: allCount || undefined },
+    { id: 'all', label: 'All', icon: ListOrdered, color: 'var(--accent-tone-1)', badge: allCount || undefined },
     ...ORDER_STATUS.map((s) => ({
       id: s,
       label: STATUS_META[s].label,
@@ -176,7 +177,7 @@ export default function Orders() {
     <div className="space-y-5">
       <header className="flex items-end justify-between gap-3">
         <div className="min-w-0">
-          <h1 className="font-display text-3xl font-bold tracking-wide text-text sm:text-4xl">Orders</h1>
+          <PanelPageTitle icon="list" className="font-display text-3xl font-bold tracking-wide text-text sm:text-4xl">Orders</PanelPageTitle>
           <p className="mt-1 hidden text-sm text-muted lg:block">
             {loading && !rows.length ? (
               'Loading…'
@@ -193,7 +194,7 @@ export default function Orders() {
         <div className="flex items-center gap-3">
           {ago && (
             <span className="hidden items-center gap-1.5 text-xs text-muted sm:flex" aria-live="polite">
-              <span className={`h-1.5 w-1.5 rounded-full ${busy ? 'animate-pulse bg-graph-3' : 'bg-graph-7'}`} />
+              <span className={`h-1.5 w-1.5 rounded-full ${busy ? 'animate-pulse bg-accent-tone-3' : 'bg-accent-tone-7'}`} />
               {busy ? 'Syncing…' : `Updated ${ago}`}
             </span>
           )}
@@ -202,7 +203,7 @@ export default function Orders() {
             onClick={refresh}
             disabled={busy}
             title="Fetch the latest orders from the database"
-            className="group inline-flex h-10 items-center gap-2 rounded-lg border border-border bg-surface pl-3 pr-3.5 text-sm font-medium text-text shadow-soft transition-all duration-200 hover:-translate-y-px hover:border-graph-1 hover:bg-surface-alt hover:text-graph-1 active:translate-y-0 active:scale-95 disabled:translate-y-0 disabled:opacity-70 disabled:hover:border-border disabled:hover:bg-surface disabled:hover:text-text"
+            className="group inline-flex h-10 items-center gap-2 rounded-lg border border-border bg-surface pl-3 pr-3.5 text-sm font-medium text-text shadow-soft transition-all duration-200 hover:-translate-y-px hover:border-accent-tone-1 hover:bg-surface-alt hover:text-accent-tone-1 active:translate-y-0 active:scale-95 disabled:translate-y-0 disabled:opacity-70 disabled:hover:border-border disabled:hover:bg-surface disabled:hover:text-text"
           >
             <RefreshCw size={16} className={busy ? 'animate-spin' : 'transition-transform duration-500 group-hover:rotate-180'} />
             <span>{busy ? 'Refreshing' : 'Refresh'}</span>

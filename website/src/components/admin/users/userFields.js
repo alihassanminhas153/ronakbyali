@@ -38,24 +38,24 @@ export const ROLE_TONE = {
 
 // Same idea as the product category chips: soft tint + solid text, taken from the graph palette.
 export const ROLE_COLOR = {
-  admin: 'var(--graph-4)',
-  support: 'var(--graph-5)',
-  manager: 'var(--graph-3)',
-  customer: 'var(--graph-2)',
-  loyal: 'var(--graph-7)',
-  new: 'var(--graph-8)',
+  admin: 'var(--accent-tone-4)',
+  support: 'var(--accent-tone-5)',
+  manager: 'var(--accent-tone-3)',
+  customer: 'var(--accent-tone-2)',
+  loyal: 'var(--accent-tone-7)',
+  new: 'var(--accent-tone-8)',
 };
 
 /* ---------- sign-in methods (users.authProvider) ---------- */
 
 export const PROVIDERS = {
-  email: { label: 'Email', icon: Mail, color: 'var(--graph-1)' },
-  google: { label: 'Google', icon: FaGoogle, color: 'var(--graph-4)' },
-  github: { label: 'GitHub', icon: FaGithub, color: 'var(--graph-8)' },
-  facebook: { label: 'Facebook', icon: FaFacebook, color: 'var(--graph-5)' },
-  apple: { label: 'Apple', icon: FaApple, color: 'var(--graph-6)' },
-  microsoft: { label: 'Microsoft', icon: FaMicrosoft, color: 'var(--graph-2)' },
-  discord: { label: 'Discord', icon: FaDiscord, color: 'var(--graph-6)' },
+  email: { label: 'Email', icon: Mail, color: 'var(--accent-tone-1)' },
+  google: { label: 'Google', icon: FaGoogle, color: 'var(--accent-tone-4)' },
+  github: { label: 'GitHub', icon: FaGithub, color: 'var(--accent-tone-8)' },
+  facebook: { label: 'Facebook', icon: FaFacebook, color: 'var(--accent-tone-5)' },
+  apple: { label: 'Apple', icon: FaApple, color: 'var(--accent-tone-6)' },
+  microsoft: { label: 'Microsoft', icon: FaMicrosoft, color: 'var(--accent-tone-2)' },
+  discord: { label: 'Discord', icon: FaDiscord, color: 'var(--accent-tone-6)' },
 };
 
 // Unknown providers still get an icon and a stable colour.

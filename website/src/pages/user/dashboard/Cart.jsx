@@ -1,5 +1,6 @@
 // src/pages/user/dashboard/Cart.jsx   (route: /:username/cart)
 // Same look as Profile.jsx / Orders.jsx. Uses the existing cartSlice unchanged.
+import PanelPageTitle from '../../../ui/custom/PanelPageTitle';
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router';
 import {
@@ -138,7 +139,7 @@ function CartLine({ line, busy, onQty, onRemove, index }) {
   const img = getMainImageUrl(p);
   const href = PATHS.product(p.category, p.group, p.slug);
   const problem = out || over;
-  const color = problem ? 'var(--error)' : 'var(--graph-1)';
+  const color = problem ? 'var(--error)' : 'var(--accent-tone-1)';
 
   return (
     <li
@@ -302,13 +303,13 @@ export default function Cart() {
     >
       <header className="flex items-end justify-between gap-3">
         <div className="min-w-0">
-          <h1 className="font-display text-3xl font-bold tracking-wide text-text sm:text-4xl">Cart</h1>
+          <PanelPageTitle icon="cart" className="font-display text-3xl font-bold tracking-wide text-text sm:text-4xl">Cart</PanelPageTitle>
           <p className="mt-1 hidden text-sm text-muted lg:block">Review your items, then check out.</p>
         </div>
         <div className="flex items-center gap-3">
           {ago && (
             <span className="hidden items-center gap-1.5 text-xs text-muted sm:flex" aria-live="polite">
-              <span className={`h-1.5 w-1.5 rounded-full ${busy ? 'animate-pulse bg-graph-3' : 'bg-graph-7'}`} />
+              <span className={`h-1.5 w-1.5 rounded-full ${busy ? 'animate-pulse bg-accent-tone-3' : 'bg-accent-tone-7'}`} />
               {busy ? 'Syncing…' : `Updated ${ago}`}
             </span>
           )}
@@ -317,7 +318,7 @@ export default function Cart() {
             onClick={refresh}
             disabled={busy}
             title="Fetch the latest prices and stock"
-            className="group inline-flex h-10 items-center gap-2 rounded-lg border border-border bg-surface pl-3 pr-3.5 text-sm font-medium text-text shadow-soft transition-all duration-200 hover:-translate-y-px hover:border-graph-1 hover:bg-surface-alt hover:text-graph-1 active:translate-y-0 active:scale-95 disabled:translate-y-0 disabled:opacity-70 disabled:hover:border-border disabled:hover:bg-surface disabled:hover:text-text"
+            className="group inline-flex h-10 items-center gap-2 rounded-lg border border-border bg-surface pl-3 pr-3.5 text-sm font-medium text-text shadow-soft transition-all duration-200 hover:-translate-y-px hover:border-accent-tone-1 hover:bg-surface-alt hover:text-accent-tone-1 active:translate-y-0 active:scale-95 disabled:translate-y-0 disabled:opacity-70 disabled:hover:border-border disabled:hover:bg-surface disabled:hover:text-text"
           >
             <RefreshCw size={16} className={refreshing ? 'animate-spin' : 'transition-transform duration-500 group-hover:rotate-180'} />
             <span>{refreshing ? 'Refreshing' : 'Refresh'}</span>
@@ -380,16 +381,16 @@ export default function Cart() {
         <>
           {/* Stats */}
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <StatTile icon={ShoppingBag} label="Items" color="var(--graph-1)">
+            <StatTile icon={ShoppingBag} label="Items" color="var(--accent-tone-1)">
               <CountUp value={count} />
             </StatTile>
-            <StatTile icon={Wallet} label="Subtotal" color="var(--graph-2)">
+            <StatTile icon={Wallet} label="Subtotal" color="var(--accent-tone-2)">
               {formatMoney(subtotal)}
             </StatTile>
-            <StatTile icon={Truck} label="Delivery" color="var(--graph-3)">
+            <StatTile icon={Truck} label="Delivery" color="var(--accent-tone-3)">
               {delivery === 0 ? 'Free' : formatMoney(delivery)}
             </StatTile>
-            <StatTile icon={CircleDollarSign} label="Total" color="var(--graph-7)">
+            <StatTile icon={CircleDollarSign} label="Total" color="var(--accent-tone-7)">
               {formatMoney(total)}
             </StatTile>
           </div>

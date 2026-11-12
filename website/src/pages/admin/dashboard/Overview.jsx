@@ -1,3 +1,4 @@
+import PanelPageTitle from '../../../ui/custom/PanelPageTitle';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router';
 import {
@@ -79,7 +80,7 @@ export default function Overview() {
     <div className="space-y-5">
       <header className="flex items-end justify-between gap-3">
         <div className="min-w-0">
-          <h1 className="font-display text-3xl font-bold tracking-wide text-text sm:text-4xl">Overview</h1>
+          <PanelPageTitle icon="histogram" className="font-display text-3xl font-bold tracking-wide text-text sm:text-4xl">Overview</PanelPageTitle>
           <p className="mt-1 hidden text-sm text-muted lg:block">
             {new Date().toLocaleDateString('en', { weekday: 'long', day: 'numeric', month: 'long' })} · everything in your store
           </p>
@@ -87,7 +88,7 @@ export default function Overview() {
         <div className="flex items-center gap-3">
           {ago && (
             <span className="hidden items-center gap-1.5 text-xs text-muted sm:flex" aria-live="polite">
-              <span className={`h-1.5 w-1.5 rounded-full ${loading ? 'animate-pulse bg-graph-3' : 'bg-graph-7'}`} />
+              <span className={`h-1.5 w-1.5 rounded-full ${loading ? 'animate-pulse bg-accent-tone-3' : 'bg-accent-tone-7'}`} />
               {loading ? 'Syncing…' : `Updated ${ago}`}
             </span>
           )}
@@ -96,7 +97,7 @@ export default function Overview() {
             onClick={reload}
             disabled={loading}
             title="Fetch the latest data from the database"
-            className="group inline-flex h-10 items-center gap-2 rounded-lg border border-border bg-surface pl-3 pr-3.5 text-sm font-medium text-text shadow-soft transition-all duration-200 hover:-translate-y-px hover:border-graph-1 hover:bg-surface-alt hover:text-graph-1 active:translate-y-0 active:scale-95 disabled:translate-y-0 disabled:opacity-70 disabled:hover:border-border disabled:hover:bg-surface disabled:hover:text-text"
+            className="group inline-flex h-10 items-center gap-2 rounded-lg border border-border bg-surface pl-3 pr-3.5 text-sm font-medium text-text shadow-soft transition-all duration-200 hover:-translate-y-px hover:border-accent-tone-1 hover:bg-surface-alt hover:text-accent-tone-1 active:translate-y-0 active:scale-95 disabled:translate-y-0 disabled:opacity-70 disabled:hover:border-border disabled:hover:bg-surface disabled:hover:text-text"
           >
             <RefreshCw size={16} className={loading ? 'animate-spin' : 'transition-transform duration-500 group-hover:rotate-180'} />
             <span>{loading ? 'Refreshing' : 'Refresh'}</span>
@@ -170,7 +171,7 @@ export default function Overview() {
 
       <div className={grid}>
         <OverviewCard to={link('finance')} cta="Finance" title="Revenue trend" subtitle="Payment received, last 12 months" appIcon="histogram" tone={1}>
-          <TrendGraph data={fin.months.map((m) => ({ label: m.label, value: m.revenue }))} color="var(--graph-1)" format={short} />
+          <TrendGraph data={fin.months.map((m) => ({ label: m.label, value: m.revenue }))} color="var(--accent-tone-1)" format={short} />
         </OverviewCard>
         <OverviewCard to={link('orders')} cta="Orders" title="Orders per day" subtitle="Last 6 months" appIcon="clock" tone={2} delay={80}>
           <HeatmapCalendar data={fin.ordersHeat} weeks={26} label="orders" />
@@ -230,7 +231,7 @@ export default function Overview() {
             { label: 'New (30 days)', value: userStats.fresh, tone: 7 },
             { label: 'Blocked', value: userStats.blocked, tone: 4 },
           ]} />
-          <TrendGraph data={userStats.signups.map((s) => ({ label: s.label, value: s.value }))} color="var(--graph-6)" />
+          <TrendGraph data={userStats.signups.map((s) => ({ label: s.label, value: s.value }))} color="var(--accent-tone-6)" />
         </OverviewCard>
 
         <OverviewCard to={link('alerts')} cta="Alerts" title="Alerts" subtitle={`${alertStats.total} created · ${Math.round(alertStats.seenRate)}% seen`} appIcon="alert" tone={5} delay={240}>
@@ -257,7 +258,7 @@ export default function Overview() {
             { label: 'Invested', value: fin.all.invested, format: short, tone: 6 },
             { label: 'Expenses (30d)', value: fin.now.opex, format: short, tone: 4 },
           ]} />
-          <TrendGraph data={fin.months.map((m) => ({ label: m.label, value: m.profit }))} color="var(--graph-7)" format={short} />
+          <TrendGraph data={fin.months.map((m) => ({ label: m.label, value: m.profit }))} color="var(--accent-tone-7)" format={short} />
         </OverviewCard>
 
         <OverviewCard to={link('reviews')} cta="All reviews" title="Reviews" subtitle={`${reviewStats.total} in total`} appIcon="reviews" tone={4} delay={480} className="lg:col-span-2">
@@ -266,7 +267,7 @@ export default function Overview() {
             { label: 'Average rating', value: reviewStats.average ? `${reviewStats.average.toFixed(1)} / 5` : '—', tone: 7 },
             { label: 'Approved 5★', value: reviewStats.stars[4].value, tone: 1 },
           ]} />
-          <BarChart orientation="vertical" height={150} data={reviewStats.stars.map((s, i) => ({ ...s, color: `var(--graph-${[4, 3, 8, 5, 7][i]})` }))} format={(n) => n} empty="No approved reviews yet." />
+          <BarChart orientation="vertical" height={150} data={reviewStats.stars.map((s, i) => ({ ...s, color: `var(--accent-tone-${[4, 3, 8, 5, 7][i]})` }))} format={(n) => n} empty="No approved reviews yet." />
         </OverviewCard>
       </div>
 

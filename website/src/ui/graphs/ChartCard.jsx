@@ -2,7 +2,7 @@ import { tint, toneVar } from './utils';
 import AppIcon from '../custom/AppIcon';
 
 // Shared frame for every chart.
-//   tone: 1-8 (picks a graph colour) or any CSS colour.   icon: a lucide icon component
+//   tone: 1-8 (picks a theme accent shade) or any CSS colour.   icon: a lucide icon component
 export default function ChartCard({ title, subtitle, icon: Icon, appIcon, tone = 1, action, children, className = '', delay = 0 }) {
   const color = toneVar(tone);
   return (

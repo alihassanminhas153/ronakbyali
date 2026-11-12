@@ -11,8 +11,8 @@ import { autoPrice, slugify, toForm, toPayload, validate } from './productSchema
 /* ---------- small field helpers (self-contained, theme tokens only) ---------- */
 
 const inputCls = (err) =>
-  `w-full rounded-md border bg-surface px-3 text-sm text-text transition-colors placeholder:text-muted/70 focus:border-graph-1 ${
-    err ? 'border-error' : 'border-border hover:border-graph-1/50'
+  `w-full rounded-md border bg-surface px-3 text-sm text-text transition-colors placeholder:text-muted/70 focus:border-accent-tone-1 ${
+    err ? 'border-error' : 'border-border hover:border-accent-tone-1/50'
   }`;
 
 function Field({ label, hint, error, optional, children, className = '', as: Tag = 'label' }) {
@@ -64,13 +64,13 @@ function Switch({ checked, onChange, label, hint }) {
       role="switch"
       aria-checked={checked}
       onClick={() => onChange(!checked)}
-      className="flex w-full items-center justify-between gap-3 rounded-md border border-border bg-surface px-3 py-2.5 text-left transition-colors hover:border-graph-3/60"
+      className="flex w-full items-center justify-between gap-3 rounded-md border border-border bg-surface px-3 py-2.5 text-left transition-colors hover:border-accent-tone-3/60"
     >
       <span>
         <span className="block text-sm font-medium text-text">{label}</span>
         {hint && <span className="block text-xs text-muted">{hint}</span>}
       </span>
-      <span className={`relative h-6 w-11 shrink-0 rounded-full transition-colors duration-200 ${checked ? 'bg-graph-3' : 'bg-border'}`}>
+      <span className={`relative h-6 w-11 shrink-0 rounded-full transition-colors duration-200 ${checked ? 'bg-accent-tone-3' : 'bg-border'}`}>
         <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-all duration-200 ${checked ? 'left-[1.375rem]' : 'left-0.5'}`} />
       </span>
     </button>
@@ -85,7 +85,7 @@ function TagsField({ value, onChange }) {
     setDraft('');
   };
   return (
-    <div className="rounded-md border border-border bg-surface p-2 transition-colors focus-within:border-graph-1">
+    <div className="rounded-md border border-border bg-surface p-2 transition-colors focus-within:border-accent-tone-1">
       <div className="flex flex-wrap gap-1.5">
         {value.map((t) => (
           <span key={t} className="animate-rise inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium" style={{ background: tint(colorFor(t), 14), color: colorFor(t) }}>
@@ -337,7 +337,7 @@ export default function ProductForm({ open, product, categories = [], groups = [
               <span className="text-muted">Remaining</span>
               <span className="flex items-center gap-2">
                 <b className="text-text tabular-nums">{remaining}</b>
-                <span className={`rounded-full px-2 py-0.5 text-xs transition-colors ${remaining > 0 ? 'bg-graph-2/10 text-graph-2' : 'bg-graph-4/10 text-graph-4'}`}>
+                <span className={`rounded-full px-2 py-0.5 text-xs transition-colors ${remaining > 0 ? 'bg-accent-tone-2/10 text-accent-tone-2' : 'bg-accent-tone-4/10 text-accent-tone-4'}`}>
                   {remaining > 0 ? 'In stock' : 'Out of stock'}
                 </span>
               </span>
@@ -354,7 +354,7 @@ export default function ProductForm({ open, product, categories = [], groups = [
             </Field>
           </Section>
 
-          <section style={{ animationDelay: '240ms', borderTopColor: 'var(--graph-6)' }} className="group/sec animate-rise rounded-lg border border-border border-t-2 bg-surface-alt/40 p-4">
+          <section style={{ animationDelay: '240ms', borderTopColor: 'var(--accent-tone-6)' }} className="group/sec animate-rise rounded-lg border border-border border-t-2 bg-surface-alt/40 p-4">
             <SectionHead icon={ImageIcon} tone={6} title="Images" subtitle="The first image is the main one. Tap the star on an image to make it main." />
             {/* full-width rectangular upload button + drop zone */}
             <button
@@ -364,7 +364,7 @@ export default function ProductForm({ open, product, categories = [], groups = [
               onDragLeave={() => setDragOver(false)}
               onDrop={(e) => { e.preventDefault(); setDragOver(false); addFiles(e.dataTransfer.files); }}
               className={`mt-4 flex w-full items-center justify-center gap-3 rounded-md border border-dashed px-4 py-5 text-sm transition-colors ${
-                dragOver ? 'border-graph-6 bg-graph-6/10 text-graph-6' : 'border-border bg-surface text-muted hover:border-graph-6 hover:bg-graph-6/10 hover:text-graph-6'
+                dragOver ? 'border-accent-tone-6 bg-accent-tone-6/10 text-accent-tone-6' : 'border-border bg-surface text-muted hover:border-accent-tone-6 hover:bg-accent-tone-6/10 hover:text-accent-tone-6'
               }`}
             >
               <ImagePlus size={22} className="shrink-0" />
@@ -379,7 +379,7 @@ export default function ProductForm({ open, product, categories = [], groups = [
                 {images.map((img, i) => (
                   <div key={img.key} className="group animate-rise relative aspect-square overflow-hidden rounded-md border border-border bg-surface">
                     <img src={img.url} alt="" className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" />
-                    {i === 0 && <span className="absolute left-1.5 top-1.5 rounded-full bg-graph-6 px-2 py-0.5 text-[10px] font-medium text-white">Main</span>}
+                    {i === 0 && <span className="absolute left-1.5 top-1.5 rounded-full bg-accent-tone-6 px-2 py-0.5 text-[10px] font-medium text-white">Main</span>}
                     <div className="absolute inset-x-0 bottom-0 flex justify-end gap-1 bg-gradient-to-t from-black/50 to-transparent p-1.5 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100">
                       {i !== 0 && (
                         <button type="button" aria-label="Make main" onClick={() => makeMain(img)} className="grid h-7 w-7 place-items-center rounded bg-white/90 text-black"><Star size={14} /></button>

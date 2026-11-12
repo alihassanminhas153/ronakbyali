@@ -56,11 +56,11 @@ export default function UserStats({ loading = false }) {
   const stats = useAppSelector(selectUserStats);
 
   const tiles = [
-    { label: 'Total users', appIcon: 'customers', color: 'var(--graph-1)', count: stats.total },
-    { label: 'Active', appIcon: 'user', color: 'var(--graph-7)', count: stats.active },
-    { label: 'Blocked', appIcon: 'alert', color: 'var(--graph-4)', count: stats.blocked },
-    { label: 'Orders', appIcon: 'list', color: 'var(--graph-5)', count: stats.orders },
-    { label: 'Total spent', appIcon: 'pkr', color: 'var(--graph-3)', text: formatMoney(stats.totalSpent), sensitive: true },
+    { label: 'Total users', appIcon: 'customers', color: 'var(--accent-tone-1)', count: stats.total },
+    { label: 'Active', appIcon: 'user', color: 'var(--accent-tone-7)', count: stats.active },
+    { label: 'Blocked', appIcon: 'alert', color: 'var(--accent-tone-4)', count: stats.blocked },
+    { label: 'Orders', appIcon: 'list', color: 'var(--accent-tone-5)', count: stats.orders },
+    { label: 'Total spent', appIcon: 'pkr', color: 'var(--accent-tone-3)', text: formatMoney(stats.totalSpent), sensitive: true },
   ];
   const roles = ROLE_VALUES.filter((role) => stats.byRole[role]);
 

@@ -20,7 +20,6 @@ const PAGE_TITLES = {
   users: 'Users',
   wishlist: 'Wishlist',
 };
-
 const readCollapsed = () => {
   try {
     return localStorage.getItem(STORAGE_KEY) === '1';
@@ -47,7 +46,6 @@ export default function DashboardShell({ area = 'user', children }) {
   const pageTitle =
     PAGE_TITLES[pathSegments[pathSegments.length - 1]] ||
     (pathSegments.length === (area === 'admin' ? 2 : 1) ? 'Overview' : panelTitle);
-
   useEffect(() => {
     document.title = `${pageTitle} | Ronak By Ali`;
   }, [pageTitle]);

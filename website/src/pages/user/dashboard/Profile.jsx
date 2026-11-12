@@ -1,3 +1,4 @@
+import PanelPageTitle from '../../../ui/custom/PanelPageTitle';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   AlertCircle,
@@ -235,9 +236,9 @@ function ProfileView({ me }) {
   const busy = refreshing || photoBusy;
 
   const tabs = [
-    { id: 'details', label: 'Details', icon: UserRound, color: 'var(--graph-1)' },
-    { id: 'account', label: 'Account', icon: BadgeCheck, color: 'var(--graph-2)' },
-    { id: 'security', label: 'Security', icon: ShieldCheck, color: 'var(--graph-3)' },
+    { id: 'details', label: 'Details', icon: UserRound, color: 'var(--accent-tone-1)' },
+    { id: 'account', label: 'Account', icon: BadgeCheck, color: 'var(--accent-tone-2)' },
+    { id: 'security', label: 'Security', icon: ShieldCheck, color: 'var(--accent-tone-3)' },
   ];
 
   return (
@@ -248,14 +249,14 @@ function ProfileView({ me }) {
     >
       <header className="flex items-end justify-between gap-3">
         <div className="min-w-0">
-          <h1 className="font-display text-3xl font-bold tracking-wide text-text sm:text-4xl">Profile</h1>
+          <PanelPageTitle icon="user" className="font-display text-3xl font-bold tracking-wide text-text sm:text-4xl">Profile</PanelPageTitle>
           <p className="mt-1 hidden text-sm text-muted lg:block">Manage your photo, contact details and password.</p>
         </div>
 
         <div className="flex items-center gap-3">
           {ago && (
             <span className="hidden items-center gap-1.5 text-xs text-muted sm:flex" aria-live="polite">
-              <span className={`h-1.5 w-1.5 rounded-full ${busy ? 'animate-pulse bg-graph-3' : 'bg-graph-7'}`} />
+              <span className={`h-1.5 w-1.5 rounded-full ${busy ? 'animate-pulse bg-accent-tone-3' : 'bg-accent-tone-7'}`} />
               {busy ? 'Syncing…' : `Updated ${ago}`}
             </span>
           )}
@@ -264,7 +265,7 @@ function ProfileView({ me }) {
             onClick={refresh}
             disabled={busy}
             title="Fetch your latest profile from the database"
-            className="group inline-flex h-10 items-center gap-2 rounded-lg border border-border bg-surface pl-3 pr-3.5 text-sm font-medium text-text shadow-soft transition-all duration-200 hover:-translate-y-px hover:border-graph-1 hover:bg-surface-alt hover:text-graph-1 active:translate-y-0 active:scale-95 disabled:translate-y-0 disabled:opacity-70 disabled:hover:border-border disabled:hover:bg-surface disabled:hover:text-text"
+            className="group inline-flex h-10 items-center gap-2 rounded-lg border border-border bg-surface pl-3 pr-3.5 text-sm font-medium text-text shadow-soft transition-all duration-200 hover:-translate-y-px hover:border-accent-tone-1 hover:bg-surface-alt hover:text-accent-tone-1 active:translate-y-0 active:scale-95 disabled:translate-y-0 disabled:opacity-70 disabled:hover:border-border disabled:hover:bg-surface disabled:hover:text-text"
           >
             <RefreshCw size={16} className={refreshing ? 'animate-spin' : 'transition-transform duration-500 group-hover:rotate-180'} />
             <span>{refreshing ? 'Refreshing' : 'Refresh'}</span>
@@ -340,7 +341,7 @@ function ProfileView({ me }) {
               {capitalize(me.role)}
             </span>
             <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium ${me.isBlocked ? 'bg-error text-white' : 'bg-white/15'}`}>
-              <span className={`h-1.5 w-1.5 rounded-full ${me.isBlocked ? 'bg-white' : 'bg-graph-7'}`} />
+              <span className={`h-1.5 w-1.5 rounded-full ${me.isBlocked ? 'bg-white' : 'bg-accent-tone-7'}`} />
               {me.isBlocked ? 'Blocked' : 'Active'}
             </span>
             <span className="text-xs text-white/70">JPG, PNG or WebP, up to {MAX_IMAGE_MB} MB</span>
@@ -359,16 +360,16 @@ function ProfileView({ me }) {
 
       {/* Stats */}
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <StatTile icon={ShoppingBag} label="Orders placed" color="var(--graph-1)">
+        <StatTile icon={ShoppingBag} label="Orders placed" color="var(--accent-tone-1)">
           <CountUp value={Number(me.ordersCount) || 0} />
         </StatTile>
-        <StatTile icon={Wallet} label="Total spent" color="var(--graph-2)">
+        <StatTile icon={Wallet} label="Total spent" color="var(--accent-tone-2)">
           {formatMoney(me.totalSpent)}
         </StatTile>
-        <StatTile icon={ShieldCheck} label="Account type" color="var(--graph-6)">
+        <StatTile icon={ShieldCheck} label="Account type" color="var(--accent-tone-6)">
           {capitalize(me.role)}
         </StatTile>
-        <StatTile icon={CalendarDays} label="Member since" color="var(--graph-3)">
+        <StatTile icon={CalendarDays} label="Member since" color="var(--accent-tone-3)">
           {formatDate(me.$createdAt)}
         </StatTile>
       </div>
@@ -390,7 +391,7 @@ function ProfileView({ me }) {
             <div className="mt-3 h-2 overflow-hidden rounded-full bg-surface-alt" role="progressbar" aria-valuenow={percent} aria-valuemin={0} aria-valuemax={100} aria-label="Profile completeness">
               <div
                 className="h-full rounded-full transition-[width] duration-1000 ease-out motion-reduce:transition-none"
-                style={{ width: entered ? `${percent}%` : '0%', background: 'linear-gradient(90deg, var(--graph-1), var(--graph-7))' }}
+                style={{ width: entered ? `${percent}%` : '0%', background: 'linear-gradient(90deg, var(--accent-tone-1), var(--accent-tone-7))' }}
               />
             </div>
             {missing.length > 0 && (
@@ -410,12 +411,12 @@ function ProfileView({ me }) {
           </div>
 
           <div className="grid gap-3 sm:grid-cols-2">
-            <InfoCard icon={User} label="Name" value={me.name} color="var(--graph-1)" />
-            <InfoCard icon={AtSign} label="Username" value={me.username ? `@${me.username}` : ''} color="var(--graph-2)" />
-            <InfoCard icon={Mail} label="Email" value={me.email} color="var(--graph-6)" />
-            <InfoCard icon={Phone} label="Phone" value={me.phone} color="var(--graph-3)" onAdd={() => openDrawer('details')} addLabel="Add phone number" />
-            <InfoCard icon={MapPin} label="City" value={me.lastCity} color="var(--graph-7)" onAdd={() => openDrawer('details')} addLabel="Add city" />
-            <InfoCard icon={Home} label="Address" value={me.lastAddress} color="var(--graph-1)" wide onAdd={() => openDrawer('details')} addLabel="Add address" />
+            <InfoCard icon={User} label="Name" value={me.name} color="var(--accent-tone-1)" />
+            <InfoCard icon={AtSign} label="Username" value={me.username ? `@${me.username}` : ''} color="var(--accent-tone-2)" />
+            <InfoCard icon={Mail} label="Email" value={me.email} color="var(--accent-tone-6)" />
+            <InfoCard icon={Phone} label="Phone" value={me.phone} color="var(--accent-tone-3)" onAdd={() => openDrawer('details')} addLabel="Add phone number" />
+            <InfoCard icon={MapPin} label="City" value={me.lastCity} color="var(--accent-tone-7)" onAdd={() => openDrawer('details')} addLabel="Add city" />
+            <InfoCard icon={Home} label="Address" value={me.lastAddress} color="var(--accent-tone-1)" wide onAdd={() => openDrawer('details')} addLabel="Add address" />
           </div>
         </TabPanel>
       )}
@@ -423,11 +424,11 @@ function ProfileView({ me }) {
       {tab === 'account' && (
         <TabPanel key="account">
           <div className="grid gap-3 sm:grid-cols-2">
-            <InfoCard icon={ShieldCheck} label="Account type" value={capitalize(me.role)} color="var(--graph-6)" />
-            <InfoCard icon={BadgeCheck} label="Status" value={me.isBlocked ? 'Blocked' : 'Active'} color="var(--graph-7)" />
-            <InfoCard icon={KeyRound} label="Sign-in method" value={capitalize(me.authProvider)} color="var(--graph-3)" />
-            <InfoCard icon={CalendarDays} label="Member since" value={formatDate(me.$createdAt)} color="var(--graph-2)" />
-            <InfoCard icon={Clock} label="Last login" value={formatDateTime(me.lastLoginAt)} color="var(--graph-1)" wide />
+            <InfoCard icon={ShieldCheck} label="Account type" value={capitalize(me.role)} color="var(--accent-tone-6)" />
+            <InfoCard icon={BadgeCheck} label="Status" value={me.isBlocked ? 'Blocked' : 'Active'} color="var(--accent-tone-7)" />
+            <InfoCard icon={KeyRound} label="Sign-in method" value={capitalize(me.authProvider)} color="var(--accent-tone-3)" />
+            <InfoCard icon={CalendarDays} label="Member since" value={formatDate(me.$createdAt)} color="var(--accent-tone-2)" />
+            <InfoCard icon={Clock} label="Last login" value={formatDateTime(me.lastLoginAt)} color="var(--accent-tone-1)" wide />
           </div>
         </TabPanel>
       )}
@@ -435,7 +436,7 @@ function ProfileView({ me }) {
       {tab === 'security' && (
         <TabPanel key="security">
           <div className="flex flex-col gap-4 rounded-xl border border-border bg-surface p-5 sm:flex-row sm:items-center">
-            <span className="grid size-12 shrink-0 place-items-center rounded-xl" style={{ background: 'color-mix(in srgb, var(--graph-3) 15%, transparent)', color: 'var(--graph-3)' }}>
+            <span className="grid size-12 shrink-0 place-items-center rounded-xl" style={{ background: 'color-mix(in srgb, var(--accent-tone-3) 15%, transparent)', color: 'var(--accent-tone-3)' }}>
               <KeyRound size={22} aria-hidden="true" />
             </span>
             <div className="min-w-0 flex-1">

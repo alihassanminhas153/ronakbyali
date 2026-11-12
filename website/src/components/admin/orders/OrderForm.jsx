@@ -93,7 +93,7 @@ function Choice({ options, value, current, onChange }) {
             onClick={() => onChange(o.value)}
             style={on ? { background: tint(color, 16), borderColor: color, color } : undefined}
             className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
-              on ? '' : 'border-border bg-surface text-muted hover:border-graph-1/50 hover:text-text'
+              on ? '' : 'border-border bg-surface text-muted hover:border-accent-tone-1/50 hover:text-text'
             }`}
           >
             {on && <Check size={13} aria-hidden="true" />}
@@ -313,7 +313,7 @@ export default function OrderForm({ open, orderId, onClose }) {
                   type="button"
                   onClick={() => setTitle(p)}
                   className={`rounded-full border px-2.5 py-1 text-xs transition-colors ${
-                    title === p ? 'border-graph-2 bg-graph-2/10 text-text' : 'border-border bg-surface text-muted hover:border-graph-2/60 hover:text-text'
+                    title === p ? 'border-accent-tone-2 bg-accent-tone-2/10 text-text' : 'border-border bg-surface text-muted hover:border-accent-tone-2/60 hover:text-text'
                   }`}
                 >
                   {p}

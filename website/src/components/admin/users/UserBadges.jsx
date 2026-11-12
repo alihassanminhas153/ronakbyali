@@ -48,7 +48,7 @@ export function RoleBadge({ role }) {
   const value = role || 'new';
   const team = isTeamRole(value);
   const chip = (
-    <Chip color={ROLE_COLOR[value] || 'var(--graph-8)'} icon={team ? ShieldCheck : undefined} className="capitalize">
+    <Chip color={ROLE_COLOR[value] || 'var(--accent-tone-8)'} icon={team ? ShieldCheck : undefined} className="capitalize">
       {value}
     </Chip>
   );
