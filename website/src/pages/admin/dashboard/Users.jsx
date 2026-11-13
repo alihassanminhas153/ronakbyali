@@ -143,6 +143,7 @@ export default function Users() {
   const [method, setMethod] = useState('all'); // sign-in method filter for the list
   const [calendarMethod, setCalendarMethod] = useState(null); // method tile picked on the Methods tab
   const [loadedOnce, setLoadedOnce] = useState(false);
+  const [visibleUsers, setVisibleUsers] = useState(10);
   const [viewId, setViewId] = useState(null);
   const [formOpen, setFormOpen] = useState(false);
   const [toBlock, setToBlock] = useState(null);
@@ -166,6 +167,7 @@ export default function Users() {
     [analytics.methods]
   );
   const methodCalendar = useMemo(() => loginDaysFor(allUsers, calendarMethod), [allUsers, calendarMethod]);
+  useEffect(() => setVisibleUsers(10), [filters.query, filters.role, filters.blocked, method]);
 
   // fetchUsers needs the signed-in profile (selectMe), so wait until it is loaded.
   useEffect(() => {
@@ -365,7 +367,14 @@ export default function Users() {
                   </StateCard>
                 )
               ) : (
-                <UserTable users={users} meId={meId} pendingIds={pendingIds} onView={openView} onToggleBlocked={toggleBlocked} />
+                <UserTable users={users.slice(0, visibleUsers)} meId={meId} pendingIds={pendingIds} onView={openView} onToggleBlocked={toggleBlocked} />
+              )}
+              {!loading && users.length > visibleUsers && (
+                <div className="flex justify-center">
+                  <ActionButton variant="secondary" onClick={() => setVisibleUsers((count) => count + 10)}>
+                    Show more ({users.length - visibleUsers} left)
+                  </ActionButton>
+                </div>
               )}
 
               {!loading && (

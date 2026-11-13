@@ -27,7 +27,7 @@ const adminThunk = (type, method, message) =>
 
 const adapter = createEntityAdapter({ selectId: (p) => p.$id });
 
-const PAGE_SIZE = 12;
+const PAGE_SIZE = 10;
 const defaultFilters = {
   category: null,
   group: null,

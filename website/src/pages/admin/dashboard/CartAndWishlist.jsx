@@ -28,7 +28,7 @@ import Tabs, { TabPanel } from '../../../ui/custom/tabs/Tabs';
 import CountUp from '../../../ui/custom/motion/CountUp';
 import Typewriter from '../../../ui/custom/motion/Typewriter';
 
-const SHOW = 30;
+const SHOW = 10;
 
 // What each tab can filter and sort by.
 const CONFIG = {

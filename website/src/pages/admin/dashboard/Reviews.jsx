@@ -25,7 +25,7 @@ import Tabs, { TabPanel } from '../../../ui/custom/tabs/Tabs';
 import CountUp from '../../../ui/custom/motion/CountUp';
 import Typewriter from '../../../ui/custom/motion/Typewriter';
 
-const PAGE = 15;
+const PAGE = 10;
 const STATUS_LABELS = STATUS_ORDER.map((s) => STATUS_META[s].label);
 const STATUS_BY_LABEL = Object.fromEntries(STATUS_ORDER.map((s) => [STATUS_META[s].label, s]));
 const PERIOD_OPTIONS = PERIODS.map((p) => ({ value: p.id, label: p.label, icon: CalendarDays, tone: 1 }));
@@ -62,7 +62,7 @@ export default function Reviews() {
   const { items, status, error, loadedAt, busy, actionError, syncing } = useSelector((s) => s.reviews);
   const loading = status === 'loading';
 
-  const [tab, setTab] = useState('overview');
+  const [tab, setTab] = useState('reviews');
   const [period, setPeriod] = useState('30d');
   const [notice, setNotice] = useState('');
   const updatedAt = useMemo(() => (loadedAt ? new Date(loadedAt) : null), [loadedAt]);
@@ -78,6 +78,7 @@ export default function Reviews() {
   // product tab
   const [productSearch, setProductSearch] = useState('');
   const [productSort, setProductSort] = useState('count');
+  const [visibleProducts, setVisibleProducts] = useState(PAGE);
   // delete
   const [toDelete, setToDelete] = useState(null);
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -122,6 +123,7 @@ export default function Reviews() {
     const q = productSearch.trim().toLowerCase();
     return productStats.filter((p) => !q || p.name.toLowerCase().includes(q)).sort(PRODUCT_SORTERS[productSort]);
   }, [productStats, productSearch, productSort]);
+  useEffect(() => setVisibleProducts(PAGE), [productSearch, productSort]);
 
   /* ---------- actions ---------- */
   const onApprove = (r) => dispatch(approveReview(r.$id));
@@ -171,9 +173,9 @@ export default function Reviews() {
   };
 
   const tabs = [
-    { id: 'overview', label: 'Overview', icon: TrendingUp, color: 'var(--accent-tone-1)' },
     { id: 'reviews', label: 'Reviews', icon: MessageSquare, color: 'var(--accent-tone-4)', badge: pending || undefined },
     { id: 'products', label: 'Product ratings', icon: Star, color: 'var(--accent-tone-3)' },
+    { id: 'overview', label: 'Overview', icon: TrendingUp, color: 'var(--accent-tone-1)' },
   ];
 
   return (
@@ -397,11 +399,18 @@ export default function Reviews() {
               <p className="mt-1 text-sm text-muted">{productStats.length ? 'Try a different search.' : 'Products appear here once customers review them.'}</p>
             </div>
           ) : (
-            <ul className="space-y-3">
-              {shownProducts.map((p, i) => (
+            <div className="space-y-3">
+              {shownProducts.slice(0, visibleProducts).map((p, i) => (
                 <ProductRatingRow key={p.productId} product={p} index={i} busy={Boolean(busy[`p:${p.productId}`])} onRecalculate={onRecalculate} />
               ))}
-            </ul>
+              {shownProducts.length > visibleProducts && (
+                <div className="flex justify-center">
+                  <ActionButton variant="secondary" onClick={() => setVisibleProducts((count) => count + PAGE)}>
+                    Show more ({shownProducts.length - visibleProducts} left)
+                  </ActionButton>
+                </div>
+              )}
+            </div>
           )}
         </TabPanel>
       )}

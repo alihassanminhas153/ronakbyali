@@ -8,7 +8,7 @@ const key = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate(
 const parse = (k) => { const [y, m, d] = k.split('-').map(Number); return new Date(y, m - 1, d); };
 const WEEK = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'];
 
-export default function DatePicker({ value, onChange, max, error = false, placeholder = 'Pick a date', 'aria-label': ariaLabel }) {
+export default function DatePicker({ value, onChange, max, error = false, clearable = false, placeholder = 'Pick a date', 'aria-label': ariaLabel }) {
   const root = useRef(null);
   const [open, setOpen] = useState(false);
   const [view, setView] = useState(() => { const d = value ? parse(value) : new Date(); return new Date(d.getFullYear(), d.getMonth(), 1); });
@@ -92,6 +92,9 @@ export default function DatePicker({ value, onChange, max, error = false, placeh
           })}
         </div>
         <div className="mt-2 flex justify-between border-t border-border pt-2 text-xs">
+          {clearable && value ? (
+            <button type="button" onClick={() => { onChange(''); setOpen(false); }} className="rounded-md px-2 py-1 text-muted transition-colors hover:bg-surface-alt hover:text-text">Clear</button>
+          ) : <span />}
           <button type="button" onClick={() => pick(new Date())} className="rounded-md px-2 py-1 font-medium text-accent-tone-1 transition-colors hover:bg-surface-alt">Today</button>
           <button type="button" onClick={() => setOpen(false)} className="rounded-md px-2 py-1 text-muted transition-colors hover:bg-surface-alt hover:text-text">Close</button>
         </div>

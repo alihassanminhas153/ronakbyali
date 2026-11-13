@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  BarChart3, CalendarDays, Check, Coins, Flame, Heart, LineChart, PackagePlus, PackageX, PieChart, Receipt,
+  BarChart3, CalendarDays, Check, ChevronLeft, ChevronRight, Coins, Flame, Heart, LineChart, PackagePlus, PackageX, PieChart, Receipt,
   ShoppingCart, TrendingDown, TrendingUp, Truck, Wallet, X, Percent, Layers, TriangleAlert, Trophy,
 } from 'lucide-react';
 
@@ -13,6 +13,7 @@ import { rs } from './financeSchema';
 
 const grid = 'grid gap-4 lg:grid-cols-2';
 const tiles = 'grid grid-cols-2 gap-3 lg:grid-cols-4';
+const PAGE_SIZE = 10;
 const rsFmt = (n) => rs(n);
 const rsShort = (n) => `Rs ${compact(n)}`;
 const pct = (n) => `${Math.round(n)}%`;
@@ -21,14 +22,56 @@ const PAY_LABEL = { cod: 'Cash on delivery', bank_transfer: 'Bank transfer', car
 const cap = (s) => String(s).charAt(0).toUpperCase() + String(s).slice(1);
 
 function FinanceMetricRow({ label, children }) {
+  const viewport = useRef(null);
+  const [edges, setEdges] = useState({ left: false, right: false });
+  const updateEdges = useCallback(() => {
+    const element = viewport.current;
+    if (!element) return;
+    const left = element.scrollLeft > 0;
+    const right = element.scrollLeft + element.clientWidth < element.scrollWidth - 1;
+    setEdges((current) => current.left === left && current.right === right ? current : { left, right });
+  }, []);
+
+  useEffect(() => {
+    updateEdges();
+    window.addEventListener('resize', updateEdges);
+    return () => window.removeEventListener('resize', updateEdges);
+  }, [children, updateEdges]);
+
   return (
-    <div
-      className="-mx-3 overflow-x-auto no-scrollbar px-3 pb-2 sm:-mx-5 sm:px-5"
-      role="region"
-      aria-label={label}
-      tabIndex={0}
-    >
-      <div className="grid min-w-[64rem] grid-cols-4 gap-3">{children}</div>
+    <div className="group/metric-row relative">
+      <div
+        ref={viewport}
+        onScroll={updateEdges}
+        className="-mx-3 overflow-x-auto no-scrollbar px-3 pb-2 sm:-mx-5 sm:px-5"
+        role="region"
+        aria-label={label}
+        tabIndex={0}
+      >
+        <div className="grid min-w-[64rem] grid-cols-4 gap-3">{children}</div>
+      </div>
+      {edges.left && (
+        <button
+          type="button"
+          aria-label={`Scroll ${label} left`}
+          title="Scroll left"
+          onClick={() => viewport.current?.scrollBy({ left: -viewport.current.clientWidth * 0.75, behavior: 'smooth' })}
+          className="absolute left-0 top-1/2 z-10 grid size-9 -translate-y-1/2 place-items-center rounded-full border border-border bg-surface/95 text-text shadow-soft transition-opacity sm:pointer-events-none sm:opacity-0 sm:group-hover/metric-row:pointer-events-auto sm:group-hover/metric-row:opacity-100 sm:group-focus-within/metric-row:pointer-events-auto sm:group-focus-within/metric-row:opacity-100"
+        >
+          <ChevronLeft size={17} aria-hidden="true" />
+        </button>
+      )}
+      {edges.right && (
+        <button
+          type="button"
+          aria-label={`Scroll ${label} right`}
+          title="Scroll right"
+          onClick={() => viewport.current?.scrollBy({ left: viewport.current.clientWidth * 0.75, behavior: 'smooth' })}
+          className="absolute right-0 top-1/2 z-10 grid size-9 -translate-y-1/2 place-items-center rounded-full border border-border bg-surface/95 text-text shadow-soft transition-opacity sm:pointer-events-none sm:opacity-0 sm:group-hover/metric-row:pointer-events-auto sm:group-hover/metric-row:opacity-100 sm:group-focus-within/metric-row:pointer-events-auto sm:group-focus-within/metric-row:opacity-100"
+        >
+          <ChevronRight size={17} aria-hidden="true" />
+        </button>
+      )}
     </div>
   );
 }
@@ -118,23 +161,34 @@ function Thumb({ product }) {
 
 // rows: [{ product, note }]
 function ProductList({ rows, onRestock, empty }) {
+  const [visible, setVisible] = useState(PAGE_SIZE);
+  useEffect(() => setVisible(PAGE_SIZE), [rows.length]);
   if (!rows.length) return <div className="grid h-24 place-items-center rounded-md border border-dashed border-border text-xs text-muted">{empty}</div>;
   return (
-    <ul className="divide-y divide-border">
-      {rows.map(({ product, note }, i) => (
-        <li key={product.$id} style={{ animationDelay: `${Math.min(i, 10) * 40}ms` }} className="animate-rise flex items-center gap-3 py-2.5">
-          <Thumb product={product} />
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-medium text-text">{product.name}</p>
-            <p className="truncate text-xs text-muted">{note}</p>
-          </div>
-          <button type="button" onClick={() => onRestock(product)} className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-md border border-border px-3 text-xs font-medium text-text transition-all hover:border-accent-tone-2 hover:bg-accent-tone-2/10 hover:text-accent-tone-2 active:scale-95">
-            <PackagePlus size={14} />
-            Restock
+    <>
+      <ul className="divide-y divide-border">
+        {rows.slice(0, visible).map(({ product, note }, i) => (
+          <li key={product.$id} style={{ animationDelay: `${Math.min(i, 10) * 40}ms` }} className="animate-rise flex items-center gap-3 py-2.5">
+            <Thumb product={product} />
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-medium text-text">{product.name}</p>
+              <p className="truncate text-xs text-muted">{note}</p>
+            </div>
+            <button type="button" onClick={() => onRestock(product)} className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-md border border-border px-3 text-xs font-medium text-text transition-all hover:border-accent-tone-2 hover:bg-accent-tone-2/10 hover:text-accent-tone-2 active:scale-95">
+              <PackagePlus size={14} />
+              Restock
+            </button>
+          </li>
+        ))}
+      </ul>
+      {rows.length > visible && (
+        <div className="mt-3 flex justify-center">
+          <button type="button" onClick={() => setVisible((count) => count + PAGE_SIZE)} className="btn btn-ghost">
+            Show more ({rows.length - visible} left)
           </button>
-        </li>
-      ))}
-    </ul>
+        </div>
+      )}
+    </>
   );
 }
 
@@ -142,7 +196,6 @@ export function InventoryTab({ m, onRestock }) {
   const inv = m.inventory;
   const needs = [...inv.outOfStock, ...inv.inStock.filter((p) => Number(p.remaining) <= 5)]
     .sort((a, b) => (Number(a.remaining) || 0) - (Number(b.remaining) || 0))
-    .slice(0, 10)
     .map((p) => ({ product: p, note: Number(p.remaining) > 0 ? `${p.remaining} left` : 'Out of stock' }));
   const total = inv.inStock.length + inv.outOfStock.length;
   return (
@@ -153,6 +206,9 @@ export function InventoryTab({ m, onRestock }) {
         <StatTile label="Stock cost" value={inv.stockCost} format={rsShort} hint="what you paid for it" appIcon="pkr" sensitive tone={3} delay={80} />
         <StatTile label="Stock retail value" value={inv.stockRetail} format={rsShort} hint={`potential profit ${rsShort(inv.stockRetail - inv.stockCost)}`} appIcon="arrow_trend_up" sensitive tone={7} delay={120} />
       </div>
+      <ChartCard title="Needs restocking" subtitle="Out of stock or 5 units or fewer" icon={TriangleAlert} tone={3}>
+        <ProductList rows={needs} onRestock={onRestock} empty="Everything is well stocked." />
+      </ChartCard>
       <div className={grid}>
         <ChartCard title="Stock status" subtitle="Products in and out of stock" icon={PieChart} tone={2}>
           <Donut
@@ -169,9 +225,6 @@ export function InventoryTab({ m, onRestock }) {
         <ChartCard title="Units left per product" subtitle="How many products hold how many units" icon={Layers} tone={5} delay={160}>
           <Histogram values={inv.inStock.map((p) => Number(p.remaining) || 0)} bins={6} format={(n) => compact(n)} empty="Nothing in stock." />
         </ChartCard>
-        <ChartCard title="Needs restocking" subtitle="Out of stock or 5 units or fewer" icon={TriangleAlert} tone={3} delay={240}>
-          <ProductList rows={needs} onRestock={onRestock} empty="Everything is well stocked." />
-        </ChartCard>
       </div>
     </div>
   );
@@ -182,7 +235,7 @@ export function InventoryTab({ m, onRestock }) {
 /* ------------------------------------------------------------------ */
 export function DemandTab({ m, onRestock }) {
   const d = m.demand;
-  const wanted = d.wanted.slice(0, 10).map((w) => ({ product: w.product, note: `${w.carts} in carts · ${w.wishes} wishlisted` }));
+  const wanted = d.wanted.map((w) => ({ product: w.product, note: `${w.carts} in carts · ${w.wishes} wishlisted` }));
   return (
     <div className="space-y-4">
       <div className={tiles}>
@@ -191,6 +244,9 @@ export function DemandTab({ m, onRestock }) {
         <StatTile label="Wishlisted items" value={d.wishTotal} appIcon="popular" tone={4} delay={80} />
         <StatTile label="Wanted but out of stock" value={d.wanted.length} hint="lost sales waiting" appIcon="alert" tone={3} delay={120} />
       </div>
+      <ChartCard title="Wanted but out of stock" subtitle="Restock these first" icon={TriangleAlert} tone={3}>
+        <ProductList rows={wanted} onRestock={onRestock} empty="No out-of-stock product is being asked for." />
+      </ChartCard>
       <div className={grid}>
         <ChartCard title="Most in carts" subtitle="Number of carts holding the product" icon={ShoppingCart} tone={1}>
           <BarChart data={d.topCarted.slice(0, 8).map((l) => ({ label: l.name, value: l.carts, hint: `${l.qty} pcs` }))} empty="No carts yet." />
@@ -203,9 +259,6 @@ export function DemandTab({ m, onRestock }) {
         </ChartCard>
         <ChartCard title="Shopper activity" subtitle="Carts and wishlists updated per day" icon={Flame} tone={2} delay={240}>
           <HeatmapCalendar data={d.heat} weeks={26} label="updates" />
-        </ChartCard>
-        <ChartCard title="Wanted but out of stock" subtitle="Restock these first" icon={TriangleAlert} tone={3} delay={320} className="lg:col-span-2">
-          <ProductList rows={wanted} onRestock={onRestock} empty="No out-of-stock product is being asked for." />
         </ChartCard>
       </div>
     </div>
@@ -263,6 +316,10 @@ export function ProfitTab({ m, onChanged }) {
   const rows = m.productProfit;
   const losers = rows.filter((r) => r.profit < 0);
   const maxAbs = Math.max(1, ...rows.map((r) => Math.abs(r.profit)));
+  const [visibleNoCost, setVisibleNoCost] = useState(PAGE_SIZE);
+  const [visibleProfit, setVisibleProfit] = useState(PAGE_SIZE);
+  useEffect(() => setVisibleNoCost(PAGE_SIZE), [m.noCostProducts.length]);
+  useEffect(() => setVisibleProfit(PAGE_SIZE), [rows.length]);
   return (
     <div className="space-y-4">
       <div className={tiles}>
@@ -272,22 +329,13 @@ export function ProfitTab({ m, onChanged }) {
         <StatTile label="Missing cost price" value={m.noCostProducts.length} hint="profit looks too high" appIcon="alert" tone={3} delay={120} />
       </div>
 
-      <div className={grid}>
-        <ChartCard title="Most profitable" subtitle={`Profit per product, ${m.period.label}`} icon={Trophy} tone={7}>
-          <BarChart data={rows.filter((r) => r.profit > 0).slice(0, 8).map((r) => ({ label: r.name, value: r.profit, hint: `${r.units} sold` }))} format={rsShort} empty="No profitable sales yet." />
-        </ChartCard>
-        <ChartCard title="Lowest margin" subtitle="Profit as % of the selling price" icon={Percent} tone={4} delay={80}>
-          <BarChart data={[...rows].sort((a, b) => a.margin - b.margin).slice(0, 8).map((r) => ({ label: r.name, value: Math.max(0, Math.round(r.margin)), hint: r.margin < 0 ? 'loss' : undefined }))} format={(n) => `${n}%`} empty="No sales yet." />
-        </ChartCard>
-        <ChartCard title="Margin spread" subtitle="How many products sit in each margin range (%)" icon={BarChart3} tone={5} delay={160}>
-          <Histogram values={rows.map((r) => Math.round(r.margin))} bins={6} format={(n) => `${Math.round(n)}%`} empty="No sales yet." />
-        </ChartCard>
-        <ChartCard title="Add missing cost prices" subtitle="Needed for correct profit" icon={TriangleAlert} tone={3} delay={240}>
-          {m.noCostProducts.length === 0 ? (
-            <div className="grid h-24 place-items-center rounded-md border border-dashed border-border text-xs text-muted">Every product has a cost price.</div>
-          ) : (
-            <ul className="max-h-72 divide-y divide-border overflow-y-auto">
-              {m.noCostProducts.slice(0, 30).map((p) => (
+      <ChartCard title="Add missing cost prices" subtitle="Needed for correct profit" icon={TriangleAlert} tone={3}>
+        {m.noCostProducts.length === 0 ? (
+          <div className="grid h-24 place-items-center rounded-md border border-dashed border-border text-xs text-muted">Every product has a cost price.</div>
+        ) : (
+          <>
+            <ul className="divide-y divide-border">
+              {m.noCostProducts.slice(0, visibleNoCost).map((p) => (
                 <li key={p.$id} className="flex items-center gap-3 py-2.5">
                   <Thumb product={p} />
                   <div className="min-w-0 flex-1">
@@ -298,11 +346,18 @@ export function ProfitTab({ m, onChanged }) {
                 </li>
               ))}
             </ul>
-          )}
-        </ChartCard>
-      </div>
+            {visibleNoCost < m.noCostProducts.length && (
+              <div className="mt-3 flex justify-center">
+                <button type="button" onClick={() => setVisibleNoCost((count) => count + PAGE_SIZE)} className="btn btn-ghost">
+                  Show more ({m.noCostProducts.length - visibleNoCost} left)
+                </button>
+              </div>
+            )}
+          </>
+        )}
+      </ChartCard>
 
-      <ChartCard title="Profit by product" subtitle={`Everything sold in ${m.period.label}`} icon={Coins} tone={2} delay={320}>
+      <ChartCard title="Profit by product" subtitle={`Everything sold in ${m.period.label}`} icon={Coins} tone={2}>
         {rows.length === 0 ? (
           <div className="grid h-24 place-items-center rounded-md border border-dashed border-border text-xs text-muted">No payments received in this period.</div>
         ) : (
@@ -318,7 +373,7 @@ export function ProfitTab({ m, onChanged }) {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {rows.slice(0, 25).map((r, i) => (
+                {rows.slice(0, visibleProfit).map((r, i) => (
                   <tr key={r.id} style={{ animationDelay: `${Math.min(i, 12) * 30}ms` }} className="animate-rise transition-colors hover:bg-surface-alt/50">
                     <td className="max-w-56 truncate py-2.5 text-sm text-text">{r.name}</td>
                     <td className="py-2.5 text-right text-sm tabular-nums text-muted">{r.units}</td>
@@ -338,7 +393,26 @@ export function ProfitTab({ m, onChanged }) {
             </table>
           </div>
         )}
+        {rows.length > visibleProfit && (
+          <div className="mt-3 flex justify-center">
+            <button type="button" onClick={() => setVisibleProfit((count) => count + PAGE_SIZE)} className="btn btn-ghost">
+              Show more ({rows.length - visibleProfit} left)
+            </button>
+          </div>
+        )}
       </ChartCard>
+
+      <div className={grid}>
+        <ChartCard title="Most profitable" subtitle={`Profit per product, ${m.period.label}`} icon={Trophy} tone={7}>
+          <BarChart data={rows.filter((r) => r.profit > 0).slice(0, 8).map((r) => ({ label: r.name, value: r.profit, hint: `${r.units} sold` }))} format={rsShort} empty="No profitable sales yet." />
+        </ChartCard>
+        <ChartCard title="Lowest margin" subtitle="Profit as % of the selling price" icon={Percent} tone={4} delay={80}>
+          <BarChart data={[...rows].sort((a, b) => a.margin - b.margin).slice(0, 8).map((r) => ({ label: r.name, value: Math.max(0, Math.round(r.margin)), hint: r.margin < 0 ? 'loss' : undefined }))} format={(n) => `${n}%`} empty="No sales yet." />
+        </ChartCard>
+        <ChartCard title="Margin spread" subtitle="How many products sit in each margin range (%)" icon={BarChart3} tone={5} delay={160}>
+          <Histogram values={rows.map((r) => Math.round(r.margin))} bins={6} format={(n) => `${Math.round(n)}%`} empty="No sales yet." />
+        </ChartCard>
+      </div>
     </div>
   );
 }

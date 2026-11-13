@@ -37,7 +37,7 @@ import Tabs, { TabPanel } from '../../../ui/custom/tabs/Tabs';
 import CountUp from '../../../ui/custom/motion/CountUp';
 import Typewriter from '../../../ui/custom/motion/Typewriter';
 
-const PAGE = 25;
+const PAGE = 10;
 const EMPTY = { term: '', status: '', paymentStatus: '', deliveryType: '', paymentMethod: '' };
 
 const PAYMENT_OPTIONS = toOptions(PAYMENT_STATUS, PAYMENT_META);
@@ -72,6 +72,7 @@ export default function Orders() {
   const [selectedId, setSelectedId] = useState(null);
   const [formOpen, setFormOpen] = useState(false);
   const [formKey, setFormKey] = useState(0); // new key = fresh form; 0 = never opened
+  const [visibleSearch, setVisibleSearch] = useState(PAGE);
   const [refreshing, setRefreshing] = useState(false);
   const [updatedAt, setUpdatedAt] = useState(null);
   const ago = useTimeAgo(updatedAt);
@@ -107,6 +108,7 @@ export default function Orders() {
     (patch) => {
       const next = { ...filters, ...patch };
       setFilters(next);
+      setVisibleSearch(PAGE);
       load(next);
     },
     [filters, load]
@@ -150,6 +152,7 @@ export default function Orders() {
   const searching = Boolean(filters.term.trim());
   const filtered = Boolean(searching || filters.status || filters.paymentStatus || filters.deliveryType || filters.paymentMethod);
   const hasMore = !searching && rows.length < total;
+  const visibleOrders = searching ? orders.slice(0, visibleSearch) : orders;
   const busy = refreshing || loading;
 
   const pending = counts?.pending || 0;
@@ -245,7 +248,7 @@ export default function Orders() {
         </span>
       </button>
 
-      <Tabs tabs={tabs} value={filters.status || 'all'} onChange={(id) => applyFilters({ status: id === 'all' ? '' : id })} />
+      <Tabs iconOnly tabs={tabs} value={filters.status || 'all'} onChange={(id) => applyFilters({ status: id === 'all' ? '' : id })} />
 
       <TabPanel key={filters.status || 'all'} className="space-y-6">
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_12rem_12rem_12rem]">
@@ -306,7 +309,14 @@ export default function Orders() {
           </div>
         ) : (
           <>
-            <OrderTable orders={orders} onView={openOrder} />
+            <OrderTable orders={visibleOrders} onView={openOrder} />
+            {searching && orders.length > visibleOrders.length && (
+              <div className="flex justify-center">
+                <ActionButton variant="secondary" onClick={() => setVisibleSearch((count) => count + PAGE)}>
+                  Show more ({orders.length - visibleOrders.length} left)
+                </ActionButton>
+              </div>
+            )}
             {hasMore && (
               <div className="flex justify-center">
                 <ActionButton variant="secondary" loading={loading} onClick={() => load(filters, true)}>Load more</ActionButton>

@@ -82,6 +82,7 @@ function HolderRow({ entry, kind, index }) {
   const [open, setOpen] = useState(false);
   const [mounted, setMounted] = useState(false); // products load only after the first open
   const [shown, setShown] = useState(false); // flips one frame later so the first open animates too
+  const [visibleLines, setVisibleLines] = useState(10);
 
   useEffect(() => {
     if (!open) {
@@ -93,6 +94,7 @@ function HolderRow({ entry, kind, index }) {
   }, [open]);
   const expanded = open && shown;
   const { row, lines } = entry;
+  useEffect(() => setVisibleLines(10), [lines.length]);
   const who = row.name || row.username || row.email || row.$id;
   const contact = [row.email, row.phone, row.city].filter(Boolean).join(' · ');
   const stale = kind === 'cart' && entry.days >= STALE_DAYS;
@@ -137,8 +139,15 @@ function HolderRow({ entry, kind, index }) {
         >
           <div className="overflow-hidden">
             <ul className="grid gap-2 border-t border-border bg-surface-alt/30 p-3 sm:grid-cols-2">
-              {lines.map((l, i) => <Line key={`${l.productId}:${i}`} line={l} kind={kind} index={i} />)}
+              {lines.slice(0, visibleLines).map((l, i) => <Line key={`${l.productId}:${i}`} line={l} kind={kind} index={i} />)}
             </ul>
+            {lines.length > visibleLines && (
+              <div className="border-t border-border bg-surface-alt/30 p-3 text-center">
+                <button type="button" onClick={() => setVisibleLines((count) => count + 10)} className="text-xs font-medium text-accent hover:underline">
+                  Show more ({lines.length - visibleLines} left)
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}

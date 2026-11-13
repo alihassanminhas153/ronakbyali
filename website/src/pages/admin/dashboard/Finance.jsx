@@ -22,7 +22,7 @@ const CTA_PHRASES = ['Record an investment', 'Add an expense', 'Log a withdrawal
 const SORTS = ['Newest', 'Oldest', 'Highest amount', 'Lowest amount'];
 const TYPE_LABELS = TYPE_ORDER.map((t) => TYPE_META[t].label);
 const TYPE_BY_LABEL = Object.fromEntries(TYPE_ORDER.map((t) => [TYPE_META[t].label, t]));
-const PAGE = 20;
+const PAGE = 10;
 const PERIOD_OPTIONS = PERIODS.map((p) => ({ value: p.id, label: p.label, icon: CalendarDays, tone: 1 }));
 
 // "just now", "25s ago", "4m ago" ... re-rendered every 10 seconds
@@ -45,7 +45,7 @@ export default function Finance() {
   const data = useFinanceData();
   const { ledger, products, loading, error, reload, reloadLedger } = data;
 
-  const [tab, setTab] = useState('overview');
+  const [tab, setTab] = useState('ledger');
   const [period, setPeriod] = useState('30d');
   const [updatedAt, setUpdatedAt] = useState(null);
   const ago = useTimeAgo(updatedAt);
@@ -152,11 +152,11 @@ export default function Finance() {
   };
 
   const tabs = [
-    { id: 'overview', label: 'Overview', icon: TrendingUp, color: 'var(--accent-tone-1)' },
     { id: 'ledger', label: 'Ledger', icon: LayoutList, color: 'var(--accent-tone-4)', badge: ledger.length || undefined },
     { id: 'inventory', label: 'Inventory', icon: Boxes, color: 'var(--accent-tone-2)' },
     { id: 'demand', label: 'Carts & wishlists', icon: Heart, color: 'var(--accent-tone-6)' },
     { id: 'profit', label: 'Product profit', icon: Trophy, color: 'var(--accent-tone-3)' },
+    { id: 'overview', label: 'Overview', icon: TrendingUp, color: 'var(--accent-tone-1)' },
   ];
   const showPeriod = tab === 'overview' || tab === 'profit';
 
@@ -238,7 +238,7 @@ export default function Finance() {
       <div className="flex flex-wrap gap-2">
         {[
           { label: 'Restock a product', icon: PackagePlus, tone: 2, onClick: () => openRestock() },
-          { label: 'Export ledger (CSV)', icon: Download, tone: 5, onClick: exportCsv },
+          { label: 'Export ledger', icon: Download, tone: 5, onClick: exportCsv },
         ].map((a) => (
           <button
             key={a.label}

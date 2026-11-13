@@ -8,6 +8,7 @@ import {
   Check,
   Clock,
   Loader2,
+  Layers,
   MessageSquareReply,
   Pencil,
   RefreshCw,
@@ -47,7 +48,7 @@ import { entityColorStep, toneColor } from '../../../lib/entityColors';
 const SHOP_PATH = '/products';
 const productPath = (review) => (review.productSlug ? `/products/${review.productSlug}` : SHOP_PATH);
 
-const PAGE_SIZE = 6;
+const PAGE_SIZE = 10;
 const MAX_MESSAGE = 2000;
 const MAX_TITLE = 150;
 
@@ -59,7 +60,7 @@ const STATUS = {
 const statusOf = (review) => STATUS[review?.status] || STATUS[REVIEW_STATUS.PENDING];
 
 const STATUS_FILTERS = [
-  { value: 'all', label: 'All', tone: 1 },
+  { value: 'all', label: 'All', icon: Layers, tone: 1 },
   ...Object.entries(STATUS).map(([value, s]) => ({ value, label: s.short, icon: s.icon, tone: s.tone })),
 ];
 const SORTS = [
@@ -564,7 +565,7 @@ function ReviewsView({ me }) {
             <SearchInput value={query} onSearch={setQuery} placeholder="Search by product or words" label="Search your reviews" size="sm" />
             <SelectInput size="sm" value={sort} onChange={setSort} options={SORTS} aria-label="Sort reviews" />
           </div>
-          <Segmented options={STATUS_FILTERS} value={filter} onChange={setFilter} aria-label="Filter by status" />
+          <Segmented iconOnly options={STATUS_FILTERS} value={filter} onChange={setFilter} aria-label="Filter by status" />
 
           {loading ? (
             <div role="status" className="flex items-center gap-2 py-8 text-muted">

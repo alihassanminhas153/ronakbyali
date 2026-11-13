@@ -8,6 +8,7 @@ import {
   AlertCircle,
   Check,
   Heart,
+  Layers,
   Loader2,
   PackageX,
   RefreshCw,
@@ -45,7 +46,7 @@ import { entityColorStep, toneColor } from '../../../lib/entityColors';
 
 /* ---------- config ---------- */
 
-const PAGE_SIZE = 12;
+const PAGE_SIZE = 10;
 
 const SORTS = [
   { value: 'recent', label: 'Recently saved' },
@@ -55,10 +56,10 @@ const SORTS = [
 ];
 
 const FILTERS = [
-  { key: 'all', label: 'All', color: toneColor(entityColorStep('productState', 'all')) },
-  { key: 'in', label: 'In stock', color: toneColor(entityColorStep('productState', 'inStock')) },
-  { key: 'out', label: 'Out of stock', color: toneColor(entityColorStep('productState', 'outOfStock')) },
-  { key: 'sale', label: 'On sale', color: toneColor(entityColorStep('productState', 'onSale')) },
+  { key: 'all', label: 'All products', icon: Layers, color: toneColor(entityColorStep('productState', 'all')) },
+  { key: 'in', label: 'In stock', icon: Check, color: toneColor(entityColorStep('productState', 'inStock')) },
+  { key: 'out', label: 'Out of stock', icon: PackageX, color: toneColor(entityColorStep('productState', 'outOfStock')) },
+  { key: 'sale', label: 'On sale', icon: Tag, color: toneColor(entityColorStep('productState', 'onSale')) },
 ];
 
 /* ---------- helpers ---------- */
@@ -469,26 +470,30 @@ export default function Wishlist() {
           </div>
 
           {/* Availability filter */}
-          <div className="no-scrollbar -mx-1 flex gap-2 overflow-x-auto px-1 pb-1" role="tablist" aria-label="Filter by availability">
+          <div className="flex items-center gap-3">
+          <div className="no-scrollbar -mx-1 flex min-w-0 flex-1 gap-2 overflow-x-auto px-1 pb-1" role="tablist" aria-label="Filter by availability">
             {FILTERS.map((f) => {
               const active = filter === f.key;
+              const Icon = f.icon;
               return (
                 <button
                   key={f.key}
                   type="button"
                   role="tab"
+                  aria-label={f.label}
+                  title={f.label}
                   aria-selected={active}
                   onClick={() => setFilter(f.key)}
-                  className="inline-flex shrink-0 items-center gap-2 rounded-full border px-4 py-1.5 text-sm font-medium transition-all duration-200 hover:-translate-y-px active:scale-95"
+                  className="inline-flex size-10 shrink-0 items-center justify-center gap-1.5 rounded-full border text-sm font-medium transition-all duration-200 hover:-translate-y-px active:scale-95"
                   style={{
                     borderColor: active ? f.color : 'var(--border)',
                     background: active ? `color-mix(in srgb, ${f.color} 14%, transparent)` : 'var(--surface)',
                     color: active ? f.color : 'var(--text-muted)',
                   }}
                 >
-                  {f.label}
+                  <Icon size={16} aria-hidden="true" />
                   <span
-                    className="rounded-full px-1.5 text-xs tabular-nums"
+                    className="rounded-full px-1 text-[10px] tabular-nums"
                     style={{ background: `color-mix(in srgb, ${f.color} 15%, transparent)`, color: f.color }}
                   >
                     {counts[f.key]}
@@ -496,6 +501,10 @@ export default function Wishlist() {
                 </button>
               );
             })}
+          </div>
+          <span className="shrink-0 text-sm font-medium text-text" aria-live="polite">
+            {FILTERS.find((option) => option.key === filter)?.label}
+          </span>
           </div>
 
           {list.length === 0 ? (

@@ -13,6 +13,7 @@ import {
   Eye,
   EyeOff,
   Loader2,
+  ListOrdered,
   MapPin,
   Minus,
   PackageCheck,
@@ -66,7 +67,7 @@ import { entityColorStep, toneColor } from '../../../lib/entityColors';
    CONFIG
    ===================================================================== */
 
-const PAGE_SIZE = 6;
+const PAGE_SIZE = 10;
 const FETCH_SIZE = 100;
 const STEPS = ['pending', 'confirmed', 'processing', 'shipped', 'delivered'];
 
@@ -780,17 +781,6 @@ export default function Orders() {
         </StatTile>
       </div>
 
-      {/* Heatmap */}
-      {orders.length > 0 && (
-        <section className="rounded-xl border border-border bg-surface p-4 sm:p-5">
-          <div className="mb-3 flex items-center justify-between gap-3">
-            <h2 className="heading-sm">Order activity</h2>
-            <span className="text-xs text-muted">Orders per day</span>
-          </div>
-          <OrdersHeatmap data={stats.heat} />
-        </section>
-      )}
-
       {/* Search + sort */}
       <div className="grid items-start gap-3 sm:grid-cols-[1fr_14rem]">
         <SearchBox value={query} onSearch={setQuery} />
@@ -798,29 +788,33 @@ export default function Orders() {
       </div>
 
       {/* Status filter */}
-      <div className="no-scrollbar -mx-1 flex gap-2 overflow-x-auto px-1 pb-1" role="tablist" aria-label="Filter orders by status">
+      <div className="flex items-center gap-3">
+      <div className="no-scrollbar -mx-1 flex min-w-0 flex-1 gap-2 overflow-x-auto px-1 pb-1" role="tablist" aria-label="Filter orders by status">
         {FILTERS.map((key) => {
           const isAll = key === 'all';
           const color = isAll ? 'var(--accent)' : STATUS[key].color;
           const count = isAll ? orders.length : stats.counts[key];
           const active = filter === key;
+          const Icon = isAll ? ListOrdered : STATUS[key].icon;
           return (
             <button
               key={key}
               type="button"
               role="tab"
+              aria-label={isAll ? 'All orders' : STATUS[key].label}
+              title={isAll ? 'All orders' : STATUS[key].label}
               aria-selected={active}
               onClick={() => setFilter(key)}
-              className="inline-flex shrink-0 items-center gap-2 rounded-full border px-4 py-1.5 text-sm font-medium transition-all duration-200 hover:-translate-y-px active:scale-95"
+              className="inline-flex size-10 shrink-0 items-center justify-center gap-1.5 rounded-full border text-sm font-medium transition-all duration-200 hover:-translate-y-px active:scale-95"
               style={{
                 borderColor: active ? color : 'var(--border)',
                 background: active ? `color-mix(in srgb, ${color} 14%, transparent)` : 'var(--surface)',
                 color: active ? color : 'var(--text-muted)',
               }}
             >
-              {isAll ? 'All' : STATUS[key].label}
+              <Icon size={16} aria-hidden="true" />
               <span
-                className="rounded-full px-1.5 text-xs tabular-nums"
+                className="rounded-full px-1 text-[10px] tabular-nums"
                 style={{ background: `color-mix(in srgb, ${color} 15%, transparent)`, color }}
               >
                 {count}
@@ -828,6 +822,10 @@ export default function Orders() {
             </button>
           );
         })}
+      </div>
+      <span className="shrink-0 text-sm font-medium text-text" aria-live="polite">
+        {filter === 'all' ? 'All orders' : STATUS[filter].label}
+      </span>
       </div>
 
       {/* List */}
@@ -868,6 +866,15 @@ export default function Orders() {
             </div>
           )}
         </>
+      )}
+      {orders.length > 0 && (
+        <section className="rounded-xl border border-border bg-surface p-4 sm:p-5">
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <h2 className="heading-sm">Order activity</h2>
+            <span className="text-xs text-muted">Orders per day</span>
+          </div>
+          <OrdersHeatmap data={stats.heat} />
+        </section>
       )}
     </div>
   );

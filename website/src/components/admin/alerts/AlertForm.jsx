@@ -5,6 +5,7 @@ import { BarChart3, CalendarClock, Eye, FileText, Layers, Lock, RotateCcw, X } f
 import { createAlert, resetAlertSeen, saveAlert } from '../../../store/slices/alertSlice';
 import { ALERT_LIMITS, ALERT_TYPES, alertState } from '../../../lib/appwrite/alert';
 import { tint, toneVar } from '../../../ui/graphs/utils';
+import DatePicker from '../../../ui/custom/input/DatePicker';
 import { StateBadge } from './AlertBadges';
 import AlertPreview from './AlertPreview';
 import { TYPE_META, describeSchedule, formatDateTime, seenRate } from './alertMeta';
@@ -81,6 +82,34 @@ function Switch({ checked, onChange, label, hint, tone = 3 }) {
 
 function Count({ value, max }) {
   return <span className={value > max ? 'text-error' : ''}>{value}/{max}</span>;
+}
+
+function ScheduleDateTime({ label, value, onChange, error }) {
+  const date = value ? value.slice(0, 10) : '';
+  const time = value ? value.slice(11, 16) : '12:00';
+  return (
+    <Field as="div" label={label} optional error={error}>
+      <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_8rem]">
+        <DatePicker
+          value={date}
+          onChange={(nextDate) => onChange(nextDate ? `${nextDate}T${time || '12:00'}` : '')}
+          error={Boolean(error)}
+          clearable
+          aria-label={`${label} date`}
+        />
+        <div className="block">
+          <input
+            type="time"
+            value={time}
+            disabled={!date}
+            aria-label={`${label} time`}
+            onChange={(event) => onChange(date ? `${date}T${event.target.value}` : '')}
+            className={`${inputCls(error)} min-h-11`}
+          />
+        </div>
+      </div>
+    </Field>
+  );
 }
 
 /* ---------- the drawer ---------- */
@@ -277,12 +306,8 @@ export default function AlertForm({ open, alert, onClose, onSaved }) {
               <Field label="User id" hint="empty = everyone" optional error={errors.userId} className="sm:col-span-2">
                 <input value={form.userId} onChange={on('userId')} maxLength={ALERT_LIMITS.userId + 10} placeholder="Paste a user id to target one person" className={inputCls(errors.userId)} />
               </Field>
-              <Field label="Starts" optional error={errors.startsAt}>
-                <input type="datetime-local" value={form.startsAt} onChange={on('startsAt')} className={inputCls(errors.startsAt)} />
-              </Field>
-              <Field label="Ends" optional error={errors.endsAt}>
-                <input type="datetime-local" value={form.endsAt} onChange={on('endsAt')} className={inputCls(errors.endsAt)} />
-              </Field>
+              <ScheduleDateTime label="Starts" value={form.startsAt} onChange={set('startsAt')} error={errors.startsAt} />
+              <ScheduleDateTime label="Ends" value={form.endsAt} onChange={set('endsAt')} error={errors.endsAt} />
               <div className="sm:col-span-2">
                 <Switch checked={form.active} onChange={set('active')} tone={2} label="Active" hint={form.active ? 'Customers can see it during its schedule.' : 'Saved but hidden. Turn it on whenever you like.'} />
               </div>

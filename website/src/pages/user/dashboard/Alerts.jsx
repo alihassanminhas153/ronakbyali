@@ -53,9 +53,10 @@ const TYPES = {
 const typeOf = (alert) => TYPES[alert?.type] || TYPES.info;
 
 const TYPE_FILTERS = [
-  { value: 'all', label: 'All', tone: entityColorStep('alertSection', 'all') },
+  { value: 'all', label: 'All', icon: Layers, tone: entityColorStep('alertSection', 'all') },
   ...Object.entries(TYPES).map(([value, t]) => ({ value, label: t.label, icon: t.icon, tone: t.tone })),
 ];
+const PAGE_SIZE = 10;
 const SORTS = [
   { value: 'priority', label: 'Most important first' },
   { value: 'newest', label: 'Newest first' },
@@ -228,12 +229,14 @@ function AlertsView({ me }) {
   const [query, setQuery] = useState('');
   const [type, setType] = useState('all');
   const [sort, setSort] = useState('priority');
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [notice, setNotice] = useState(null); // { type, text, id }
   const [refreshing, setRefreshing] = useState(false);
   const [updatedAt, setUpdatedAt] = useState(null);
   const ago = useTimeAgo(updatedAt);
 
   const isStaff = STAFF_ROLES.includes(me.role);
+  useEffect(() => setVisibleCount(PAGE_SIZE), [tab, type, query, sort]);
 
   const notify = (kind, text) => {
     clearTimeout(noticeTimer.current);
@@ -288,6 +291,7 @@ function AlertsView({ me }) {
     else list.sort((x, y) => (Number(y.priority) || 0) - (Number(x.priority) || 0) || time(y) - time(x));
     return list;
   }, [all, tab, type, query, sort]);
+  const displayed = visible.slice(0, visibleCount);
 
   const heatData = useMemo(
     () => all.map((a) => ({ date: new Date(a.startsAt || a.$createdAt), value: 1 })),
@@ -403,15 +407,6 @@ function AlertsView({ me }) {
         </StatTile>
       </div>
 
-      {/* Activity heatmap */}
-      <section className="rounded-xl border border-border bg-surface p-4 sm:p-5">
-        <div className="mb-3 flex items-center justify-between gap-3">
-          <h2 className="heading-sm text-text">Alert activity</h2>
-          <span className="text-xs text-muted">When your current alerts started</span>
-        </div>
-        <HeatmapCalendar data={heatData} label="alerts" />
-      </section>
-
       {isStaff && (
         <div role="status" className="flex items-center gap-3 rounded-lg border border-border bg-surface px-4 py-3 text-sm text-muted">
           <Info size={16} className="shrink-0 text-accent-tone-5" aria-hidden="true" />
@@ -427,7 +422,7 @@ function AlertsView({ me }) {
           <SearchInput value={query} onSearch={setQuery} placeholder="Search your alerts" label="Search alerts" size="sm" />
           <SelectInput size="sm" value={sort} onChange={setSort} options={SORTS} aria-label="Sort alerts" />
         </div>
-        <Segmented options={TYPE_FILTERS} value={type} onChange={setType} aria-label="Filter by type" />
+        <Segmented iconOnly options={TYPE_FILTERS} value={type} onChange={setType} aria-label="Filter by type" />
 
         {loading ? (
           <div role="status" className="flex items-center gap-2 py-8 text-muted">
@@ -449,12 +444,27 @@ function AlertsView({ me }) {
                 Clear filters
               </button>
             )}
-            {visible.map((alert) => (
+            {displayed.map((alert) => (
               <AlertCard key={alert.$id} alert={alert} onSeen={onSeen} onDismiss={onDismiss} />
             ))}
+            {visible.length > displayed.length && (
+              <div className="flex justify-center">
+                <button type="button" onClick={() => setVisibleCount((count) => count + PAGE_SIZE)} className="btn btn-ghost">
+                  Show more ({visible.length - displayed.length} left)
+                </button>
+              </div>
+            )}
           </div>
         )}
       </TabPanel>
+
+      <section className="rounded-xl border border-border bg-surface p-4 sm:p-5">
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <h2 className="heading-sm text-text">Alert activity</h2>
+          <span className="text-xs text-muted">When your current alerts started</span>
+        </div>
+        <HeatmapCalendar data={heatData} label="alerts" />
+      </section>
     </div>
   );
 }

@@ -222,6 +222,7 @@ export default function Cart() {
   const error = useAppSelector(selectCartError);
 
   const [clearOpen, setClearOpen] = useState(false);
+  const [visibleLines, setVisibleLines] = useState(10);
   const [updatedAt, setUpdatedAt] = useState(null);
   const [errorShown, setErrorShown] = useState(true);
   const [refreshRequested, setRefreshRequested] = useState(false);
@@ -234,6 +235,7 @@ export default function Cart() {
 
   // A new error should show again even if an old one was dismissed.
   useEffect(() => setErrorShown(true), [error]);
+  useEffect(() => setVisibleLines(10), [lines.length]);
 
   const refresh = async () => {
     setRefreshRequested(true);
@@ -392,7 +394,7 @@ export default function Cart() {
 
           <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_21rem]">
             <ul className={`space-y-3 transition-opacity ${updating ? 'opacity-70' : ''}`} aria-busy={updating}>
-              {lines.map((line, i) => (
+              {lines.slice(0, visibleLines).map((line, i) => (
                 <CartLine
                   key={lineKey(line)}
                   line={line}
@@ -403,6 +405,11 @@ export default function Cart() {
                 />
               ))}
             </ul>
+            {lines.length > visibleLines && (
+              <button type="button" onClick={() => setVisibleLines((count) => count + 10)} className="btn btn-ghost w-full">
+                Show more ({lines.length - visibleLines} left)
+              </button>
+            )}
 
             <aside className="rounded-xl border border-border bg-surface p-5 shadow-soft lg:sticky lg:top-6">
               <h2 className="heading-sm">Order summary</h2>

@@ -1,7 +1,7 @@
 // Helpers for the public products page. The filter keys match productsSlice:
 // category, group, status, minPrice, maxPrice, sortBy, searchTerm.
 
-export const PAGE_SIZE = 12; // productsSlice loads 12 per page
+export const PAGE_SIZE = 10; // productsSlice loads 10 per page
 
 // The storefront has no "order" sort; that one is for the admin panel.
 export const SORT_OPTIONS = [
