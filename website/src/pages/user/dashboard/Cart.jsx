@@ -407,7 +407,7 @@ export default function Cart() {
             <aside className="rounded-xl border border-border bg-surface p-5 shadow-soft lg:sticky lg:top-6">
               <h2 className="heading-sm">Order summary</h2>
               <dl className="mt-4 space-y-2 text-sm">
-                <Row label={`Subtotal (${count})`} value={formatMoney(subtotal)} />
+                <Row label="Subtotal" value={formatMoney(subtotal)} />
                 <Row label="Delivery" value={delivery === 0 ? 'Free' : formatMoney(delivery)} />
                 <div className="border-t border-border pt-3">
                   <Row label="Total" value={formatMoney(total)} strong />

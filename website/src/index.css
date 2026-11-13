@@ -117,7 +117,7 @@
   /* ---- Semantic icon rotations (limited to the same four ICO hues) ----
      Use with hue-rotate-(--rot-success) or the .icon-success class. */
   --rot-accent: var(--tone-hue-1);
-  --rot-success: var(--tone-hue-1);
+  --rot-success: var(--tone-hue-7);
   --rot-warning: var(--tone-hue-2);
   --rot-error: var(--tone-hue-4);
   --rot-info: var(--tone-hue-3);

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Eye, EyeOff } from 'lucide-react';
+import { Activity, Eye, EyeOff } from 'lucide-react';
 
 import CountUp from '../custom/motion/CountUp';
 import AppIcon from '../custom/AppIcon';
@@ -48,14 +48,14 @@ export default function StatTile({
             tone={tone}
             className="size-10 shrink-0 object-contain transition-transform duration-300 group-hover/tile:scale-105 sm:size-11"
           />
-        ) : Icon ? (
+        ) : (
           <span
             className="grid size-10 shrink-0 place-items-center rounded-xl transition-transform duration-300 group-hover/tile:rotate-3 group-hover/tile:scale-105 sm:size-11"
             style={{ background: tint(color, 14), color }}
           >
-            <Icon size={20} aria-hidden="true" />
+            {Icon ? <Icon size={20} aria-hidden="true" /> : <Activity size={20} aria-hidden="true" />}
           </span>
-        ) : null}
+        )}
         <div className="min-w-0 flex-1">
           <p className={`heading leading-tight text-text ${valueClassName || 'truncate text-xl sm:text-2xl'}`} aria-live={sensitive ? 'polite' : undefined}>
             {hidden ? '***' : typeof value === 'number' ? <CountUp value={value} format={format} /> : value}

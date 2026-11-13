@@ -274,8 +274,8 @@ export default function Finance() {
           </div>
 
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-            <StatTile label="Money in" value={moneyIn} format={(n) => `Rs ${compact(n)}`} hint="investment + other income" appIcon="pkr" sensitive tone={7} />
-            <StatTile label="Money out" value={moneyOut} format={(n) => `Rs ${compact(n)}`} hint="expenses + withdrawals" appIcon="wallet" sensitive tone={4} delay={50} />
+            <StatTile label={isFiltered ? 'Filtered money in' : 'Money in'} value={moneyIn} format={(n) => `Rs ${compact(n)}`} hint="investment + other income" appIcon="pkr" sensitive tone={7} />
+            <StatTile label={isFiltered ? 'Filtered money out' : 'Money out'} value={moneyOut} format={(n) => `Rs ${compact(n)}`} hint="expenses + withdrawals" appIcon="wallet" sensitive tone={4} delay={50} />
             <StatTile label="Difference" value={moneyIn - moneyOut} format={(n) => `${n < 0 ? '-' : ''}Rs ${compact(Math.abs(n))}`} hint={`${filtered.length} ${filtered.length === 1 ? 'entry' : 'entries'}`} appIcon="coins" sensitive tone={1} delay={100} />
           </div>
 
