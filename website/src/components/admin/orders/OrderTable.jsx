@@ -25,10 +25,10 @@ const ICON_BTN =
 
 const countItems = (order) => parseOrderItems(order).reduce((s, i) => s + (Number(i.quantity) || 0), 0);
 
-// Table on wide screens (xl+), cards below. Clicking a row opens the order drawer.
+// Table on larger screens, cards below. Clicking a row opens the order drawer.
 function Shell({ children, always = false }) {
   return (
-    <div className={`overflow-hidden rounded-lg border border-border bg-surface ${always ? '' : 'hidden xl:block'}`}>
+    <div className={`overflow-hidden rounded-lg border border-border bg-surface ${always ? '' : 'hidden lg:block'}`}>
       <div className="user-scroll overflow-x-auto">
         <table className="w-full min-w-[60rem] text-left">
           <thead className="bg-surface-alt/60 text-xs text-muted">
@@ -121,7 +121,7 @@ const OrderCard = memo(function OrderCard({ order, index, onView }) {
 export default function OrderTable({ orders, onView }) {
   return (
     <>
-      <ul className="grid gap-3 sm:grid-cols-2 xl:hidden">
+      <ul className="grid gap-3 sm:grid-cols-2 lg:hidden">
         {orders.map((o, i) => <OrderCard key={o.$id} order={o} index={i} onView={onView} />)}
       </ul>
       <Shell>

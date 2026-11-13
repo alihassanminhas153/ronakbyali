@@ -6,7 +6,8 @@ import Drawer from '../../../ui/custom/modal/Drawer';
 import Segmented from '../../../ui/custom/input/Segmented';
 import SearchSelect from '../../../ui/custom/input/SearchSelect';
 import DatePicker from '../../../ui/custom/input/DatePicker';
-import { Field, inputCls } from '../../../ui/custom/input/FormField';
+import { Field } from '../../../ui/custom/input/FormField';
+import { inputCls } from '../../../ui/custom/input/inputStyles';
 import { tint, toneVar } from '../../../ui/graphs/utils';
 import { STOCK_CATEGORY, TYPE_META, TYPE_ORDER, toDateKey, toForm, toPayload, validate } from './financeSchema';
 

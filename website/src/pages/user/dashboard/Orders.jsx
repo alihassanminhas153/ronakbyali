@@ -39,7 +39,6 @@ import {
   parseOrderItems,
   orderItemKey,
   selectMyOrders,
-  selectMyOrdersTotal,
   selectMyOrdersStatus,
   selectMyOrdersError,
   selectOrderUpdating,
@@ -182,7 +181,7 @@ function Notice({ type, text, onDismiss }) {
   );
 }
 
-function StatTile({ icon: Icon, appIcon, label, color, sensitive = false, children }) {
+function StatTile({ icon: Icon, appIcon, label, color, tone, sensitive = false, children }) {
   const [hidden, setHidden] = useState(false);
   return (
     <div
@@ -190,7 +189,7 @@ function StatTile({ icon: Icon, appIcon, label, color, sensitive = false, childr
       style={{ '--tile': color }}
     >
       {appIcon ? (
-        <AppIcon name={appIcon} className="size-11 shrink-0 object-contain transition-transform duration-300 group-hover:scale-105" />
+        <AppIcon name={appIcon} tone={tone} className="size-11 shrink-0 object-contain transition-transform duration-300 group-hover:scale-105" />
       ) : (
         <span
           className="grid size-11 shrink-0 place-items-center rounded-lg transition-transform duration-300 group-hover:scale-110"
@@ -580,7 +579,6 @@ export default function Orders() {
   const entered = useEntered();
 
   const orders = useAppSelector(selectMyOrders);
-  const total = useAppSelector(selectMyOrdersTotal);
   const status = useAppSelector(selectMyOrdersStatus);
   const error = useAppSelector(selectMyOrdersError);
   const updating = useAppSelector(selectOrderUpdating);
@@ -751,7 +749,7 @@ export default function Orders() {
         <div className="relative min-w-0 flex-1">
           <span className="block text-[11px] font-semibold uppercase tracking-[0.18em] text-white/70">Order history</span>
           <span className="heading mt-1 block min-h-[1.6em] truncate text-2xl sm:text-3xl">
-            <Typewriter phrases={phrases} />
+            <Typewriter phrases={phrases} icon="list" tone={3} />
           </span>
         </div>
         <Link
@@ -765,16 +763,16 @@ export default function Orders() {
 
       {/* Stats */}
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <StatTile appIcon="list" label="Orders placed" color="var(--accent-tone-1)">
+        <StatTile appIcon="list" label="Orders placed" color="var(--accent-tone-1)" tone={1}>
           <CountUp value={orders.length} />
         </StatTile>
-        <StatTile appIcon="clock" label="Still changeable" color="var(--accent-tone-3)">
+        <StatTile appIcon="clock" label="Still changeable" color="var(--accent-tone-3)" tone={3}>
           <CountUp value={stats.open} />
         </StatTile>
-        <StatTile appIcon="truck" label="Delivered" color="var(--accent-tone-7)">
+        <StatTile appIcon="truck" label="Delivered" color="var(--accent-tone-7)" tone={7}>
           <CountUp value={stats.counts.delivered} />
         </StatTile>
-        <StatTile appIcon="wallet" label="Total spent" color="var(--accent-tone-2)" sensitive>
+        <StatTile appIcon="wallet" label="Total spent" color="var(--accent-tone-2)" tone={2} sensitive>
           {formatMoney(stats.spent)}
         </StatTile>
       </div>

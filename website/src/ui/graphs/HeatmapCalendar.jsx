@@ -11,10 +11,10 @@ const CELL = 13;
 const GAP = 3;
 const LEVELS = [
   'var(--surface-alt)',
-  'color-mix(in srgb, var(--accent) 30%, var(--surface-alt))',
-  'color-mix(in srgb, var(--accent) 55%, var(--surface-alt))',
-  'color-mix(in srgb, var(--accent) 80%, var(--surface-alt))',
-  'var(--accent)',
+  'color-mix(in srgb, var(--chart-accent, var(--accent)) 30%, var(--surface-alt))',
+  'color-mix(in srgb, var(--chart-accent, var(--accent)) 55%, var(--surface-alt))',
+  'color-mix(in srgb, var(--chart-accent, var(--accent)) 80%, var(--surface-alt))',
+  'var(--chart-accent, var(--accent))',
 ];
 const DAYS = ['Mon', '', 'Wed', '', 'Fri', '', ''];
 

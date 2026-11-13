@@ -12,7 +12,7 @@ export function ChartPanel({ icon: Icon, title, subtitle, tone = 1, delay = 0, a
   const color = toneVar(tone);
   return (
     <section
-      style={{ animationDelay: `${delay}ms`, borderTopColor: color }}
+      style={{ animationDelay: `${delay}ms`, borderTopColor: color, '--chart-accent': color }}
       className={`group/panel animate-rise min-w-0 rounded-lg border border-border border-t-2 bg-surface p-3 sm:p-4 ${className}`}
     >
       <header className="mb-3 flex min-w-0 flex-wrap items-start justify-between gap-2 sm:mb-4 sm:flex-nowrap sm:gap-3">
@@ -39,7 +39,7 @@ export function ChartPanel({ icon: Icon, title, subtitle, tone = 1, delay = 0, a
 export function CalendarPanel({ data, label = 'logins', weeks = 26, ...panel }) {
   return (
     <ChartPanel {...panel}>
-      <div style={{ '--accent': toneVar(panel.tone) }}>
+      <div style={{ '--chart-accent': toneVar(panel.tone) }}>
         <HeatmapCalendar data={data} weeks={weeks} label={label} />
       </div>
     </ChartPanel>

@@ -301,7 +301,7 @@ export default function Alerts() {
         <span className="relative min-w-0 flex-1">
           <span className="block text-[11px] font-semibold uppercase tracking-[0.18em] text-white/70">New alert</span>
           <span className="heading mt-1 block min-h-[1.6em] truncate text-xl sm:text-3xl">
-            <Typewriter phrases={CTA_PHRASES} />
+            <Typewriter phrases={CTA_PHRASES} icon="alert" tone={4} />
           </span>
           <span className="mt-0.5 hidden text-sm text-white/75 sm:block">Write it once and customers see it as a bar or a popup.</span>
         </span>

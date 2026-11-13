@@ -6,7 +6,8 @@ import financeService from '../../../lib/appwrite/finance';
 import Drawer from '../../../ui/custom/modal/Drawer';
 import SearchSelect from '../../../ui/custom/input/SearchSelect';
 import SwitchField from '../../../ui/custom/input/SwitchField';
-import { Field, inputCls } from '../../../ui/custom/input/FormField';
+import { Field } from '../../../ui/custom/input/FormField';
+import { inputCls } from '../../../ui/custom/input/inputStyles';
 import { STOCK_CATEGORY, rs, toDateKey, keyToIso } from './financeSchema';
 
 // Adds stock to a product and (optionally) records what it cost.

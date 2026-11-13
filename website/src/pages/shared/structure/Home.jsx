@@ -1,6 +1,5 @@
 import { useCallback, useId, useState } from "react";
 import { Check, Copy, Globe, MessageCircle, Phone } from "lucide-react";
-import ThemeToggle from "../../../ui/custom/toggles/ThemeToggle";
 
 const OWNER = "Ali Hassan Minhas";
 const PHONE_DISPLAY = "+92 321 8854601";

@@ -1,9 +1,5 @@
-import React from 'react'
-
 function Disclaimer() {
-  return (
-    <div>Disclaimer</div>
-  )
+  return <div>Disclaimer</div>;
 }
 
-export default Disclaimer
+export default Disclaimer;

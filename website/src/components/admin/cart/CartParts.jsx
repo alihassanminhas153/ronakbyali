@@ -25,7 +25,7 @@ export function StockBadge({ stock }) {
 }
 
 function Thumb({ product }) {
-  let src = null;
+  let src;
   try {
     src = product ? productService.getMainImageUrl(product) : null;
   } catch {

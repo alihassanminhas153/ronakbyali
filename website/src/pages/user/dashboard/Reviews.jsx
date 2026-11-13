@@ -452,7 +452,6 @@ function ReviewsView({ me }) {
   // any filter change goes back to the first page
   useEffect(() => setLimit(PAGE_SIZE), [filter, query, sort]);
 
-  const filtersOn = query.trim() !== '' || filter !== 'all' || sort !== 'newest';
   const resetFilters = () => {
     setQuery('');
     setFilter('all');

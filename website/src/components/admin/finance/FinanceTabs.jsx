@@ -8,7 +8,7 @@ import productService from '../../../lib/appwrite/product';
 import {
   BarChart, ChartCard, Donut, HeatmapCalendar, Histogram, StatTile, TrendGraph, colorFor, compact,
 } from '../../../ui/graphs';
-import { inputCls } from '../../../ui/custom/input/FormField';
+import { inputCls } from '../../../ui/custom/input/inputStyles';
 import { rs } from './financeSchema';
 
 const grid = 'grid gap-4 lg:grid-cols-2';

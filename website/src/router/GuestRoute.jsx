@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Navigate, Outlet } from "react-router";
 import useSession from "./useSession";
 
@@ -12,12 +12,20 @@ import useSession from "./useSession";
 //    customers -> /products), so the two redirects can never fight each other.
 export default function GuestRoute() {
   const { isReady, isLoggedIn, panel } = useSession();
-  const arrivedLoggedIn = useRef(null);
+  const seenLoggedIn = useRef(false);
+  const [arrivedLoggedIn, setArrivedLoggedIn] = useState(false);
+
+  useEffect(() => {
+    if (!isReady) return;
+    if (!seenLoggedIn.current) {
+      seenLoggedIn.current = true;
+      setArrivedLoggedIn(isLoggedIn);
+    }
+  }, [isReady, isLoggedIn]);
 
   if (!isReady) return null;
-  if (arrivedLoggedIn.current === null) arrivedLoggedIn.current = isLoggedIn;
 
-  if (isLoggedIn && arrivedLoggedIn.current) {
+  if (isLoggedIn && arrivedLoggedIn) {
     return <Navigate to={panel} replace />;
   }
   return <Outlet />;

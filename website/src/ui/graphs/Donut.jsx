@@ -62,7 +62,7 @@ export default function Donut({ data = [], centerLabel = 'total', format = (n) =
             className="flex min-w-0 cursor-default items-center gap-1.5 rounded-md px-1.5 py-1 text-[11px] transition-colors hover:bg-surface-alt sm:gap-2 sm:px-2 sm:text-xs"
           >
             <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: s.color }} />
-            <span className="min-w-0 flex-1 truncate text-text">{s.label}</span>
+            <span className="min-w-0 flex-1 truncate" style={{ color: s.color }}>{s.label}</span>
             <span className="min-w-0 max-w-[35%] truncate text-right text-muted tabular-nums" title={format(s.value)}>{format(s.value)}</span>
             <span className="w-9 shrink-0 text-right text-muted tabular-nums">{s.pct}%</span>
           </li>

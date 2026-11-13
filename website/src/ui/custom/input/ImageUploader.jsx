@@ -19,10 +19,13 @@ export default function ImageUploader({
 }) {
   const inputRef = useRef(null);
   const latest = useRef(items);
-  latest.current = items;
 
   const [dragging, setDragging] = useState(false);
   const [problem, setProblem] = useState('');
+
+  useEffect(() => {
+    latest.current = items;
+  }, [items]);
 
   // free the preview URLs of unsaved files when the form closes
   useEffect(

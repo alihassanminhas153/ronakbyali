@@ -133,7 +133,7 @@ export default function Overview() {
           <div className="min-w-0 flex-1">
             <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/70">Needs attention</p>
             <p className="heading mt-1 min-h-[1.6em] truncate text-xl sm:text-3xl">
-              {firstLoad ? 'Checking your store…' : <Typewriter phrases={heroPhrases} />}
+              {firstLoad ? 'Checking your store…' : <Typewriter phrases={heroPhrases} icon="histogram" tone={1} />}
             </p>
           </div>
         </div>

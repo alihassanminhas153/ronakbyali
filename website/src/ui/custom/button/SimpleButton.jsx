@@ -1,9 +1,5 @@
-import React from 'react'
-
 function SimpleButton() {
-  return (
-    <div>SimpleButton</div>
-  )
+  return <div>SimpleButton</div>;
 }
 
-export default SimpleButton
+export default SimpleButton;

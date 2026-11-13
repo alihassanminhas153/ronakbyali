@@ -7,7 +7,7 @@ export default function ChartCard({ title, subtitle, icon: Icon, appIcon, tone =
   const color = toneVar(tone);
   return (
     <section
-      style={{ animationDelay: `${delay}ms`, '--card-tone': color }}
+      style={{ animationDelay: `${delay}ms`, '--card-tone': color, '--chart-accent': color }}
       className={`group/card animate-rise min-w-0 rounded-lg border border-border bg-surface p-3 transition-all duration-300 hover:-translate-y-0.5 hover:border-[color-mix(in_srgb,var(--card-tone)_45%,var(--border))] sm:p-5 ${className}`}
     >
       <header className="mb-3 flex min-w-0 flex-wrap items-start justify-between gap-2 sm:mb-4 sm:flex-nowrap sm:gap-3">
@@ -15,6 +15,7 @@ export default function ChartCard({ title, subtitle, icon: Icon, appIcon, tone =
           {appIcon ? (
             <AppIcon
               name={appIcon}
+              tone={typeof tone === 'number' ? tone : 1}
               className="h-9 w-9 shrink-0 object-contain transition-transform duration-300 group-hover/card:-rotate-6 group-hover/card:scale-110"
             />
           ) : Icon ? (

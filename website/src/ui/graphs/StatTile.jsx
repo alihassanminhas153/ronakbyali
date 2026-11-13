@@ -29,6 +29,7 @@ export default function StatTile({
       {appIcon ? (
         <AppIcon
           name={appIcon}
+          tone={tone}
           className="size-10 shrink-0 object-contain transition-transform duration-300 group-hover/tile:scale-105 sm:size-12"
         />
       ) : Icon ? (

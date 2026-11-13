@@ -287,7 +287,7 @@ export default function Users() {
         <span className="relative min-w-0 flex-1">
           <span className="block text-[11px] font-semibold uppercase tracking-[0.18em] text-white/70">People</span>
           <span className="heading mt-1 block min-h-[1.6em] truncate text-xl sm:text-3xl">
-            <Typewriter phrases={BANNER_PHRASES} />
+            <Typewriter phrases={BANNER_PHRASES} icon="customers" tone={7} />
           </span>
           <span className="mt-0.5 hidden text-sm text-white/75 sm:block">Every account, how they sign in and when they were last here.</span>
         </span>

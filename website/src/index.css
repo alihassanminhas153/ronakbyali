@@ -60,15 +60,23 @@
   --brown-hover: #5a3419;
   --on-brown: #ffffff;
 
-  /* Warm accent shades for panel cards, navigation, and charts. */
-  --accent-tone-1: #c2571a;
-  --accent-tone-2: #9c4313;
-  --accent-tone-3: #7a4a2b;
-  --accent-tone-4: #b45019;
-  --accent-tone-5: #a84c19;
-  --accent-tone-6: #984716;
-  --accent-tone-7: #874014;
-  --accent-tone-8: #783b13;
+  /* Shared hue steps keep chart colors, labels and filtered app icons aligned. */
+  --tone-hue-1: 0deg;
+  --tone-hue-2: 32deg;
+  --tone-hue-3: 190deg;
+  --tone-hue-4: 336deg;
+  --tone-hue-5: 145deg;
+  --tone-hue-6: 230deg;
+  --tone-hue-7: 95deg;
+  --tone-hue-8: 285deg;
+  --accent-tone-1: var(--accent);
+  --accent-tone-2: hsl(calc(22deg + var(--tone-hue-2)) 68% 40%);
+  --accent-tone-3: hsl(calc(22deg + var(--tone-hue-3)) 68% 40%);
+  --accent-tone-4: hsl(calc(22deg + var(--tone-hue-4)) 68% 40%);
+  --accent-tone-5: hsl(calc(22deg + var(--tone-hue-5)) 68% 36%);
+  --accent-tone-6: hsl(calc(22deg + var(--tone-hue-6)) 68% 40%);
+  --accent-tone-7: hsl(calc(22deg + var(--tone-hue-7)) 68% 34%);
+  --accent-tone-8: hsl(calc(22deg + var(--tone-hue-8)) 68% 38%);
 
   --cta-1: var(--brown);
   --cta-2: var(--accent);
@@ -120,14 +128,14 @@
   --brown-hover: #b4743f;
   --on-brown: #ffffff;
 
-  --accent-tone-1: #f0803c;
-  --accent-tone-2: #ff9a5c;
-  --accent-tone-3: #b4743f;
-  --accent-tone-4: #e97837;
-  --accent-tone-5: #d96f32;
-  --accent-tone-6: #c86730;
-  --accent-tone-7: #b55f2d;
-  --accent-tone-8: #a55529;
+  --accent-tone-1: var(--accent);
+  --accent-tone-2: hsl(calc(22deg + var(--tone-hue-2)) 78% 66%);
+  --accent-tone-3: hsl(calc(22deg + var(--tone-hue-3)) 76% 66%);
+  --accent-tone-4: hsl(calc(22deg + var(--tone-hue-4)) 76% 68%);
+  --accent-tone-5: hsl(calc(22deg + var(--tone-hue-5)) 76% 66%);
+  --accent-tone-6: hsl(calc(22deg + var(--tone-hue-6)) 78% 68%);
+  --accent-tone-7: hsl(calc(22deg + var(--tone-hue-7)) 76% 62%);
+  --accent-tone-8: hsl(calc(22deg + var(--tone-hue-8)) 76% 66%);
 
   --success: var(--accent-tone-7);
   --warning: var(--accent-tone-2);

@@ -253,7 +253,7 @@ export default function Reviews() {
         <span className="relative min-w-0 flex-1">
           <span className="block text-[11px] font-semibold uppercase tracking-[0.18em] text-white/70">Moderation desk</span>
           <span className="heading mt-1 block min-h-[1.6em] truncate text-xl sm:text-3xl">
-            <Typewriter key={pending} phrases={phrases} />
+            <Typewriter key={pending} phrases={phrases} icon="reviews" tone={6} />
           </span>
           <span className="mt-0.5 hidden text-sm text-white/75 sm:block">Approve, reject or reply so only the reviews you trust reach your product pages.</span>
         </span>

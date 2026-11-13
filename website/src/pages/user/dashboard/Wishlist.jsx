@@ -397,7 +397,7 @@ export default function Wishlist() {
         <div className="relative min-w-0 flex-1">
           <span className="block text-[11px] font-semibold uppercase tracking-[0.18em] text-white/70">Saved for later</span>
           <span className="heading mt-1 block min-h-[1.6em] truncate text-2xl sm:text-3xl">
-            <Typewriter phrases={phrases} />
+            <Typewriter phrases={phrases} icon="popular" tone={6} />
           </span>
         </div>
         {items.length > 0 ? (

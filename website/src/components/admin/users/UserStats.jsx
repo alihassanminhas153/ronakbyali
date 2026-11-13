@@ -9,7 +9,7 @@ import { tint } from '../../../ui/graphs/utils';
 import { RoleBadge } from './UserBadges';
 import { ROLE_VALUES, formatMoney } from './userFields';
 
-function Tile({ label, icon: Icon, appIcon, color, index, loading, count, text, sensitive = false }) {
+function Tile({ label, icon: Icon, appIcon, color, tone, index, loading, count, text, sensitive = false }) {
   const [hidden, setHidden] = useState(false);
   return (
     <div
@@ -39,7 +39,7 @@ function Tile({ label, icon: Icon, appIcon, color, index, loading, count, text, 
             {hidden ? '••••••' : text ?? <CountUp value={count} />}
           </p>
           {appIcon ? (
-            <AppIcon name={appIcon} className="size-9 shrink-0 object-contain transition-transform duration-300 group-hover/tile:scale-105" />
+            <AppIcon name={appIcon} tone={tone} className="size-9 shrink-0 object-contain transition-transform duration-300 group-hover/tile:scale-105" />
           ) : Icon ? (
             <span className="grid size-8 shrink-0 place-items-center rounded-lg" style={{ background: tint(color, 14), color }}>
               <Icon size={16} aria-hidden="true" />
@@ -56,11 +56,11 @@ export default function UserStats({ loading = false }) {
   const stats = useAppSelector(selectUserStats);
 
   const tiles = [
-    { label: 'Total users', appIcon: 'customers', color: 'var(--accent-tone-1)', count: stats.total },
-    { label: 'Active', appIcon: 'user', color: 'var(--accent-tone-7)', count: stats.active },
-    { label: 'Blocked', appIcon: 'alert', color: 'var(--accent-tone-4)', count: stats.blocked },
-    { label: 'Orders', appIcon: 'list', color: 'var(--accent-tone-5)', count: stats.orders },
-    { label: 'Total spent', appIcon: 'pkr', color: 'var(--accent-tone-3)', text: formatMoney(stats.totalSpent), sensitive: true },
+    { label: 'Total users', appIcon: 'customers', color: 'var(--accent-tone-1)', tone: 1, count: stats.total },
+    { label: 'Active', appIcon: 'user', color: 'var(--accent-tone-7)', tone: 7, count: stats.active },
+    { label: 'Blocked', appIcon: 'alert', color: 'var(--accent-tone-4)', tone: 4, count: stats.blocked },
+    { label: 'Orders', appIcon: 'list', color: 'var(--accent-tone-5)', tone: 5, count: stats.orders },
+    { label: 'Total spent', appIcon: 'pkr', color: 'var(--accent-tone-3)', tone: 3, text: formatMoney(stats.totalSpent), sensitive: true },
   ];
   const roles = ROLE_VALUES.filter((role) => stats.byRole[role]);
 

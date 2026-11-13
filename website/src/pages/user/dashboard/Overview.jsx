@@ -199,12 +199,15 @@ function OverviewView({ me }) {
   const avatarUrl = getAvatarUrl(me.avatarFileId);
   const showAvatar = Boolean(avatarUrl) && avatarUrl !== brokenUrl;
   const firstName = (me.name || me.username || '').split(' ')[0];
-  const checklist = [
-    { label: 'Profile photo', done: showAvatar },
-    { label: 'Phone number', done: Boolean(me.phone) },
-    { label: 'City', done: Boolean(me.lastCity) },
-    { label: 'Delivery address', done: Boolean(me.lastAddress) },
-  ];
+  const checklist = useMemo(
+    () => [
+      { label: 'Profile photo', done: showAvatar },
+      { label: 'Phone number', done: Boolean(me.phone) },
+      { label: 'City', done: Boolean(me.lastCity) },
+      { label: 'Delivery address', done: Boolean(me.lastAddress) },
+    ],
+    [me.lastAddress, me.lastCity, me.phone, showAvatar]
+  );
   const percent = Math.round(((2 + checklist.filter((i) => i.done).length) / (2 + checklist.length)) * 100);
 
   // numbers
@@ -262,7 +265,7 @@ function OverviewView({ me }) {
     return list;
   }, [o.open, cartCount, bars.length, percent, checklist]);
 
-  const hello = useMemo(greeting, []);
+  const hello = useMemo(() => greeting(), []);
   const heroPhrases = useMemo(
     () => [
       `${hello}, ${firstName}`,
@@ -330,7 +333,7 @@ function OverviewView({ me }) {
           <div className="min-w-0 flex-1">
             <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/70">{capitalize(me.role)} account</p>
             <p className="heading mt-1 min-h-[1.6em] truncate text-xl sm:text-3xl">
-              {firstLoad ? 'Checking your account…' : <Typewriter phrases={heroPhrases} />}
+              {firstLoad ? 'Checking your account…' : <Typewriter phrases={heroPhrases} icon="histogram" tone={1} />}
             </p>
             <p className="mt-0.5 hidden text-sm text-white/75 sm:block">
               {orderCount > 0
