@@ -2,6 +2,7 @@
 // Same look as Profile.jsx: gradient hero, StatTile cards, rounded-xl bordered surfaces,
 // graph-colour accents, Notice banner, Refresh button with "Updated x ago".
 import PanelPageTitle from '../../../ui/custom/PanelPageTitle';
+import AppIcon from '../../../ui/custom/AppIcon';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router';
 import {
@@ -59,7 +60,7 @@ import SelectInput from '../../../ui/custom/input/SelectInput';
 import HeatmapCalendar from '../../../ui/graphs/HeatmapCalendar';
 import { capitalize, formatDateTime, formatMoney } from '../../../components/user/profile/profileMeta';
 import { paidAmountForOrder } from '../../../lib/orderMath';
-import AppIcon from '../../../ui/custom/AppIcon';
+import { entityColorStep, toneColor } from '../../../lib/entityColors';
 
 /* =====================================================================
    CONFIG
@@ -71,13 +72,13 @@ const STEPS = ['pending', 'confirmed', 'processing', 'shipped', 'delivered'];
 
 // One colour per real status (graph palette, so it follows light/dark).
 const STATUS = {
-  pending:    { label: 'Received',       color: 'var(--accent-tone-3)', icon: Clock,        note: 'We have your order and will confirm it soon.' },
-  confirmed:  { label: 'Confirmed',      color: 'var(--accent-tone-5)', icon: Check,        note: 'Your order is confirmed.' },
-  processing: { label: 'Being prepared', color: 'var(--accent-tone-1)', icon: PackageCheck, note: 'We are getting your order ready.' },
-  shipped:    { label: 'Shipped',        color: 'var(--accent-tone-6)', icon: Truck,        note: 'Your order is on its way. It can no longer be changed.' },
-  delivered:  { label: 'Delivered',      color: 'var(--accent-tone-7)', icon: Check,        note: 'Your order was delivered.' },
-  cancelled:  { label: 'Cancelled',      color: 'var(--accent-tone-8)', icon: XCircle,      note: 'This order was cancelled.' },
-  returned:   { label: 'Returned',       color: 'var(--accent-tone-4)', icon: Undo2,        note: 'This order was returned.' },
+  pending:    { label: 'Received',       color: toneColor(entityColorStep('orderStatus', 'pending')), icon: Clock,        note: 'We have your order and will confirm it soon.' },
+  confirmed:  { label: 'Confirmed',      color: toneColor(entityColorStep('orderStatus', 'confirmed')), icon: Check,        note: 'Your order is confirmed.' },
+  processing: { label: 'Being prepared', color: toneColor(entityColorStep('orderStatus', 'processing')), icon: PackageCheck, note: 'We are getting your order ready.' },
+  shipped:    { label: 'Shipped',        color: toneColor(entityColorStep('orderStatus', 'shipped')), icon: Truck,        note: 'Your order is on its way. It can no longer be changed.' },
+  delivered:  { label: 'Delivered',      color: toneColor(entityColorStep('orderStatus', 'delivered')), icon: Check,        note: 'Your order was delivered.' },
+  cancelled:  { label: 'Cancelled',      color: toneColor(entityColorStep('orderStatus', 'cancelled')), icon: XCircle,      note: 'This order was cancelled.' },
+  returned:   { label: 'Returned',       color: toneColor(entityColorStep('orderStatus', 'returned')), icon: Undo2,        note: 'This order was returned.' },
 };
 const FILTERS = ['all', ...Object.keys(STATUS)];
 
@@ -185,36 +186,38 @@ function StatTile({ icon: Icon, appIcon, label, color, tone, sensitive = false, 
   const [hidden, setHidden] = useState(false);
   return (
     <div
-      className="group flex items-center gap-3 rounded-xl border border-border bg-surface p-4 shadow-soft transition-all duration-200 hover:-translate-y-0.5 hover:border-[color:var(--tile)]"
+      className="group flex min-w-0 flex-col gap-3 rounded-xl border border-border bg-surface p-4 shadow-soft transition-all duration-200 hover:-translate-y-0.5 hover:border-[color:var(--tile)]"
       style={{ '--tile': color }}
     >
+      <div className="flex min-w-0 items-center justify-between gap-2">
+        <p className="min-w-0 truncate text-xs text-muted">{label}</p>
+        {sensitive && (
+          <button
+            type="button"
+            onClick={() => setHidden((current) => !current)}
+            aria-label={`${hidden ? 'Show' : 'Hide'} ${label}`}
+            aria-pressed={hidden}
+            title={`${hidden ? 'Show' : 'Hide'} amount`}
+            className="grid size-7 shrink-0 place-items-center rounded-md text-muted transition-colors hover:bg-surface-alt hover:text-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+          >
+            {hidden ? <EyeOff size={16} aria-hidden="true" /> : <Eye size={16} aria-hidden="true" />}
+          </button>
+        )}
+      </div>
+      <div className="flex min-w-0 items-end gap-3">
       {appIcon ? (
-        <AppIcon name={appIcon} tone={tone} className="size-11 shrink-0 object-contain transition-transform duration-300 group-hover:scale-105" />
+        <AppIcon name={appIcon} tone={tone} className="size-10 shrink-0 object-contain transition-transform duration-300 group-hover:scale-105 sm:size-11" />
       ) : (
         <span
-          className="grid size-11 shrink-0 place-items-center rounded-lg transition-transform duration-300 group-hover:scale-110"
+          className="grid size-10 shrink-0 place-items-center rounded-lg transition-transform duration-300 group-hover:scale-110 sm:size-11"
           style={{ background: `color-mix(in srgb, ${color} 15%, transparent)`, color }}
         >
           <Icon size={20} aria-hidden="true" />
         </span>
       )}
       <div className="min-w-0 flex-1">
-        <div className="flex items-center justify-between gap-2">
-          <p className="truncate text-xs text-muted">{label}</p>
-          {sensitive && (
-            <button
-              type="button"
-              onClick={() => setHidden((current) => !current)}
-              aria-label={`${hidden ? 'Show' : 'Hide'} ${label}`}
-              aria-pressed={hidden}
-              title={`${hidden ? 'Show' : 'Hide'} amount`}
-              className="grid size-7 shrink-0 place-items-center rounded-md text-muted transition-colors hover:bg-surface-alt hover:text-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-            >
-              {hidden ? <EyeOff size={16} aria-hidden="true" /> : <Eye size={16} aria-hidden="true" />}
-            </button>
-          )}
-        </div>
-        <p className="truncate font-display text-xl font-semibold text-text">{hidden ? '••••••' : children}</p>
+        <p className="truncate font-display text-xl font-semibold text-text">{hidden ? '***' : children}</p>
+      </div>
       </div>
     </div>
   );
@@ -744,12 +747,12 @@ export default function Orders() {
 
         <div className="relative grid size-20 shrink-0 place-items-center rounded-full border-2 border-white/40 bg-white/15">
           <span aria-hidden="true" className="absolute inset-0 animate-ring rounded-full border-2 border-white/70" />
-          <ShoppingBag size={34} aria-hidden="true" />
+          <AppIcon name="list" entity="order" hueRotate={false} className="size-14 object-contain sm:size-16" />
         </div>
         <div className="relative min-w-0 flex-1">
           <span className="block text-[11px] font-semibold uppercase tracking-[0.18em] text-white/70">Order history</span>
           <span className="heading mt-1 block min-h-[1.6em] truncate text-2xl sm:text-3xl">
-            <Typewriter phrases={phrases} icon="list" tone={3} />
+            <Typewriter phrases={phrases} />
           </span>
         </div>
         <Link

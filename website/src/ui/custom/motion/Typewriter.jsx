@@ -1,11 +1,9 @@
 import { useEffect, useState } from 'react';
-import AppIcon from '../AppIcon';
-import { toneVar } from '../../graphs/utils';
 
 // Types a phrase, waits, deletes it, then types the next one.
 //   const PHRASES = ['Add a new product', 'Upload images'];   (define OUTSIDE the component)
 //   <Typewriter phrases={PHRASES} />
-export default function Typewriter({ phrases, typeMs = 55, deleteMs = 28, pauseMs = 1700, className = '', icon, tone = 1 }) {
+export default function Typewriter({ phrases, typeMs = 55, deleteMs = 28, pauseMs = 1700, className = '' }) {
   const reduce = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
   const [text, setText] = useState('');
   const [index, setIndex] = useState(0);
@@ -22,10 +20,9 @@ export default function Typewriter({ phrases, typeMs = 55, deleteMs = 28, pauseM
   }, [text, deleting, index, phrases, typeMs, deleteMs, pauseMs, reduce]);
 
   return (
-    <span className={`inline-flex max-w-full items-center gap-2 ${className}`}>
-      {icon && <AppIcon name={icon} tone={tone} className="size-6 shrink-0 object-contain sm:size-7" />}
+    <span className={`inline-flex max-w-full items-center ${className}`}>
       <span className="sr-only">{phrases[0]}</span>
-      <span className="min-w-0 truncate rounded-sm bg-white/90 px-1.5" style={{ color: toneVar(tone) }} aria-hidden="true">
+      <span className="min-w-0 truncate" style={{ color: 'var(--on-brown)' }} aria-hidden="true">
         {reduce ? phrases[0] : text}
         {!reduce && <span className="animate-caret ml-0.5 inline-block h-[0.9em] w-0.5 translate-y-[0.1em] bg-current" />}
       </span>

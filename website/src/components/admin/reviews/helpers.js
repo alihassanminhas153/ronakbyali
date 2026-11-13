@@ -1,10 +1,11 @@
 import { Check, Clock, X } from 'lucide-react';
+import { entityColorStep } from '../../../lib/entityColors';
 
 // tone = which theme accent shade the status uses in badges, charts, and cards
 export const STATUS_META = {
-  pending: { label: 'Pending', tone: 3, icon: Clock },
-  approved: { label: 'Approved', tone: 7, icon: Check },
-  rejected: { label: 'Rejected', tone: 4, icon: X },
+  pending: { label: 'Pending', tone: entityColorStep('reviewStatus', 'pending'), icon: Clock },
+  approved: { label: 'Approved', tone: entityColorStep('reviewStatus', 'approved'), icon: Check },
+  rejected: { label: 'Rejected', tone: entityColorStep('reviewStatus', 'rejected'), icon: X },
 };
 export const STATUS_ORDER = ['pending', 'approved', 'rejected'];
 

@@ -1,9 +1,30 @@
 @import "tailwindcss";
 
-/* Dark mode works with either <html class="dark"> or <html data-theme="dark"> */
+/* ==========================================================================
+   INDEX.CSS  (single file: Tailwind + theme + colour system)
+
+   CONTENTS
+     1. Dark-mode switch
+     2. Fonts
+     3. Theme variables: LIGHT  (neutrals, accent, tone steps, semantic colours)
+     4. Theme variables: DARK
+     5. Tailwind mapping  (@theme inline  = colours,  @theme = fonts/animations)
+     6. Base styles
+     7. Components  (buttons, cards, icon tints, badges)
+     8. Responsive tweaks
+     9. Usage examples (comment only)
+
+   COLOUR SYSTEM IN ONE PARAGRAPH
+   --accent-hue is the hue of your accent-coloured .ico icons. Eight
+   --accent-tone-N values serve charts and labels. ICO filters use only the
+   accent plus four rotations; banner ICOs can retain their
+   original colors. Semantic names point at these shared values.
+   ========================================================================== */
+
+/* ---------- 1. Dark mode works with either <html class="dark"> or <html data-theme="dark"> ---------- */
 @custom-variant dark (&:where(.dark, .dark *, [data-theme="dark"], [data-theme="dark"] *));
 
-/* ---------- Fonts (self-hosted, files in /public/fonts) ---------- */
+/* ---------- 2. Fonts (self-hosted, files in /public/fonts) ---------- */
 @font-face {
   font-family: "Barlow Condensed";
   src: url("/public/fonts/BarlowCondensed-SemiBold.ttf") format("truetype");
@@ -35,7 +56,7 @@
   font-display: swap;
 }
 
-/* ---------- Theme variables: LIGHT (default) ----------
+/* ---------- 3. Theme variables: LIGHT (default) ----------
    Neutral base + one orange accent family. */
 :root {
   color-scheme: light;
@@ -60,23 +81,28 @@
   --brown-hover: #5a3419;
   --on-brown: #ffffff;
 
-  /* Shared hue steps keep chart colors, labels and filtered app icons aligned. */
-  --tone-hue-1: 0deg;
-  --tone-hue-2: 32deg;
-  --tone-hue-3: 190deg;
-  --tone-hue-4: 336deg;
-  --tone-hue-5: 145deg;
-  --tone-hue-6: 230deg;
-  --tone-hue-7: 95deg;
-  --tone-hue-8: 285deg;
+  /* ---- Hue source ----
+     Hue (in degrees) of the accent colour your .ico icons are drawn in.
+     #c2571a is about 22deg. If you ever change the icon colour, change ONLY this. */
+  --accent-hue: 22deg;
+
+  /* Eight steps for charts and labels; ICO filters use four selected hues. */
+  --tone-hue-1: 0deg;     /* accent orange (the icon colour itself) */
+  --tone-hue-2: 32deg;    /* amber        */
+  --tone-hue-3: 190deg;   /* blue         */
+  --tone-hue-4: 336deg;   /* red / rose   */
+  --tone-hue-5: 145deg;   /* teal         */
+  --tone-hue-6: 230deg;   /* indigo       */
+  --tone-hue-7: 95deg;    /* green        */
+  --tone-hue-8: 285deg;   /* purple       */
   --accent-tone-1: var(--accent);
-  --accent-tone-2: hsl(calc(22deg + var(--tone-hue-2)) 68% 40%);
-  --accent-tone-3: hsl(calc(22deg + var(--tone-hue-3)) 68% 40%);
-  --accent-tone-4: hsl(calc(22deg + var(--tone-hue-4)) 68% 40%);
-  --accent-tone-5: hsl(calc(22deg + var(--tone-hue-5)) 68% 36%);
-  --accent-tone-6: hsl(calc(22deg + var(--tone-hue-6)) 68% 40%);
-  --accent-tone-7: hsl(calc(22deg + var(--tone-hue-7)) 68% 34%);
-  --accent-tone-8: hsl(calc(22deg + var(--tone-hue-8)) 68% 38%);
+  --accent-tone-2: hsl(calc(var(--accent-hue) + var(--tone-hue-2)) 68% 40%);
+  --accent-tone-3: hsl(calc(var(--accent-hue) + var(--tone-hue-3)) 68% 40%);
+  --accent-tone-4: hsl(calc(var(--accent-hue) + var(--tone-hue-4)) 68% 40%);
+  --accent-tone-5: hsl(calc(var(--accent-hue) + var(--tone-hue-5)) 68% 36%);
+  --accent-tone-6: hsl(calc(var(--accent-hue) + var(--tone-hue-6)) 68% 40%);
+  --accent-tone-7: hsl(calc(var(--accent-hue) + var(--tone-hue-7)) 68% 34%);
+  --accent-tone-8: hsl(calc(var(--accent-hue) + var(--tone-hue-8)) 68% 38%);
 
   --cta-1: var(--brown);
   --cta-2: var(--accent);
@@ -85,7 +111,59 @@
   --success: var(--accent-tone-7);
   --warning: var(--accent-tone-2);
   --error: #c0392b;
+  --info: var(--accent-tone-3);
   --shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+
+  /* ---- Semantic icon rotations (limited to the same four ICO hues) ----
+     Use with hue-rotate-(--rot-success) or the .icon-success class. */
+  --rot-accent: var(--tone-hue-1);
+  --rot-success: var(--tone-hue-1);
+  --rot-warning: var(--tone-hue-2);
+  --rot-error: var(--tone-hue-4);
+  --rot-info: var(--tone-hue-3);
+
+  /* ---- User role labels ---- */
+  --role-owner: var(--accent-tone-8);
+  --role-admin: var(--accent-tone-1);
+  --role-member: var(--accent-tone-3);
+  --role-guest: var(--text-muted);
+  --rot-owner: var(--tone-hue-4);
+  --rot-admin: var(--tone-hue-1);
+  --rot-member: var(--tone-hue-3);
+  --rot-guest: var(--tone-hue-1);   /* guest icons are also desaturated, see .icon-guest */
+
+  /* ---- Chart series (ordered so neighbouring series contrast well) ---- */
+  --chart-1: var(--accent-tone-1);   /* orange */
+  --chart-2: var(--accent-tone-3);   /* blue   */
+  --chart-3: var(--accent-tone-5);   /* teal   */
+  --chart-4: var(--accent-tone-8);   /* purple */
+  --chart-5: var(--accent-tone-2);   /* amber  */
+  --chart-6: var(--accent-tone-6);   /* indigo */
+  --chart-7: var(--accent-tone-4);   /* rose   */
+  --chart-8: var(--accent-tone-7);   /* green  */
+  --chart-neutral: color-mix(in srgb, var(--text-muted) 65%, var(--bg));
+  --chart-positive: var(--success);
+  --chart-negative: var(--error);
+
+  /* Matching icon rotations for legend icons next to a series */
+  --chart-1-rot: var(--tone-hue-1);
+  --chart-2-rot: var(--tone-hue-3);
+  --chart-3-rot: var(--tone-hue-5);
+  --chart-4-rot: var(--tone-hue-8);
+  --chart-5-rot: var(--tone-hue-2);
+  --chart-6-rot: var(--tone-hue-6);
+  --chart-7-rot: var(--tone-hue-4);
+  --chart-8-rot: var(--tone-hue-7);
+
+  /* Chart chrome (axes, grid, tooltip). Tooltip inverts with the theme. */
+  --chart-grid: color-mix(in srgb, var(--text-muted) 22%, transparent);
+  --chart-axis: var(--text-muted);
+  --chart-label: var(--text-muted);
+  --chart-tooltip-bg: var(--text);
+  --chart-tooltip-text: var(--bg);
+
+  /* Strength of tinted backgrounds (badges, chips, alerts) */
+  --soft-mix: 12%;
 
   /* Coming-soon page shadow colour (used as var(--card-shadow)) */
   --card-shadow: rgba(0, 0, 0, 0.08);
@@ -106,7 +184,9 @@
   --btn-hover: var(--brown-hover);
 }
 
-/* ---------- DARK (opt-in: dark gray / light black, white text) ---------- */
+/* ---------- 4. DARK (opt-in: dark gray / light black, white text) ----------
+   Only lightness and a few neutrals change. Hue steps, semantic maps and chart
+   order are inherited from :root and re-resolve with the lighter tones. */
 :root[data-theme="dark"],
 .dark {
   color-scheme: dark;
@@ -129,24 +209,28 @@
   --on-brown: #ffffff;
 
   --accent-tone-1: var(--accent);
-  --accent-tone-2: hsl(calc(22deg + var(--tone-hue-2)) 78% 66%);
-  --accent-tone-3: hsl(calc(22deg + var(--tone-hue-3)) 76% 66%);
-  --accent-tone-4: hsl(calc(22deg + var(--tone-hue-4)) 76% 68%);
-  --accent-tone-5: hsl(calc(22deg + var(--tone-hue-5)) 76% 66%);
-  --accent-tone-6: hsl(calc(22deg + var(--tone-hue-6)) 78% 68%);
-  --accent-tone-7: hsl(calc(22deg + var(--tone-hue-7)) 76% 62%);
-  --accent-tone-8: hsl(calc(22deg + var(--tone-hue-8)) 76% 66%);
+  --accent-tone-2: hsl(calc(var(--accent-hue) + var(--tone-hue-2)) 78% 66%);
+  --accent-tone-3: hsl(calc(var(--accent-hue) + var(--tone-hue-3)) 76% 66%);
+  --accent-tone-4: hsl(calc(var(--accent-hue) + var(--tone-hue-4)) 76% 68%);
+  --accent-tone-5: hsl(calc(var(--accent-hue) + var(--tone-hue-5)) 76% 66%);
+  --accent-tone-6: hsl(calc(var(--accent-hue) + var(--tone-hue-6)) 78% 68%);
+  --accent-tone-7: hsl(calc(var(--accent-hue) + var(--tone-hue-7)) 76% 62%);
+  --accent-tone-8: hsl(calc(var(--accent-hue) + var(--tone-hue-8)) 76% 66%);
 
   --success: var(--accent-tone-7);
   --warning: var(--accent-tone-2);
   --error: #e0674f;
+  --info: var(--accent-tone-3);
   --shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
   --card-shadow: rgba(0, 0, 0, 0.5);
+
+  --soft-mix: 18%;
 }
 
-/* ---------- Expose variables to Tailwind utilities ----------
+/* ---------- 5a. Expose variables to Tailwind utilities ----------
    `inline` makes utilities reference the live var(), so they
-   switch automatically when the theme changes. */
+   switch automatically when the theme changes.
+   Naming:  bg-success (solid)   text-success-fg (readable text)   bg-success-soft (tinted background) */
 @theme inline {
   --color-bg: var(--bg);
   --color-surface: var(--surface);
@@ -173,6 +257,76 @@
   --color-success: var(--success);
   --color-warning: var(--warning);
   --color-error: var(--error);
+  --color-info: var(--info);
+
+  /* Status: readable text + tinted background */
+  --color-success-fg: color-mix(in srgb, var(--success) 82%, var(--text));
+  --color-warning-fg: color-mix(in srgb, var(--warning) 82%, var(--text));
+  --color-error-fg: color-mix(in srgb, var(--error) 82%, var(--text));
+  --color-info-fg: color-mix(in srgb, var(--info) 82%, var(--text));
+  --color-success-soft: color-mix(in srgb, var(--success) var(--soft-mix), var(--bg));
+  --color-warning-soft: color-mix(in srgb, var(--warning) var(--soft-mix), var(--bg));
+  --color-error-soft: color-mix(in srgb, var(--error) var(--soft-mix), var(--bg));
+  --color-info-soft: color-mix(in srgb, var(--info) var(--soft-mix), var(--bg));
+
+  /* User roles:  bg-role-admin-soft  text-role-admin-fg  border-role-admin */
+  --color-role-owner: var(--role-owner);
+  --color-role-admin: var(--role-admin);
+  --color-role-member: var(--role-member);
+  --color-role-guest: var(--role-guest);
+  --color-role-owner-fg: color-mix(in srgb, var(--role-owner) 82%, var(--text));
+  --color-role-admin-fg: color-mix(in srgb, var(--role-admin) 82%, var(--text));
+  --color-role-member-fg: color-mix(in srgb, var(--role-member) 82%, var(--text));
+  --color-role-guest-fg: color-mix(in srgb, var(--role-guest) 82%, var(--text));
+  --color-role-owner-soft: color-mix(in srgb, var(--role-owner) var(--soft-mix), var(--bg));
+  --color-role-admin-soft: color-mix(in srgb, var(--role-admin) var(--soft-mix), var(--bg));
+  --color-role-member-soft: color-mix(in srgb, var(--role-member) var(--soft-mix), var(--bg));
+  --color-role-guest-soft: color-mix(in srgb, var(--role-guest) var(--soft-mix), var(--bg));
+
+  /* Page / entity labels 1-8 (same steps as accent-tone-N and --tone-hue-N):
+     bg-entity-3-soft  text-entity-3-fg  border-entity-3 */
+  --color-entity-1: var(--accent-tone-1);
+  --color-entity-2: var(--accent-tone-2);
+  --color-entity-3: var(--accent-tone-3);
+  --color-entity-4: var(--accent-tone-4);
+  --color-entity-5: var(--accent-tone-5);
+  --color-entity-6: var(--accent-tone-6);
+  --color-entity-7: var(--accent-tone-7);
+  --color-entity-8: var(--accent-tone-8);
+  --color-entity-1-fg: color-mix(in srgb, var(--accent-tone-1) 82%, var(--text));
+  --color-entity-2-fg: color-mix(in srgb, var(--accent-tone-2) 82%, var(--text));
+  --color-entity-3-fg: color-mix(in srgb, var(--accent-tone-3) 82%, var(--text));
+  --color-entity-4-fg: color-mix(in srgb, var(--accent-tone-4) 82%, var(--text));
+  --color-entity-5-fg: color-mix(in srgb, var(--accent-tone-5) 82%, var(--text));
+  --color-entity-6-fg: color-mix(in srgb, var(--accent-tone-6) 82%, var(--text));
+  --color-entity-7-fg: color-mix(in srgb, var(--accent-tone-7) 82%, var(--text));
+  --color-entity-8-fg: color-mix(in srgb, var(--accent-tone-8) 82%, var(--text));
+  --color-entity-1-soft: color-mix(in srgb, var(--accent-tone-1) var(--soft-mix), var(--bg));
+  --color-entity-2-soft: color-mix(in srgb, var(--accent-tone-2) var(--soft-mix), var(--bg));
+  --color-entity-3-soft: color-mix(in srgb, var(--accent-tone-3) var(--soft-mix), var(--bg));
+  --color-entity-4-soft: color-mix(in srgb, var(--accent-tone-4) var(--soft-mix), var(--bg));
+  --color-entity-5-soft: color-mix(in srgb, var(--accent-tone-5) var(--soft-mix), var(--bg));
+  --color-entity-6-soft: color-mix(in srgb, var(--accent-tone-6) var(--soft-mix), var(--bg));
+  --color-entity-7-soft: color-mix(in srgb, var(--accent-tone-7) var(--soft-mix), var(--bg));
+  --color-entity-8-soft: color-mix(in srgb, var(--accent-tone-8) var(--soft-mix), var(--bg));
+
+  /* Charts:  fill-chart-1  stroke-chart-2  text-chart-label  stroke-chart-grid */
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-chart-6: var(--chart-6);
+  --color-chart-7: var(--chart-7);
+  --color-chart-8: var(--chart-8);
+  --color-chart-neutral: var(--chart-neutral);
+  --color-chart-positive: var(--chart-positive);
+  --color-chart-negative: var(--chart-negative);
+  --color-chart-grid: var(--chart-grid);
+  --color-chart-axis: var(--chart-axis);
+  --color-chart-label: var(--chart-label);
+  --color-chart-tooltip: var(--chart-tooltip-bg);
+  --color-chart-tooltip-fg: var(--chart-tooltip-text);
 
   --shadow-soft: var(--shadow);
 
@@ -191,7 +345,7 @@
   --color-btn-hover: var(--brown-hover);
 }
 
-/* Static tokens (same in both themes) */
+/* ---------- 5b. Static tokens (same in both themes) ---------- */
 @theme {
   /* Tall font: large hero headings only */
   --font-display: "Barlow Condensed", "Arial Narrow", sans-serif;
@@ -294,7 +448,7 @@
   }
 }
 
-/* ---------- Base styles (mobile first) ---------- */
+/* ---------- 6. Base styles (mobile first) ---------- */
 @layer base {
 
     /* Thin custom scrollbar (tables, side panels) */
@@ -421,7 +575,7 @@
   }
 }
 
-/* ---------- Optional reusable components ---------- */
+/* ---------- 7. Optional reusable components ---------- */
 @layer components {
   .btn {
     display: inline-flex;
@@ -456,9 +610,73 @@
     margin-inline: auto;
     padding-inline: 1rem;
   }
+
+  /* ----- Icon tints: recolour accent-coloured .ico / .png icons -----
+     <img src="/icons/check.ico" class="icon icon-success size-5" />
+     These set `filter`, so do not combine with other Tailwind filter utilities
+     (grayscale, blur ...) on the same element. To combine, use the Tailwind form:
+     hue-rotate-(--rot-success). */
+  .icon { transition: filter 0.2s ease; }
+  .icon-accent  { filter: hue-rotate(var(--rot-accent)); }
+  .icon-success { filter: hue-rotate(var(--rot-success)); }
+  .icon-warning { filter: hue-rotate(var(--rot-warning)); }
+  .icon-error   { filter: hue-rotate(var(--rot-error)); }
+  .icon-info    { filter: hue-rotate(var(--rot-info)); }
+  .icon-owner   { filter: hue-rotate(var(--rot-owner)); }
+  .icon-admin   { filter: hue-rotate(var(--rot-admin)); }
+  .icon-member  { filter: hue-rotate(var(--rot-member)); }
+  .icon-guest   { filter: hue-rotate(var(--rot-guest)) saturate(0.2); opacity: 0.8; }
+  .icon-muted   { filter: saturate(0.2); opacity: 0.7; }
+  /* ICO colors are limited to the accent and four selected rotations. */
+  .icon-tone-1 { filter: hue-rotate(var(--tone-hue-1)); }
+  .icon-tone-2 { filter: hue-rotate(var(--tone-hue-2)); }
+  .icon-tone-3 { filter: hue-rotate(var(--tone-hue-3)); }
+  .icon-tone-4 { filter: hue-rotate(var(--tone-hue-4)); }
+  .icon-tone-5 { filter: hue-rotate(var(--tone-hue-7)); }
+
+  /* ----- Badges / labels: <span class="badge badge-admin">Admin</span> -----
+     Colour comes from --badge-c; text and tinted background are derived,
+     so every badge works in light and dark automatically. */
+  .badge {
+    --badge-c: var(--text-muted);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4em;
+    padding: 0.15em 0.7em;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    line-height: 1.5;
+    white-space: nowrap;
+    color: color-mix(in srgb, var(--badge-c) 82%, var(--text));
+    background: color-mix(in srgb, var(--badge-c) var(--soft-mix), var(--bg));
+  }
+  .badge::before {
+    content: "";
+    width: 0.5em;
+    height: 0.5em;
+    border-radius: 50%;
+    background: var(--badge-c);
+  }
+  .badge-success { --badge-c: var(--success); }
+  .badge-warning { --badge-c: var(--warning); }
+  .badge-error   { --badge-c: var(--error); }
+  .badge-info    { --badge-c: var(--info); }
+  .badge-owner   { --badge-c: var(--role-owner); }
+  .badge-admin   { --badge-c: var(--role-admin); }
+  .badge-member  { --badge-c: var(--role-member); }
+  .badge-guest   { --badge-c: var(--role-guest); }
+  .badge-entity-1 { --badge-c: var(--accent-tone-1); }
+  .badge-entity-2 { --badge-c: var(--accent-tone-2); }
+  .badge-entity-3 { --badge-c: var(--accent-tone-3); }
+  .badge-entity-4 { --badge-c: var(--accent-tone-4); }
+  .badge-entity-5 { --badge-c: var(--accent-tone-5); }
+  .badge-entity-6 { --badge-c: var(--accent-tone-6); }
+  .badge-entity-7 { --badge-c: var(--accent-tone-7); }
+  .badge-entity-8 { --badge-c: var(--accent-tone-8); }
 }
 
-/* ---------- Larger screens (progressive enhancement) ---------- */
+/* ---------- 8. Larger screens (progressive enhancement) ---------- */
 @media (min-width: 640px) {
   .container-page { padding-inline: 1.5rem; }
   .heading { font-size: 1.5rem; }
@@ -468,3 +686,73 @@
   .card { padding: 1.5rem; }
   .heading { font-size: 1.75rem; }
 }
+
+/* ==========================================================================
+   9. USAGE EXAMPLES (comments only, nothing here affects the build)
+   --------------------------------------------------------------------------
+
+   ICONS (recolour your accent-coloured .ico files)
+     Tailwind:   <img src="/icons/check.ico" class="size-5 hue-rotate-(--rot-success)" />
+                 <img src="/icons/clock.ico" class="size-5 hue-rotate-(--tone-hue-2)" />
+     Class:      <img src="/icons/user.ico" class="icon icon-member size-5" />
+     Greyed:     <img src="/icons/file.ico" class="icon icon-muted size-5" />
+
+     Icon + text in the same colour:
+       <span class="inline-flex items-center gap-2 text-success-fg">
+         <img src="/icons/check.ico" class="size-4 hue-rotate-(--rot-success)" /> Paid
+       </span>
+
+   BADGES / LABELS
+     One class:  <span class="badge badge-success">Completed</span>
+                 <span class="badge badge-admin">Admin</span>
+                 <span class="badge badge-entity-3">Reports</span>
+     Utilities:  <span class="rounded-full bg-role-member-soft px-2.5 py-0.5 text-xs font-medium text-role-member-fg">Member</span>
+     Alert:      <div class="rounded-lg border border-error/30 bg-error-soft p-4 text-error-fg">Payment failed.</div>
+     Tag bar:    <div class="border-l-4 border-entity-5 bg-entity-5-soft px-3 py-2 text-entity-5-fg">Inventory</div>
+
+   REACT: never build Tailwind class names dynamically
+     `bg-role-${role}-soft` will NOT be generated. Use a lookup with full strings:
+
+     const ROLE = {
+       owner:  { pill: "bg-role-owner-soft text-role-owner-fg",   icon: "hue-rotate-(--rot-owner)" },
+       admin:  { pill: "bg-role-admin-soft text-role-admin-fg",   icon: "hue-rotate-(--rot-admin)" },
+       member: { pill: "bg-role-member-soft text-role-member-fg", icon: "hue-rotate-(--rot-member)" },
+       guest:  { pill: "bg-role-guest-soft text-role-guest-fg",   icon: "hue-rotate-(--rot-guest) saturate-[.2]" },
+     };
+     function RoleBadge({ role }) {
+       const r = ROLE[role];
+       return (
+         <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ${r.pill}`}>
+           <img src="/icons/user.ico" className={`size-3.5 ${r.icon}`} alt="" />
+           {role}
+         </span>
+       );
+     }
+
+   CHARTS (Recharts / SVG: pass the variables as strings, they follow light/dark)
+     <LineChart data={data}>
+       <CartesianGrid stroke="var(--chart-grid)" vertical={false} />
+       <XAxis dataKey="month" stroke="var(--chart-axis)" tick={{ fill: "var(--chart-label)" }} />
+       <YAxis stroke="var(--chart-axis)" tick={{ fill: "var(--chart-label)" }} />
+       <Tooltip contentStyle={{ background: "var(--chart-tooltip-bg)", color: "var(--chart-tooltip-text)", border: "none", borderRadius: 8 }} />
+       <Line dataKey="sales"   stroke="var(--chart-1)" strokeWidth={2} dot={false} />
+       <Line dataKey="returns" stroke="var(--chart-2)" strokeWidth={2} dot={false} />
+     </LineChart>
+
+     Series by index (bars, pies, legends):
+       const SERIES = [1,2,3,4,5,6,7,8].map(n => `var(--chart-${n})`);
+       <Cell key={i} fill={SERIES[i % SERIES.length]} />
+     Gain / loss:
+       fill={d.change >= 0 ? "var(--chart-positive)" : "var(--chart-negative)"}
+     Legend with Tailwind:
+       <span class="inline-flex items-center gap-2 text-sm text-chart-label">
+         <span class="size-2.5 rounded-sm bg-chart-2"></span> Online orders
+       </span>
+     Legend icon matching series 3:  <img src="/icons/box.ico" class="size-4 hue-rotate-(--chart-3-rot)" />
+
+   CHANGING THE LOOK LATER
+     - Icon colour changed:        edit --accent-hue only
+     - Tint strength of badges:    --soft-mix (light and dark blocks)
+     - Re-assign a meaning:        e.g. --info: var(--accent-tone-6);  --rot-info: var(--tone-hue-6);
+     - Pair them:                  hue-rotate-(--rot-X)  with  text-X-fg
+   ========================================================================== */

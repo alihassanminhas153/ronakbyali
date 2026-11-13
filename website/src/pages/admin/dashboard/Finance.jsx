@@ -1,4 +1,5 @@
 import PanelPageTitle from '../../../ui/custom/PanelPageTitle';
+import AppIcon from '../../../ui/custom/AppIcon';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ArrowRight, Boxes, CalendarDays, Download, Heart, LayoutList, PackagePlus, PieChart, Plus, RefreshCw, TrendingUp, Trophy, LineChart as LineIcon } from 'lucide-react';
 
@@ -217,13 +218,13 @@ export default function Finance() {
   <span className="relative grid h-14 w-14 shrink-0 place-items-center sm:h-16 sm:w-16">
     <span aria-hidden="true" className="absolute inset-0 animate-ring rounded-2xl border-2 border-white/70" />
     <span className="grid h-full w-full place-items-center rounded-2xl border border-white/25 bg-white/15 transition-transform duration-500 ease-out group-hover:rotate-90 group-hover:scale-105">
-      <Plus size={28} strokeWidth={2.5} />
+      <AppIcon name="wallet" entity="finance" hueRotate={false} className="size-10 object-contain sm:size-12" />
     </span>
   </span>
 
   <span className="relative min-w-0 flex-1">
     <span className="block text-[11px] font-semibold uppercase tracking-[0.18em] text-white/70">New entry</span>
-    <span className="heading mt-1 block min-h-[1.6em] truncate text-xl sm:text-3xl"><Typewriter phrases={CTA_PHRASES} icon="wallet" tone={5} /></span>
+    <span className="heading mt-1 block min-h-[1.6em] truncate text-xl sm:text-3xl"><Typewriter phrases={CTA_PHRASES} /></span>
     <span className="mt-0.5 hidden text-sm text-white/75 sm:block">Keep every rupee that comes in or goes out in one place.</span>
   </span>
 
@@ -273,8 +274,8 @@ export default function Finance() {
           </div>
 
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-            <StatTile label={isFiltered ? 'Money in (filtered)' : 'Money in'} value={moneyIn} format={(n) => `Rs ${compact(n)}`} hint="investment + other income" appIcon="pkr" sensitive tone={7} />
-            <StatTile label={isFiltered ? 'Money out (filtered)' : 'Money out'} value={moneyOut} format={(n) => `Rs ${compact(n)}`} hint="expenses + withdrawals" appIcon="wallet" sensitive tone={4} delay={50} />
+            <StatTile label="Money in" value={moneyIn} format={(n) => `Rs ${compact(n)}`} hint="investment + other income" appIcon="pkr" sensitive tone={7} />
+            <StatTile label="Money out" value={moneyOut} format={(n) => `Rs ${compact(n)}`} hint="expenses + withdrawals" appIcon="wallet" sensitive tone={4} delay={50} />
             <StatTile label="Difference" value={moneyIn - moneyOut} format={(n) => `${n < 0 ? '-' : ''}Rs ${compact(Math.abs(n))}`} hint={`${filtered.length} ${filtered.length === 1 ? 'entry' : 'entries'}`} appIcon="coins" sensitive tone={1} delay={100} />
           </div>
 

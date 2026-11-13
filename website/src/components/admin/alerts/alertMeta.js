@@ -1,19 +1,20 @@
 import { AlertTriangle, CheckCircle2, Info, Megaphone, XCircle } from 'lucide-react';
+import { entityColorStep } from '../../../lib/entityColors';
 
 // tone: 1-8 picks a graph colour (see ui/graphs/utils.js), or any CSS colour.
 export const TYPE_META = {
-  info: { label: 'Info', icon: Info, tone: 1, hint: 'News and notices' },
-  success: { label: 'Success', icon: CheckCircle2, tone: 2, hint: 'Good news' },
-  warning: { label: 'Warning', icon: AlertTriangle, tone: 3, hint: 'Delays, heads-up' },
-  error: { label: 'Error', icon: XCircle, tone: 4, hint: 'Problems, outages' },
-  promo: { label: 'Promo', icon: Megaphone, tone: 6, hint: 'Sales and offers' },
+  info: { label: 'Info', icon: Info, tone: entityColorStep('alertType', 'info'), hint: 'News and notices' },
+  success: { label: 'Success', icon: CheckCircle2, tone: entityColorStep('alertType', 'success'), hint: 'Good news' },
+  warning: { label: 'Warning', icon: AlertTriangle, tone: entityColorStep('alertType', 'warning'), hint: 'Delays, heads-up' },
+  error: { label: 'Error', icon: XCircle, tone: entityColorStep('alertType', 'error'), hint: 'Problems, outages' },
+  promo: { label: 'Promo', icon: Megaphone, tone: entityColorStep('alertType', 'promo'), hint: 'Sales and offers' },
 };
 
 export const STATE_META = {
-  active: { label: 'Active', tone: 2 },
-  scheduled: { label: 'Scheduled', tone: 5 },
-  inactive: { label: 'Inactive', tone: 'var(--text-muted)' },
-  expired: { label: 'Expired', tone: 4 },
+  active: { label: 'Active', tone: entityColorStep('alertState', 'active') },
+  scheduled: { label: 'Scheduled', tone: entityColorStep('alertState', 'scheduled') },
+  inactive: { label: 'Inactive', tone: entityColorStep('alertState', 'inactive') },
+  expired: { label: 'Expired', tone: entityColorStep('alertState', 'expired') },
 };
 
 export const STATUS_OPTIONS = [
@@ -23,8 +24,8 @@ export const STATUS_OPTIONS = [
 ];
 export const TYPE_OPTIONS = Object.entries(TYPE_META).map(([value, m]) => ({ value, label: m.label }));
 export const DISPLAY_OPTIONS = [
-  { value: 'bar', label: 'Bars only' },
-  { value: 'popup', label: 'Popups only' },
+  { value: 'bar', label: 'Bars only', tone: entityColorStep('alertDisplay', 'bar') },
+  { value: 'popup', label: 'Popups only', tone: entityColorStep('alertDisplay', 'popup') },
 ];
 export const SORT_OPTIONS = [
   { value: 'newest', label: 'Newest first' },

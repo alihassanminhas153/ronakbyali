@@ -95,16 +95,13 @@ function Notice({ type, text, onDismiss }) {
 
 function StatTile({ icon: Icon, label, color, children }) {
   return (
-    <div className="group flex items-center gap-3 rounded-xl border border-border bg-surface p-4 shadow-soft transition-all duration-200 hover:-translate-y-0.5 hover:border-[color:var(--tile)]" style={{ '--tile': color }}>
-      <span
-        className="grid size-11 shrink-0 place-items-center rounded-lg transition-transform duration-300 group-hover:scale-110"
-        style={{ background: `color-mix(in srgb, ${color} 15%, transparent)`, color }}
-      >
-        <Icon size={20} aria-hidden="true" />
-      </span>
-      <div className="min-w-0">
-        <p className="truncate text-xs text-muted">{label}</p>
-        <p className="truncate font-display text-xl font-semibold text-text">{children}</p>
+    <div className="group flex min-w-0 flex-col gap-3 rounded-xl border border-border bg-surface p-4 shadow-soft transition-all duration-200 hover:-translate-y-0.5 hover:border-[color:var(--tile)]" style={{ '--tile': color }}>
+      <p className="min-w-0 truncate text-xs text-muted">{label}</p>
+      <div className="flex min-w-0 items-end gap-3">
+        <span className="grid size-10 shrink-0 place-items-center rounded-lg transition-transform duration-300 group-hover:scale-110 sm:size-11" style={{ background: `color-mix(in srgb, ${color} 15%, transparent)`, color }}>
+          <Icon size={20} aria-hidden="true" />
+        </span>
+        <p className="min-w-0 truncate font-display text-xl font-semibold text-text">{children}</p>
       </div>
     </div>
   );
@@ -113,23 +110,25 @@ function StatTile({ icon: Icon, label, color, children }) {
 function InfoCard({ icon: Icon, label, value, color, wide, onAdd, addLabel }) {
   const empty = !value || value === '—';
   return (
-    <div className={`group rounded-xl border border-border bg-surface p-4 transition-all duration-200 hover:border-[color:var(--tile)] hover:bg-surface-alt ${wide ? 'sm:col-span-2' : ''}`} style={{ '--tile': color }}>
-      <div className="flex items-center gap-2 text-xs font-medium text-muted">
-        <Icon size={15} style={{ color }} aria-hidden="true" />
-        {label}
-      </div>
+    <div className={`group flex min-w-0 flex-col gap-3 rounded-xl border border-border bg-surface p-4 transition-all duration-200 hover:border-[color:var(--tile)] hover:bg-surface-alt ${wide ? 'sm:col-span-2' : ''}`} style={{ '--tile': color }}>
+      <p className="min-w-0 truncate text-xs font-medium text-muted">{label}</p>
+      <div className="flex min-w-0 items-end gap-3">
+        <span className="grid size-10 shrink-0 place-items-center rounded-lg" style={{ background: `color-mix(in srgb, ${color} 15%, transparent)`, color }}>
+          <Icon size={18} aria-hidden="true" />
+        </span>
       {empty && onAdd ? (
         <button
           type="button"
           onClick={onAdd}
-          className="mt-2 inline-flex items-center gap-1.5 text-sm font-medium text-accent transition-all hover:gap-2.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+          className="inline-flex min-w-0 items-center gap-1.5 text-sm font-medium text-accent transition-all hover:gap-2.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
         >
           {addLabel}
           <ArrowRight size={14} aria-hidden="true" />
         </button>
       ) : (
-        <p className={`mt-2 whitespace-pre-line break-words text-sm ${empty ? 'text-muted' : 'font-medium text-text'}`}>{value || '—'}</p>
+        <p className={`min-w-0 whitespace-pre-line break-words text-sm ${empty ? 'text-muted' : 'font-medium text-text'}`}>{value || '—'}</p>
       )}
+      </div>
     </div>
   );
 }
@@ -333,7 +332,7 @@ function ProfileView({ me }) {
         <div className="relative min-w-0 flex-1">
           <span className="block text-[11px] font-semibold uppercase tracking-[0.18em] text-white/70">Your account</span>
           <span className="heading mt-1 block min-h-[1.6em] truncate text-2xl sm:text-3xl">
-            <Typewriter phrases={phrases} icon="user" tone={5} />
+            <Typewriter phrases={phrases} />
           </span>
           <div className="mt-2 flex flex-wrap items-center justify-center gap-2 sm:justify-start">
             <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1 text-xs font-medium">

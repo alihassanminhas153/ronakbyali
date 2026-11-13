@@ -2,6 +2,7 @@ import { ImageOff, Pencil, Star, Trash2 } from 'lucide-react';
 import productService from '../../../lib/appwrite/product';
 import Tooltip from '../../../ui/custom/tooltip/Tooltip';
 import { colorFor, tint } from '../../../ui/graphs/utils';
+import { entityColorStep, toneColor } from '../../../lib/entityColors';
 
 // props: products[], busyId, onEdit(product), onDelete(product), onToggleFeatured(product)
 const rs = (n) => productService.formatPrice(n);
@@ -31,13 +32,14 @@ function StockBadge({ product }) {
   const total = Number(product.totalAvailable) || 0;
   const out = product.status === 'outOfStock' || remaining <= 0;
   const low = !out && total > 0 && remaining / total <= 0.2;
-  const tone = out ? 'bg-accent-tone-4/10 text-accent-tone-4' : low ? 'bg-accent-tone-3/10 text-accent-tone-3' : 'bg-accent-tone-2/10 text-accent-tone-2';
+  const tone = entityColorStep('stockStatus', out ? 'out' : low ? 'low' : 'in');
+  const color = toneColor(tone);
   const pct = total ? Math.min(100, Math.round((remaining / total) * 100)) : 0;
   return (
     <div className="min-w-24">
-      <span className={`inline-block rounded-full px-2 py-0.5 text-xs ${tone}`}>{out ? 'Out of stock' : low ? 'Low stock' : 'In stock'}</span>
+      <span className="inline-block rounded-full px-2 py-0.5 text-xs" style={{ background: tint(color, 14), color }}>{out ? 'Out of stock' : low ? 'Low stock' : 'In stock'}</span>
       <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-surface-alt">
-        <div className="h-full rounded-full bg-current transition-[width] duration-700" style={{ width: `${pct}%`, color: out ? 'var(--accent-tone-4)' : low ? 'var(--accent-tone-3)' : 'var(--accent-tone-2)' }} />
+        <div className="h-full rounded-full bg-current transition-[width] duration-700" style={{ width: `${pct}%`, color }} />
       </div>
       <p className="mt-1 text-[11px] text-muted tabular-nums">{remaining} left · {Number(product.sold) || 0} sold</p>
     </div>

@@ -3,6 +3,7 @@
 import { productService } from '../../../store/slices/services';
 import { getAvatarUrl } from '../../../store/slices/authSlice';
 import { colorFor } from '../../../ui/graphs/utils';
+import { entityColorStep, toneColor } from '../../../lib/entityColors';
 import { KeyRound, Mail } from 'lucide-react';
 import { FaApple, FaDiscord, FaFacebook, FaGithub, FaGoogle, FaMicrosoft } from 'react-icons/fa';
 
@@ -28,34 +29,34 @@ export const BLOCKED_FILTER_OPTIONS = [
 
 // Theme colors only. Full class strings so Tailwind can see them.
 export const ROLE_TONE = {
-  admin: 'border-error/30 bg-error/10 text-error',
-  support: 'border-accent/30 bg-accent/10 text-accent',
-  manager: 'border-warning/30 bg-warning/10 text-warning',
-  customer: 'border-border bg-surface-alt text-muted',
-  loyal: 'border-success/30 bg-success/10 text-success',
-  new: 'border-border bg-surface-alt text-text',
+  admin: 'border-accent-tone-1/30 bg-accent-tone-1/10 text-accent-tone-1',
+  support: 'border-accent-tone-3/30 bg-accent-tone-3/10 text-accent-tone-3',
+  manager: 'border-accent-tone-6/30 bg-accent-tone-6/10 text-accent-tone-6',
+  customer: 'border-accent-tone-5/30 bg-accent-tone-5/10 text-accent-tone-5',
+  loyal: 'border-accent-tone-7/30 bg-accent-tone-7/10 text-accent-tone-7',
+  new: 'border-accent-tone-2/30 bg-accent-tone-2/10 text-accent-tone-2',
 };
 
 // Same idea as the product category chips: soft tint + solid text, taken from the graph palette.
 export const ROLE_COLOR = {
-  admin: 'var(--accent-tone-4)',
-  support: 'var(--accent-tone-5)',
-  manager: 'var(--accent-tone-3)',
-  customer: 'var(--accent-tone-2)',
-  loyal: 'var(--accent-tone-7)',
-  new: 'var(--accent-tone-8)',
+  admin: toneColor(entityColorStep('role', 'admin')),
+  support: toneColor(entityColorStep('role', 'support')),
+  manager: toneColor(entityColorStep('role', 'manager')),
+  customer: toneColor(entityColorStep('role', 'customer')),
+  loyal: toneColor(entityColorStep('role', 'loyal')),
+  new: toneColor(entityColorStep('role', 'new')),
 };
 
 /* ---------- sign-in methods (users.authProvider) ---------- */
 
 export const PROVIDERS = {
-  email: { label: 'Email', icon: Mail, color: 'var(--accent-tone-1)' },
-  google: { label: 'Google', icon: FaGoogle, color: 'var(--accent-tone-4)' },
-  github: { label: 'GitHub', icon: FaGithub, color: 'var(--accent-tone-8)' },
-  facebook: { label: 'Facebook', icon: FaFacebook, color: 'var(--accent-tone-5)' },
-  apple: { label: 'Apple', icon: FaApple, color: 'var(--accent-tone-6)' },
-  microsoft: { label: 'Microsoft', icon: FaMicrosoft, color: 'var(--accent-tone-2)' },
-  discord: { label: 'Discord', icon: FaDiscord, color: 'var(--accent-tone-6)' },
+  email: { label: 'Email', icon: Mail, color: toneColor(entityColorStep('provider', 'email')) },
+  google: { label: 'Google', icon: FaGoogle, color: toneColor(entityColorStep('provider', 'google')) },
+  github: { label: 'GitHub', icon: FaGithub, color: toneColor(entityColorStep('provider', 'github')) },
+  facebook: { label: 'Facebook', icon: FaFacebook, color: toneColor(entityColorStep('provider', 'facebook')) },
+  apple: { label: 'Apple', icon: FaApple, color: toneColor(entityColorStep('provider', 'apple')) },
+  microsoft: { label: 'Microsoft', icon: FaMicrosoft, color: toneColor(entityColorStep('provider', 'microsoft')) },
+  discord: { label: 'Discord', icon: FaDiscord, color: toneColor(entityColorStep('provider', 'discord')) },
 };
 
 // Unknown providers still get an icon and a stable colour.

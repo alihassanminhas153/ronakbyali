@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router';
-import { ArrowRight, ArrowUpRight, Eye, EyeOff } from 'lucide-react';
+import { Activity, ArrowRight, ArrowUpRight, Eye, EyeOff } from 'lucide-react';
 
 import AppIcon from '../../../ui/custom/AppIcon';
 import CountUp from '../../../ui/custom/motion/CountUp';
@@ -15,25 +15,27 @@ export function LinkTile({ to, label, value, format, hint, icon: Icon, appIcon, 
       <Link
         to={to}
         style={{ animationDelay: `${delay}ms`, '--tile-tone': color }}
-        className={`group/tile animate-rise relative flex min-w-0 items-center gap-3 rounded-xl border border-border bg-surface p-3 shadow-soft transition-all duration-300 hover:-translate-y-0.5 hover:border-[color-mix(in_srgb,var(--tile-tone)_45%,var(--border))] sm:gap-4 sm:p-4 ${sensitive ? 'pr-10' : ''}`}
+        className={`group/tile animate-rise relative flex min-w-0 flex-col gap-3 rounded-xl border border-border bg-surface p-3 shadow-soft transition-all duration-300 hover:-translate-y-0.5 hover:border-[color-mix(in_srgb,var(--tile-tone)_45%,var(--border))] sm:p-4 ${sensitive ? 'pr-10' : ''}`}
       >
-        {appIcon ? (
-          <AppIcon
-            name={appIcon}
-            tone={tone}
-            className="size-10 shrink-0 object-contain transition-transform duration-300 group-hover/tile:scale-105 sm:size-12"
-          />
-        ) : Icon ? (
-          <span className="grid size-10 shrink-0 place-items-center rounded-xl transition-transform duration-300 group-hover/tile:rotate-3 group-hover/tile:scale-105 sm:size-12" style={{ background: tint(color, 14), color }}>
-            <Icon size={20} className="sm:size-5" aria-hidden="true" />
-          </span>
-        ) : null}
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-xs text-muted">{label}</p>
+        <p className="min-w-0 truncate pr-6 text-xs text-muted">{label}</p>
+        <div className="flex min-w-0 items-end gap-3">
+          {appIcon ? (
+            <AppIcon
+              name={appIcon}
+              tone={tone}
+              className="size-10 shrink-0 object-contain transition-transform duration-300 group-hover/tile:scale-105 sm:size-11"
+            />
+          ) : (
+            <span className="grid size-10 shrink-0 place-items-center rounded-xl transition-transform duration-300 group-hover/tile:rotate-3 group-hover/tile:scale-105 sm:size-11" style={{ background: tint(color, 14), color }}>
+              {Icon ? <Icon size={20} aria-hidden="true" /> : <Activity size={20} aria-hidden="true" />}
+            </span>
+          )}
+          <div className="min-w-0 flex-1">
           <p className="heading truncate text-xl leading-tight text-text sm:text-2xl">
-            {hidden ? '••••••' : typeof value === 'number' ? <CountUp value={value} format={format} /> : value}
+            {hidden ? '***' : typeof value === 'number' ? <CountUp value={value} format={format} /> : value}
           </p>
           {hint && <p className="truncate text-xs text-muted">{hidden ? 'Hidden' : hint}</p>}
+          </div>
         </div>
         <ArrowUpRight
           size={16}

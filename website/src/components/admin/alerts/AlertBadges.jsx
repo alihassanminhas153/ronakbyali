@@ -1,5 +1,6 @@
 import { Layers, PanelTop } from 'lucide-react';
 import { alertState } from '../../../lib/appwrite/alert';
+import { entityColorStep } from '../../../lib/entityColors';
 import { tint, toneVar } from '../../../ui/graphs/utils';
 import { STATE_META, TYPE_META } from './alertMeta';
 
@@ -29,8 +30,8 @@ export function StateBadge({ alert }) {
 
 export function DisplayBadge({ popup }) {
   return popup ? (
-    <Pill color={toneVar(5)} icon={Layers}>Popup</Pill>
+    <Pill color={toneVar(entityColorStep('alertDisplay', 'popup'))} icon={Layers}>Popup</Pill>
   ) : (
-    <Pill color={toneVar(1)} icon={PanelTop}>Bar</Pill>
+    <Pill color={toneVar(entityColorStep('alertDisplay', 'bar'))} icon={PanelTop}>Bar</Pill>
   );
 }

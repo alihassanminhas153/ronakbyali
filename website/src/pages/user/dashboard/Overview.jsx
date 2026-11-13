@@ -1,6 +1,7 @@
 // user overview page (styled like the admin overview, wired to the user's own slices)
 
 import PanelPageTitle from '../../../ui/custom/PanelPageTitle';
+import AppIcon from '../../../ui/custom/AppIcon';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router';
 import {
@@ -19,7 +20,6 @@ import {
   ShoppingBag,
   ShoppingCart,
   Star,
-  User,
   UserRound,
 } from 'lucide-react';
 
@@ -323,7 +323,12 @@ function OverviewView({ me }) {
               {showAvatar ? (
                 <img src={avatarUrl} alt="" referrerPolicy="no-referrer" onError={() => setBrokenUrl(avatarUrl)} className="size-full object-cover" />
               ) : attention.length ? (
-                <User size={28} strokeWidth={2.5} aria-hidden="true" />
+                <AppIcon
+                  name={attention.length ? 'alert' : 'histogram'}
+                  entity={attention.length ? 'alert' : 'order'}
+                  hueRotate={false}
+                  className="size-10 object-contain sm:size-12"
+                />
               ) : (
                 <CheckCircle2 size={28} strokeWidth={2.5} aria-hidden="true" />
               )}
@@ -333,7 +338,7 @@ function OverviewView({ me }) {
           <div className="min-w-0 flex-1">
             <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/70">{capitalize(me.role)} account</p>
             <p className="heading mt-1 min-h-[1.6em] truncate text-xl sm:text-3xl">
-              {firstLoad ? 'Checking your account…' : <Typewriter phrases={heroPhrases} icon="histogram" tone={1} />}
+              {firstLoad ? 'Checking your account…' : <Typewriter phrases={heroPhrases} />}
             </p>
             <p className="mt-0.5 hidden text-sm text-white/75 sm:block">
               {orderCount > 0

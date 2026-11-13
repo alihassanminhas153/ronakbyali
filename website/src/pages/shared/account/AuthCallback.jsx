@@ -4,6 +4,7 @@ import { Loader2 } from 'lucide-react';
 
 import { useAppDispatch } from '../../../store/slices/hooks';
 import { completeLogin } from '../../../store/slices/authSlice';
+import { finishGoogleCheckout } from '../../../store/slices/checkoutThunks';
 import { PATHS } from '../../../router/path';
 import ProfileStep from '../auth/ProfileStep';
 import { homePathFor } from './authRedirect';
@@ -23,8 +24,18 @@ export default function AuthCallback() {
     if (started.current) return;
     started.current = true;
 
-    dispatch(completeLogin({})).then((result) => {
+    dispatch(completeLogin({})).then(async (result) => {
       if (completeLogin.fulfilled.match(result)) {
+        // A guest who pressed "Continue with Google" in the checkout form:
+        // place the saved order (or reopen the form if something is missing).
+        // Without a saved checkout this does nothing and returns { to: null }.
+        const resumed = await dispatch(finishGoogleCheckout());
+        const next = resumed.payload;
+        if (next?.to) {
+          navigate(next.to, { replace: true, state: next.state });
+          return;
+        }
+
         if (result.payload?.isNew) {
           setNewProfile(result.payload);
         } else {

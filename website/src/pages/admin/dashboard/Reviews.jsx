@@ -1,4 +1,5 @@
 import PanelPageTitle from '../../../ui/custom/PanelPageTitle';
+import AppIcon from '../../../ui/custom/AppIcon';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import {
@@ -246,14 +247,14 @@ export default function Reviews() {
         <span className="relative grid h-14 w-14 shrink-0 place-items-center sm:h-16 sm:w-16">
           {pending > 0 && <span aria-hidden="true" className="absolute inset-0 animate-ring rounded-2xl border-2 border-white/70" />}
           <span className="grid h-full w-full place-items-center rounded-2xl border border-white/25 bg-white/15 transition-transform duration-500 ease-out group-hover:-rotate-6 group-hover:scale-105">
-            <MessageSquare size={28} strokeWidth={2.5} />
+            <AppIcon name="reviews" entity="review" hueRotate={false} className="size-10 object-contain sm:size-12" />
           </span>
         </span>
 
         <span className="relative min-w-0 flex-1">
           <span className="block text-[11px] font-semibold uppercase tracking-[0.18em] text-white/70">Moderation desk</span>
           <span className="heading mt-1 block min-h-[1.6em] truncate text-xl sm:text-3xl">
-            <Typewriter key={pending} phrases={phrases} icon="reviews" tone={6} />
+            <Typewriter key={pending} phrases={phrases} />
           </span>
           <span className="mt-0.5 hidden text-sm text-white/75 sm:block">Approve, reject or reply so only the reviews you trust reach your product pages.</span>
         </span>

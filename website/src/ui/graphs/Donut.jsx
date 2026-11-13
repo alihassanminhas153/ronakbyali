@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useReveal, colorAt } from './utils';
+import { useReveal, colorFor } from './utils';
 import { EmptyChart } from './ChartCard';
 import CountUp from '../custom/motion/CountUp';
 
@@ -16,7 +16,7 @@ export default function Donut({ data = [], centerLabel = 'total', format = (n) =
   let offset = 0;
   const segments = data.map((d, i) => {
     const len = ((Number(d.value) || 0) / total) * C;
-    const seg = { ...d, len, offset, color: d.color || colorAt(i), pct: Math.round((d.value / total) * 100) };
+    const seg = { ...d, len, offset, color: d.color || colorFor(d.label || i), pct: Math.round((d.value / total) * 100) };
     offset += len;
     return seg;
   });

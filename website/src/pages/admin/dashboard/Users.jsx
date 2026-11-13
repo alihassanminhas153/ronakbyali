@@ -1,4 +1,5 @@
 import PanelPageTitle from '../../../ui/custom/PanelPageTitle';
+import AppIcon from '../../../ui/custom/AppIcon';
 import { useEffect, useMemo, useState } from 'react';
 import {
   CalendarDays,
@@ -280,14 +281,14 @@ export default function Users() {
         <span className="relative grid h-14 w-14 shrink-0 place-items-center sm:h-16 sm:w-16">
           <span aria-hidden="true" className="absolute inset-0 animate-ring rounded-2xl border-2 border-white/70" />
           <span className="grid h-full w-full place-items-center rounded-2xl border border-white/25 bg-white/15 transition-transform duration-500 ease-out group-hover:rotate-6 group-hover:scale-105">
-            <UsersIcon size={28} strokeWidth={2.25} />
+            <AppIcon name="customers" entity="user" hueRotate={false} className="size-10 object-contain sm:size-12" />
           </span>
         </span>
 
         <span className="relative min-w-0 flex-1">
           <span className="block text-[11px] font-semibold uppercase tracking-[0.18em] text-white/70">People</span>
           <span className="heading mt-1 block min-h-[1.6em] truncate text-xl sm:text-3xl">
-            <Typewriter phrases={BANNER_PHRASES} icon="customers" tone={7} />
+            <Typewriter phrases={BANNER_PHRASES} />
           </span>
           <span className="mt-0.5 hidden text-sm text-white/75 sm:block">Every account, how they sign in and when they were last here.</span>
         </span>

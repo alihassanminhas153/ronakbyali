@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Eye, EyeOff } from 'lucide-react';
+import { Activity, Eye, EyeOff } from 'lucide-react';
 
 import { useAppSelector } from '../../../store/slices/hooks';
 import { selectUserStats } from '../../../store/slices/userSlice';
@@ -14,10 +14,10 @@ function Tile({ label, icon: Icon, appIcon, color, tone, index, loading, count, 
   return (
     <div
       style={{ animationDelay: `${index * 50}ms`, borderTopColor: color }}
-      className="group/tile animate-rise rounded-lg border border-border border-t-2 bg-surface px-4 py-3 transition-colors hover:border-border hover:bg-surface-alt/40"
+      className="group/tile animate-rise flex min-w-0 flex-col gap-3 rounded-lg border border-border border-t-2 bg-surface px-4 py-3 transition-colors hover:border-border hover:bg-surface-alt/40"
     >
       <div className="flex items-center justify-between gap-2">
-        <p className="text-xs text-muted">{label}</p>
+        <p className="min-w-0 truncate text-xs text-muted">{label}</p>
         {sensitive && (
           <button
             type="button"
@@ -31,22 +31,26 @@ function Tile({ label, icon: Icon, appIcon, color, tone, index, loading, count, 
           </button>
         )}
       </div>
-      {loading ? (
-        <div className="mt-2 h-7 w-16 animate-pulse rounded-sm bg-surface-alt motion-reduce:animate-none" />
-      ) : (
-        <div className="mt-1 flex items-center justify-between gap-2">
+      <div className="flex min-w-0 items-end gap-3">
+        {appIcon ? (
+          <AppIcon name={appIcon} tone={tone} className="size-10 shrink-0 object-contain transition-transform duration-300 group-hover/tile:scale-105" />
+        ) : Icon ? (
+          <span className="grid size-10 shrink-0 place-items-center rounded-lg" style={{ background: tint(color, 14), color }}>
+            <Icon size={16} aria-hidden="true" />
+          </span>
+        ) : (
+          <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-surface-alt text-muted">
+            <Activity size={16} aria-hidden="true" />
+          </span>
+        )}
+        {loading ? (
+          <div className="h-7 w-16 animate-pulse rounded-sm bg-surface-alt motion-reduce:animate-none" />
+        ) : (
           <p className="min-w-0 truncate text-2xl font-semibold tabular-nums text-text">
-            {hidden ? '••••••' : text ?? <CountUp value={count} />}
+            {hidden ? '***' : text ?? <CountUp value={count} />}
           </p>
-          {appIcon ? (
-            <AppIcon name={appIcon} tone={tone} className="size-9 shrink-0 object-contain transition-transform duration-300 group-hover/tile:scale-105" />
-          ) : Icon ? (
-            <span className="grid size-8 shrink-0 place-items-center rounded-lg" style={{ background: tint(color, 14), color }}>
-              <Icon size={16} aria-hidden="true" />
-            </span>
-          ) : null}
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }

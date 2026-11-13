@@ -1,8 +1,9 @@
 import PanelPageTitle from '../../../ui/custom/PanelPageTitle';
+import AppIcon from '../../../ui/custom/AppIcon';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router';
 import {
-  ArrowRight, Bell, Boxes, CheckCircle2, Clock, Heart, RefreshCw,
+  ArrowRight, Bell, Boxes, Heart, RefreshCw,
   Settings, ShoppingBag, Star, Users, Wallet,
 } from 'lucide-react';
 
@@ -126,14 +127,18 @@ export default function Overview() {
               <span aria-hidden="true" className="absolute inset-0 animate-ring rounded-2xl border-2 border-white/70" />
             )}
             <span className="grid h-full w-full place-items-center rounded-2xl border border-white/25 bg-white/15">
-              {attention.length ? <Clock size={28} strokeWidth={2.5} /> : <CheckCircle2 size={28} strokeWidth={2.5} />}
+              {attention.length ? (
+                <AppIcon name="alert" entity="alert" hueRotate={false} className="size-10 object-contain sm:size-12" />
+              ) : (
+                <AppIcon name="histogram" entity="order" hueRotate={false} className="size-10 object-contain sm:size-12" />
+              )}
             </span>
           </span>
 
           <div className="min-w-0 flex-1">
             <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/70">Needs attention</p>
             <p className="heading mt-1 min-h-[1.6em] truncate text-xl sm:text-3xl">
-              {firstLoad ? 'Checking your store…' : <Typewriter phrases={heroPhrases} icon="histogram" tone={1} />}
+              {firstLoad ? 'Checking your store…' : <Typewriter phrases={heroPhrases} />}
             </p>
           </div>
         </div>
@@ -159,8 +164,8 @@ export default function Overview() {
 
       {/* Key numbers: every tile opens its page */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <LinkTile to={link('finance')} label="Revenue (30 days)" value={fin.now.revenue} format={short} hint={`${fin.paidCount} orders with payment received`} appIcon="pkr" sensitive tone={1} delay={0} />
-        <LinkTile to={link('finance')} label={loss ? 'Net loss (all time)' : 'Net profit (all time)'} value={Math.abs(fin.all.net)} format={short} hint={fin.roi == null ? 'add an investment' : `${Math.round(fin.roi)}% return`} appIcon={loss ? 'arrow_trend_down' : 'arrow_trend_up'} sensitive tone={loss ? 4 : 7} delay={40} />
+        <LinkTile to={link('finance')} label="Revenue" value={fin.now.revenue} format={short} hint={`${fin.paidCount} orders with payment received`} appIcon="pkr" sensitive tone={1} delay={0} />
+        <LinkTile to={link('finance')} label={loss ? 'Net loss' : 'Net profit'} value={Math.abs(fin.all.net)} format={short} hint={fin.roi == null ? 'add an investment' : `${Math.round(fin.roi)}% return`} appIcon={loss ? 'arrow_trend_down' : 'arrow_trend_up'} sensitive tone={loss ? 4 : 7} delay={40} />
         <LinkTile to={link('orders')} label="Pending orders" value={orderStats.pending} hint={`${orderStats.open} open in total`} appIcon="clock" tone={3} delay={80} />
         <LinkTile to={link('users')} label="Customers" value={userStats.customers} hint={`${userStats.fresh} new in 30 days`} appIcon="customers" tone={6} delay={120} />
         <LinkTile to={link('products')} label="Products in stock" value={productStats.inStock} hint={`${productStats.out} out of stock`} appIcon="boxes" tone={2} delay={160} />
@@ -228,7 +233,7 @@ export default function Overview() {
         <OverviewCard to={link('users')} cta="Users" title="Customers" subtitle="New sign-ups, last 6 months" appIcon="customers" tone={6} delay={160}>
           <Mini items={[
             { label: 'Accounts', value: userStats.total, tone: 6 },
-            { label: 'New (30 days)', value: userStats.fresh, tone: 7 },
+            { label: 'New', value: userStats.fresh, tone: 7 },
             { label: 'Blocked', value: userStats.blocked, tone: 4 },
           ]} />
           <TrendGraph data={userStats.signups.map((s) => ({ label: s.label, value: s.value }))} color="var(--accent-tone-6)" />
@@ -256,7 +261,7 @@ export default function Overview() {
           <Mini items={[
             { label: 'Cash in hand', value: fin.cash, format: short, tone: fin.cash < 0 ? 4 : 2 },
             { label: 'Invested', value: fin.all.invested, format: short, tone: 6 },
-            { label: 'Expenses (30d)', value: fin.now.opex, format: short, tone: 4 },
+            { label: 'Expenses', value: fin.now.opex, format: short, tone: 4 },
           ]} />
           <TrendGraph data={fin.months.map((m) => ({ label: m.label, value: m.profit }))} color="var(--accent-tone-7)" format={short} />
         </OverviewCard>

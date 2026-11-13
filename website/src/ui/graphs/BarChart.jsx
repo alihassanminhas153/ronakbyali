@@ -1,4 +1,4 @@
-import { useReveal, colorAt, compact } from './utils';
+import { useReveal, colorFor, compact } from './utils';
 import { EmptyChart } from './ChartCard';
 
 // data: [{ label, value, color?, hint? }]
@@ -15,7 +15,7 @@ export default function BarChart({
   const on = useReveal([data]);
   const max = Math.max(1, ...data.map((d) => Number(d.value) || 0));
   if (!data.length) return <EmptyChart>{empty}</EmptyChart>;
-  const colorOf = (d, i) => d.color || (colorful ? colorAt(i) : 'var(--accent-tone-1)');
+  const colorOf = (d, i) => d.color || (colorful ? colorFor(d.label || i) : 'var(--accent-tone-1)');
 
   if (orientation === 'vertical') {
     return (

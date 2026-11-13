@@ -1,4 +1,6 @@
 import PanelPageTitle from '../../../ui/custom/PanelPageTitle';
+import AppIcon from '../../../ui/custom/AppIcon';
+import { entityColorStep, toneColor } from '../../../lib/entityColors';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   AlertCircle,
@@ -42,16 +44,16 @@ import { formatDateTime } from '../../../components/user/profile/profileMeta';
 
 // Look of each alert type. `tone` is the graph colour number used by <Segmented>.
 const TYPES = {
-  info: { label: 'Info', icon: Info, color: 'var(--accent-tone-5)', tone: 5 },
-  success: { label: 'Success', icon: CheckCircle2, color: 'var(--success)', tone: 7 },
-  warning: { label: 'Warning', icon: AlertTriangle, color: 'var(--warning)', tone: 3 },
-  error: { label: 'Important', icon: XCircle, color: 'var(--error)', tone: 4 },
-  promo: { label: 'Offer', icon: Sparkles, color: 'var(--accent-tone-6)', tone: 6 },
+  info: { label: 'Info', icon: Info, color: toneColor(entityColorStep('alertType', 'info')), tone: entityColorStep('alertType', 'info') },
+  success: { label: 'Success', icon: CheckCircle2, color: toneColor(entityColorStep('alertType', 'success')), tone: entityColorStep('alertType', 'success') },
+  warning: { label: 'Warning', icon: AlertTriangle, color: toneColor(entityColorStep('alertType', 'warning')), tone: entityColorStep('alertType', 'warning') },
+  error: { label: 'Important', icon: XCircle, color: toneColor(entityColorStep('alertType', 'error')), tone: entityColorStep('alertType', 'error') },
+  promo: { label: 'Offer', icon: Sparkles, color: toneColor(entityColorStep('alertType', 'promo')), tone: entityColorStep('alertType', 'promo') },
 };
 const typeOf = (alert) => TYPES[alert?.type] || TYPES.info;
 
 const TYPE_FILTERS = [
-  { value: 'all', label: 'All', tone: 1 },
+  { value: 'all', label: 'All', tone: entityColorStep('alertSection', 'all') },
   ...Object.entries(TYPES).map(([value, t]) => ({ value, label: t.label, icon: t.icon, tone: t.tone })),
 ];
 const SORTS = [
@@ -105,16 +107,13 @@ function Notice({ type, text, onDismiss }) {
 
 function StatTile({ icon: Icon, label, color, children }) {
   return (
-    <div className="group flex items-center gap-3 rounded-xl border border-border bg-surface p-4 shadow-soft transition-all duration-200 hover:-translate-y-0.5 hover:border-[color:var(--tile)]" style={{ '--tile': color }}>
-      <span
-        className="grid size-11 shrink-0 place-items-center rounded-lg transition-transform duration-300 group-hover:scale-110"
-        style={{ background: `color-mix(in srgb, ${color} 15%, transparent)`, color }}
-      >
-        <Icon size={20} aria-hidden="true" />
-      </span>
-      <div className="min-w-0">
-        <p className="truncate text-xs text-muted">{label}</p>
-        <p className="truncate font-display text-xl font-semibold text-text">{children}</p>
+    <div className="group flex min-w-0 flex-col gap-3 rounded-xl border border-border bg-surface p-4 shadow-soft transition-all duration-200 hover:-translate-y-0.5 hover:border-[color:var(--tile)]" style={{ '--tile': color }}>
+      <p className="min-w-0 truncate text-xs text-muted">{label}</p>
+      <div className="flex min-w-0 items-end gap-3">
+        <span className="grid size-10 shrink-0 place-items-center rounded-lg transition-transform duration-300 group-hover:scale-110 sm:size-11" style={{ background: `color-mix(in srgb, ${color} 15%, transparent)`, color }}>
+          <Icon size={20} aria-hidden="true" />
+        </span>
+        <p className="min-w-0 truncate font-display text-xl font-semibold text-text">{children}</p>
       </div>
     </div>
   );
@@ -317,9 +316,9 @@ function AlertsView({ me }) {
   const busy = refreshing || status === 'loading';
 
   const tabs = [
-    { id: 'all', label: 'All', icon: Layers, color: 'var(--accent-tone-1)' },
-    { id: 'announcements', label: 'Announcements', icon: Megaphone, color: 'var(--accent-tone-2)' },
-    { id: 'popups', label: 'Popups', icon: BellRing, color: 'var(--accent-tone-6)' },
+    { id: 'all', label: 'All', icon: Layers, color: toneColor(entityColorStep('alertSection', 'all')) },
+    { id: 'announcements', label: 'Announcements', icon: Megaphone, color: toneColor(entityColorStep('alertSection', 'announcements')) },
+    { id: 'popups', label: 'Popups', icon: BellRing, color: toneColor(entityColorStep('alertSection', 'popups')) },
   ];
 
   return (
@@ -368,7 +367,7 @@ function AlertsView({ me }) {
         <div className="relative shrink-0">
           <span aria-hidden="true" className="absolute inset-0 animate-ring rounded-full border-2 border-white/70" />
           <div className="relative grid size-24 place-items-center rounded-full border-2 border-white/40 bg-white/15 text-white/90 sm:size-28">
-            <BellRing size={44} aria-hidden="true" />
+            <AppIcon name="alert" entity="alert" hueRotate={false} className="size-14 object-contain sm:size-16" />
             {all.length > 0 && (
               <span className="absolute -right-1 -top-1 grid min-w-7 place-items-center rounded-full border-2 border-white bg-white px-1.5 py-0.5 text-xs font-bold text-[color:var(--brown)]">
                 {all.length}

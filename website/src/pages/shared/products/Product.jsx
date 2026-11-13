@@ -4,22 +4,12 @@
 //   /:category/:group/:productId   (productId is the slug)
 //   /:productId                    (rendered by SlugRoute: pass the slug as the `slug` prop)
 import { useEffect, useMemo, useState, useCallback, useRef } from "react";
-import { Link, Navigate, useNavigate, useParams } from "react-router";
+import { Link, Navigate, useLocation, useNavigate, useParams } from "react-router";
 import { useDispatch, useSelector } from "react-redux";
 import {
   BadgeCheck,
-  Banknote,
-  Clock3,
-  CreditCard,
-  MapPin,
-  PackageCheck,
   Star,
-  ShoppingBag,
-  Smartphone,
-  Store,
   Tag,
-  Truck,
-  Wallet,
   X,
   ZoomIn,
   ZoomOut,
@@ -40,8 +30,6 @@ import { PATHS } from "../../../router/path";
 import { LOGIN_REQUIRED } from "../../../store/slices/utils";
 import {
   addToCart,
-  getDeliveryChargesForLines,
-  getProductCheckoutPrice,
   selectCartLines,
   selectCartUpdating,
 } from "../../../store/slices/cartSlice";
@@ -49,15 +37,11 @@ import {
   toggleWishlist,
   selectIsWished,
 } from "../../../store/slices/wishlistSlice";
-import { placeDirectOrder, fetchMyOrders } from "../../../store/slices/ordersSlice";
 import { selectMe } from "../../../store/slices/userSlice";
 import userService from "../../../lib/appwrite/user";
-import { openLoginModal } from "../../../store/slices/uiSlice";
-import { settingsService } from "../../../store/slices/services";
 import reviewService from "../../../lib/appwrite/review";
-import Drawer from "../../../ui/custom/modal/Drawer";
-import TextInput from "../../../ui/custom/input/TextInput";
-import ActionButton from "../../../ui/custom/button/ActionButton";
+import ProductCheckoutDrawer from "./ProductCheckoutDrawer";
+import { loadDraft } from "../../../lib/checkoutDraft";
 
 /* ------------------------------------------------------------------ */
 /* helpers                                                             */
@@ -469,6 +453,8 @@ function Details({ product }) {
   const [checkoutSession, setCheckoutSession] = useState(0);
   const closeTimer = useRef(null);
   const checkoutTrigger = useRef(null);
+  const reopened = useRef(false);
+  const location = useLocation();
 
   const wished = useSelector(selectIsWished(product.$id));
   const account = useSelector(selectMe);
@@ -516,10 +502,6 @@ function Details({ product }) {
   const handleWish = () => dispatch(toggleWishlist({ productId: product.$id }));
 
   const openCheckout = () => {
-    if (!authProfile) {
-      dispatch(openLoginModal());
-      return;
-    }
     checkoutTrigger.current = document.activeElement;
     window.clearTimeout(closeTimer.current);
     setCheckoutSession((session) => session + 1);
@@ -535,6 +517,18 @@ function Details({ product }) {
   }, []);
 
   useEffect(() => () => window.clearTimeout(closeTimer.current), []);
+
+  // Back from Google login with something still missing: reopen the form.
+  useEffect(() => {
+    if (reopened.current || !location.state?.reopenCheckout || !authProfile) return;
+    if (!inStock || room < 1) return;
+    reopened.current = true;
+    const draft = loadDraft();
+    if (draft?.productId === product.$id) setQty(Math.min(maxQty, Math.max(1, Number(draft.quantity) || 1)));
+    navigate(`${location.pathname}${location.search}`, { replace: true, state: null });
+    openCheckout();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authProfile, location.state, inStock, room]);
 
   const categories = [
     product.category && {
@@ -727,15 +721,15 @@ function Details({ product }) {
           </ul>
         </section>
       )}
-      <CheckoutDrawer
+      <ProductCheckoutDrawer
         key={checkoutSession}
         mounted={checkoutMounted}
         open={checkoutOpen}
         onClose={closeCheckout}
-        onPlaced={() => {
+        onPlaced={(order) => {
           closeCheckout();
           window.setTimeout(() => {
-            navigate(PATHS.user.orders(account?.username || authProfile?.username), { replace: true });
+            navigate(PATHS.user.orders(order?.username || account?.username || authProfile?.username), { replace: true });
           }, 320);
         }}
         product={product}
@@ -743,273 +737,6 @@ function Details({ product }) {
         account={account || authProfile}
       />
     </section>
-  );
-}
-
-const paymentLabels = {
-  cod: "Cash on delivery",
-  advance: "Advance payment",
-};
-const paymentIcons = {
-  cod: Banknote,
-  advance: Smartphone,
-};
-
-const initialCheckoutForm = (account) => ({
-  customerName: account?.name || "",
-  customerPhone: account?.phone || "",
-  customerEmail: account?.email || "",
-  city: account?.lastCity || "",
-  address: account?.lastAddress || "",
-  notes: "",
-  deliveryType: "regular",
-  paymentType: "cod",
-});
-
-function CheckoutDrawer({ mounted, open, onClose, onPlaced, product, quantity, account }) {
-  const dispatch = useDispatch();
-  const [form, setForm] = useState(() => initialCheckoutForm(account));
-  const [errors, setErrors] = useState({});
-  const [serverError, setServerError] = useState("");
-  const [historyError, setHistoryError] = useState("");
-  const [deliveryError, setDeliveryError] = useState(false);
-  const [deliveryCharge, setDeliveryCharge] = useState(0);
-  const [deliveryLoading, setDeliveryLoading] = useState(true);
-  const [storeSettings, setStoreSettings] = useState({ codEnabled: true });
-  const [submitting, setSubmitting] = useState(false);
-
-  const subtotal = getProductCheckoutPrice(product, form.paymentType) * quantity;
-  const delivery = form.deliveryType === "pickup" ? 0 : deliveryCharge;
-  const total = subtotal + delivery;
-  const checkoutUnitPrice = getProductCheckoutPrice(product, form.paymentType);
-  const originalUnitPrice = Number(product.originalPrice) || Number(product.price) || 0;
-  const hasDiscount = originalUnitPrice > checkoutUnitPrice;
-  const discountPercent = hasDiscount
-    ? Math.round((1 - checkoutUnitPrice / originalUnitPrice) * 100)
-    : 0;
-  const savings = Math.max(0, originalUnitPrice - checkoutUnitPrice) * quantity;
-  const productImage = getMainImageUrl(product);
-
-  useEffect(() => {
-    if (!mounted) return undefined;
-    let active = true;
-    Promise.all([
-      getDeliveryChargesForLines([{ product, quantity }], subtotal),
-      settingsService.getAllSettings(),
-    ]).then(([charge, settings]) => {
-      if (!active) return;
-      if (charge === false || !Number.isFinite(Number(charge))) {
-        setDeliveryError(true);
-      } else {
-        setDeliveryCharge(Number(charge) || 0);
-      }
-      const currentSettings = settings || {};
-      setStoreSettings(currentSettings);
-      setDeliveryLoading(false);
-    }).catch((error) => {
-      if (!active) return;
-      console.error(error);
-      setDeliveryError(true);
-      setDeliveryLoading(false);
-    });
-    return () => {
-      active = false;
-    };
-  }, [mounted, subtotal, product, quantity]);
-
-  useEffect(() => {
-    if (!mounted) return undefined;
-    let active = true;
-    dispatch(fetchMyOrders({ limit: 1, offset: 0 })).then((result) => {
-      if (!active) return;
-      if (fetchMyOrders.fulfilled.match(result)) {
-        const latest = result.payload.rows[0];
-        if (latest) {
-          setForm((current) => ({
-            ...current,
-            customerName: latest.customerName || current.customerName,
-            customerPhone: latest.customerPhone || current.customerPhone,
-            customerEmail: latest.customerEmail || current.customerEmail,
-            city: latest.city || current.city,
-            address: latest.address || current.address,
-          }));
-        }
-      } else if (result.payload !== LOGIN_REQUIRED) {
-        setHistoryError("Previous order details could not be loaded. You can enter your details below.");
-      }
-    });
-    return () => {
-      active = false;
-    };
-  }, [mounted, dispatch, account]);
-
-  if (!mounted) return null;
-
-  const setField = (key) => (event) => setForm((current) => ({ ...current, [key]: event.target.value }));
-  const validate = () => {
-    const next = {};
-    if (!form.customerName.trim()) next.customerName = "Enter your name.";
-    if (!form.customerPhone.trim()) next.customerPhone = "Enter a phone number we can reach.";
-    if (!form.city.trim()) next.city = "Enter your city.";
-    if (!form.address.trim()) next.address = "Enter your delivery address.";
-    setErrors(next);
-    return Object.keys(next).length === 0;
-  };
-
-  const submit = async (event) => {
-    event.preventDefault();
-    setServerError("");
-    if (!validate()) return;
-    setSubmitting(true);
-    const result = await dispatch(placeDirectOrder({
-      product,
-      quantity,
-      form,
-      toast: true,
-    }));
-    setSubmitting(false);
-    if (placeDirectOrder.fulfilled.match(result)) {
-      onPlaced(result.payload);
-    } else if (result.payload && result.payload !== LOGIN_REQUIRED) {
-      setServerError(String(result.payload));
-    } else if (result.payload !== LOGIN_REQUIRED) {
-      setServerError(result.error?.message || "Could not place your order. Please try again.");
-    }
-  };
-
-  return (
-    <Drawer
-      open={open}
-      onClose={onClose}
-      title="Complete your order"
-      titleClassName="!font-display !text-2xl !font-bold !tracking-wide !text-accent sm:!text-3xl"
-      subtitle="Product, delivery and payment details"
-      icon={ShoppingBag}
-      tone={3}
-      busy={submitting}
-      onSubmit={submit}
-      width="max-w-3xl"
-      footer={(
-        <ActionButton type="submit" loading={submitting} disabled={deliveryLoading || deliveryError} icon={PackageCheck} className="w-full">
-          {deliveryLoading ? "Calculating delivery..." : `Place order · ${money(total)}`}
-        </ActionButton>
-      )}
-    >
-      <div className="space-y-5">
-        <section className="rounded-lg border border-border bg-surface p-3 sm:p-4" aria-label="Order item">
-          <div className="flex items-center gap-3">
-            <div className="h-20 w-16 shrink-0 overflow-hidden rounded-md bg-surface-alt sm:h-24 sm:w-20">
-              {productImage && <img src={productImage} alt={product.name} className="h-full w-full object-cover" />}
-            </div>
-            <div className="min-w-0 flex-1">
-              <h3 className="line-clamp-2 font-semibold text-text">{product.name}</h3>
-              <p className="mt-1 text-sm text-muted">Quantity: {quantity}</p>
-            </div>
-          </div>
-        </section>
-
-        {historyError && <p role="status" className="rounded-md bg-warning/10 px-3 py-2 text-sm text-text">Could not load previous order details. Enter them below.</p>}
-
-        <section aria-labelledby="checkout-contact-heading" className="rounded-lg border border-border p-3 sm:p-4">
-          <h3 id="checkout-contact-heading" className="mb-3 flex items-center gap-2 font-semibold text-text">
-            <MapPin size={17} className="text-accent" aria-hidden="true" /> Delivery details
-          </h3>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <TextInput label="Full name" value={form.customerName} onChange={setField("customerName")} error={errors.customerName} required maxLength={128} autoComplete="name" autoFocus />
-            <TextInput label="Phone" type="tel" value={form.customerPhone} onChange={setField("customerPhone")} error={errors.customerPhone} required maxLength={20} inputMode="tel" autoComplete="tel" />
-            <TextInput className="sm:col-span-2" label="Email" hint="Optional" type="email" value={form.customerEmail} onChange={setField("customerEmail")} maxLength={320} autoComplete="email" />
-            <TextInput label="City" value={form.city} onChange={setField("city")} error={errors.city} required maxLength={100} autoComplete="address-level2" />
-            <TextInput className="sm:col-span-2" inputClassName="resize-none" label="Street address" as="textarea" rows={2} value={form.address} onChange={setField("address")} error={errors.address} required maxLength={500} autoComplete="street-address" />
-            <TextInput className="sm:col-span-2" inputClassName="resize-none" label="Order notes" hint="Optional" as="textarea" rows={2} value={form.notes} onChange={setField("notes")} maxLength={1000} />
-          </div>
-        </section>
-
-        <section aria-labelledby="checkout-delivery-heading" className="rounded-lg border border-border p-3 sm:p-4">
-          <h3 id="checkout-delivery-heading" className="mb-3 flex items-center gap-2 font-semibold text-text">
-            <Truck size={17} className="text-accent" aria-hidden="true" /> Delivery options
-          </h3>
-          <div className="grid items-stretch gap-2 sm:grid-cols-2">
-            <label className={`flex h-full min-h-24 cursor-pointer flex-col justify-between gap-3 rounded-md border p-3 transition ${form.deliveryType === "regular" ? "border-accent bg-accent-soft" : "border-border hover:border-accent/50"}`}>
-              <input type="radio" name="direct-delivery" value="regular" checked={form.deliveryType === "regular"} onChange={setField("deliveryType")} className="sr-only" />
-              <span className="flex items-center justify-between gap-2">
-                <span className="flex items-center gap-2 font-medium"><Truck size={16} aria-hidden="true" /> Home delivery</span>
-                <span className="text-sm font-semibold tabular-nums">{deliveryLoading ? "…" : deliveryCharge ? money(deliveryCharge) : "Free"}</span>
-              </span>
-              {storeSettings.deliveryTimeRegular && (
-                <span className="flex items-start gap-1.5 text-xs text-muted"><Clock3 size={13} className="mt-0.5 shrink-0" aria-hidden="true" /> {storeSettings.deliveryTimeRegular}</span>
-              )}
-            </label>
-            <label className={`flex h-full min-h-24 cursor-pointer flex-col justify-between gap-3 rounded-md border p-3 transition ${form.deliveryType === "pickup" ? "border-accent bg-accent-soft" : "border-border hover:border-accent/50"}`}>
-              <input type="radio" name="direct-delivery" value="pickup" checked={form.deliveryType === "pickup"} onChange={setField("deliveryType")} className="sr-only" />
-              <span className="flex items-center justify-between gap-2">
-                <span className="flex items-center gap-2 font-medium"><Store size={16} aria-hidden="true" /> Store pickup</span>
-                <span className="text-sm font-semibold">Free</span>
-              </span>
-              {storeSettings.storeAddress && <span className="line-clamp-2 text-xs text-muted">{storeSettings.storeAddress}</span>}
-            </label>
-          </div>
-          {deliveryError && <p role="alert" className="mt-2 text-sm text-error">Delivery charges could not be loaded. Close checkout and try again.</p>}
-        </section>
-
-        <section aria-labelledby="checkout-payment-heading">
-          <h3 id="checkout-payment-heading" className="mb-1 flex items-center gap-2 font-semibold text-text">
-            <CreditCard size={17} className="text-accent" aria-hidden="true" /> Payment method
-          </h3>
-          <div className="grid grid-cols-2 items-stretch gap-2" role="radiogroup" aria-label="Payment method">
-            {["cod", "advance"].map((method) => {
-              const Icon = paymentIcons[method] || Wallet;
-              const selected = form.paymentType === method;
-              const methodPrice = getProductCheckoutPrice(product, method);
-              const discount = Math.max(0, originalUnitPrice - methodPrice);
-              return (
-                <button
-                  key={method}
-                  type="button"
-                  role="radio"
-                  aria-checked={selected}
-                  onClick={() => setForm((current) => ({ ...current, paymentType: method }))}
-                  className={`flex h-full min-h-20 w-full items-center gap-2 rounded-md border p-2.5 text-left text-sm transition ${selected ? "border-accent bg-accent-soft text-accent" : "border-border text-text hover:border-accent/60"}`}
-                >
-                  <Icon size={18} className="shrink-0" aria-hidden="true" />
-                  <span className="min-w-0">
-                    <span className="block font-medium">{paymentLabels[method]}</span>
-                    <span className="block text-xs tabular-nums">{money(methodPrice)}{discount > 0 ? ` · save ${money(discount)}` : ""}</span>
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        </section>
-
-        <section className="rounded-lg border border-border bg-surface p-3 sm:p-4" aria-label="Order total">
-          <h3 className="mb-3 flex items-center gap-2 font-semibold text-text"><ShoppingBag size={17} className="text-accent" aria-hidden="true" /> Order summary</h3>
-          <dl className="space-y-2 text-sm">
-            {hasDiscount && (
-              <>
-                <div className="flex justify-between gap-4">
-                  <dt className="text-muted">Original price</dt>
-                  <dd className="tabular-nums text-muted line-through">{money(originalUnitPrice * quantity)}</dd>
-                </div>
-                <div className="flex justify-between gap-4">
-                  <dt className="min-w-0 text-accent">
-                    <span className="block truncate">{product.discountName || "Discount"}{discountPercent > 0 ? ` · ${discountPercent}% off` : ""}</span>
-                  </dt>
-                  <dd className="shrink-0 font-medium tabular-nums text-accent">−{money(savings)}</dd>
-                </div>
-              </>
-            )}
-            <div className="flex items-center justify-between gap-4">
-              <dt className="font-medium text-text">{hasDiscount ? "Discounted price" : `Price × ${quantity}`}</dt>
-              <dd className="text-lg font-semibold tabular-nums text-text">{money(subtotal)}</dd>
-            </div>
-            <div className="flex justify-between gap-4"><dt className="text-muted">Delivery</dt><dd className="tabular-nums">{form.deliveryType === "pickup" || delivery === 0 ? "Free" : deliveryLoading ? "Calculating…" : money(delivery)}</dd></div>
-            <div className="flex justify-between gap-4 border-t border-border pt-2 font-semibold"><dt>Total</dt><dd className="text-xl tabular-nums">{money(total)}</dd></div>
-          </dl>
-        </section>
-
-        {serverError && <p role="alert" className="rounded-md bg-error/10 px-3 py-2 text-sm text-error">{serverError}</p>}
-      </div>
-    </Drawer>
   );
 }
 

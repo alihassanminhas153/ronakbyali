@@ -1,6 +1,7 @@
 // src/pages/user/dashboard/Cart.jsx   (route: /:username/cart)
 // Same look as Profile.jsx / Orders.jsx. Uses the existing cartSlice unchanged.
 import PanelPageTitle from '../../../ui/custom/PanelPageTitle';
+import AppIcon from '../../../ui/custom/AppIcon';
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router';
 import {
@@ -101,19 +102,13 @@ function Notice({ type, text, onDismiss }) {
 
 function StatTile({ icon: Icon, label, color, children }) {
   return (
-    <div
-      className="group flex items-center gap-3 rounded-xl border border-border bg-surface p-4 shadow-soft transition-all duration-200 hover:-translate-y-0.5 hover:border-[color:var(--tile)]"
-      style={{ '--tile': color }}
-    >
-      <span
-        className="grid size-11 shrink-0 place-items-center rounded-lg transition-transform duration-300 group-hover:scale-110"
-        style={{ background: `color-mix(in srgb, ${color} 15%, transparent)`, color }}
-      >
-        <Icon size={20} aria-hidden="true" />
-      </span>
-      <div className="min-w-0">
-        <p className="truncate text-xs text-muted">{label}</p>
-        <p className="truncate font-display text-xl font-semibold text-text">{children}</p>
+    <div className="group flex min-w-0 flex-col gap-3 rounded-xl border border-border bg-surface p-4 shadow-soft transition-all duration-200 hover:-translate-y-0.5 hover:border-[color:var(--tile)]" style={{ '--tile': color }}>
+      <p className="min-w-0 truncate text-xs text-muted">{label}</p>
+      <div className="flex min-w-0 items-end gap-3">
+        <span className="grid size-10 shrink-0 place-items-center rounded-lg transition-transform duration-300 group-hover:scale-110 sm:size-11" style={{ background: `color-mix(in srgb, ${color} 15%, transparent)`, color }}>
+          <Icon size={20} aria-hidden="true" />
+        </span>
+        <p className="min-w-0 truncate font-display text-xl font-semibold text-text">{children}</p>
       </div>
     </div>
   );
@@ -339,12 +334,12 @@ export default function Cart() {
 
         <div className="relative grid size-20 shrink-0 place-items-center rounded-full border-2 border-white/40 bg-white/15">
           <span aria-hidden="true" className="absolute inset-0 animate-ring rounded-full border-2 border-white/70" />
-          <ShoppingBag size={34} aria-hidden="true" />
+          <AppIcon name="cart" entity="cart" hueRotate={false} className="size-14 object-contain sm:size-16" />
         </div>
         <div className="relative min-w-0 flex-1">
           <span className="block text-[11px] font-semibold uppercase tracking-[0.18em] text-white/70">Shopping cart</span>
           <span className="heading mt-1 block min-h-[1.6em] truncate text-2xl sm:text-3xl">
-            <Typewriter phrases={phrases} icon="cart" tone={1} />
+            <Typewriter phrases={phrases} />
           </span>
         </div>
         {lines.length > 0 ? (

@@ -1,17 +1,13 @@
 import { useEffect, useState } from 'react';
+import { categoryColorStep, toneColor } from '../../lib/entityColors';
 
 // Accent shades come from index.css so chart colours follow the active theme.
 export const CHART_COLORS = [1, 2, 3, 4, 5, 6, 7, 8].map((n) => `var(--accent-tone-${n})`);
 export const colorAt = (i) => CHART_COLORS[i % CHART_COLORS.length];
-export const toneVar = (n = 1) => (typeof n === 'number' ? `var(--accent-tone-${((n - 1) % 8) + 1})` : n);
+export const toneVar = (n = 1) => (typeof n === 'number' ? toneColor(n) : n);
 
 // The same name always gets the same colour (a category looks the same in the table and in every chart).
-export function colorFor(name = '') {
-  let h = 0;
-  const str = String(name);
-  for (let i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) >>> 0;
-  return colorAt(h);
-}
+export const colorFor = (name = '') => toneColor(categoryColorStep(name));
 // Soft background tint of a colour (works with the CSS variables above).
 export const tint = (color, pct = 14) => `color-mix(in srgb, ${color} ${pct}%, transparent)`;
 

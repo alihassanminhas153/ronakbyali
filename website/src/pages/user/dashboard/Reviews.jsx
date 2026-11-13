@@ -41,6 +41,7 @@ import SelectInput from '../../../ui/custom/input/SelectInput';
 import Segmented from '../../../ui/custom/input/Segmented';
 import HeatmapCalendar from '../../../ui/graphs/HeatmapCalendar';
 import { formatDate, formatDateTime } from '../../../components/user/profile/profileMeta';
+import { entityColorStep, toneColor } from '../../../lib/entityColors';
 
 // Where "Browse products" and a product's name lead to. Change these two to match router/path.js.
 const SHOP_PATH = '/products';
@@ -51,9 +52,9 @@ const MAX_MESSAGE = 2000;
 const MAX_TITLE = 150;
 
 const STATUS = {
-  [REVIEW_STATUS.PENDING]: { label: 'Waiting for approval', short: 'Pending', icon: Clock, color: 'var(--warning)', tone: 3 },
-  [REVIEW_STATUS.APPROVED]: { label: 'Published', short: 'Approved', icon: CheckCircle2, color: 'var(--success)', tone: 7 },
-  [REVIEW_STATUS.REJECTED]: { label: 'Not published', short: 'Rejected', icon: XCircle, color: 'var(--error)', tone: 4 },
+  [REVIEW_STATUS.PENDING]: { label: 'Waiting for approval', short: 'Pending', icon: Clock, color: toneColor(entityColorStep('reviewStatus', 'pending')), tone: entityColorStep('reviewStatus', 'pending') },
+  [REVIEW_STATUS.APPROVED]: { label: 'Published', short: 'Approved', icon: CheckCircle2, color: toneColor(entityColorStep('reviewStatus', 'approved')), tone: entityColorStep('reviewStatus', 'approved') },
+  [REVIEW_STATUS.REJECTED]: { label: 'Not published', short: 'Rejected', icon: XCircle, color: toneColor(entityColorStep('reviewStatus', 'rejected')), tone: entityColorStep('reviewStatus', 'rejected') },
 };
 const statusOf = (review) => STATUS[review?.status] || STATUS[REVIEW_STATUS.PENDING];
 
@@ -113,16 +114,13 @@ function Notice({ type, text, onDismiss }) {
 
 function StatTile({ icon: Icon, label, color, children }) {
   return (
-    <div className="group flex items-center gap-3 rounded-xl border border-border bg-surface p-4 shadow-soft transition-all duration-200 hover:-translate-y-0.5 hover:border-[color:var(--tile)]" style={{ '--tile': color }}>
-      <span
-        className="grid size-11 shrink-0 place-items-center rounded-lg transition-transform duration-300 group-hover:scale-110"
-        style={{ background: `color-mix(in srgb, ${color} 15%, transparent)`, color }}
-      >
-        <Icon size={20} aria-hidden="true" />
-      </span>
-      <div className="min-w-0">
-        <p className="truncate text-xs text-muted">{label}</p>
-        <p className="truncate font-display text-xl font-semibold text-text">{children}</p>
+    <div className="group flex min-w-0 flex-col gap-3 rounded-xl border border-border bg-surface p-4 shadow-soft transition-all duration-200 hover:-translate-y-0.5 hover:border-[color:var(--tile)]" style={{ '--tile': color }}>
+      <p className="min-w-0 truncate text-xs text-muted">{label}</p>
+      <div className="flex min-w-0 items-end gap-3">
+        <span className="grid size-10 shrink-0 place-items-center rounded-lg transition-transform duration-300 group-hover:scale-110 sm:size-11" style={{ background: `color-mix(in srgb, ${color} 15%, transparent)`, color }}>
+          <Icon size={20} aria-hidden="true" />
+        </span>
+        <p className="min-w-0 truncate font-display text-xl font-semibold text-text">{children}</p>
       </div>
     </div>
   );

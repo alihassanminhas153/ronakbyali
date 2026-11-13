@@ -47,7 +47,7 @@ export function OverviewTab({ m }) {
   return (
     <div className="space-y-4">
       <FinanceMetricRow label="Finance summary: revenue and profit">
-        <StatTile label={`Revenue (${m.period.label})`} value={now.revenue} format={rsFmt} appIcon="pkr" sensitive valueClassName="whitespace-nowrap text-lg sm:text-xl" tone={1} delay={0} />
+        <StatTile label="Revenue" value={now.revenue} format={rsFmt} appIcon="pkr" sensitive valueClassName="whitespace-nowrap text-lg sm:text-xl" tone={1} delay={0} />
         <StatTile label="Gross profit" value={now.gross} format={rsFmt} appIcon="coins" sensitive valueClassName="whitespace-nowrap text-lg sm:text-xl" tone={2} delay={40} />
         <StatTile label="Operating expenses" value={now.opex} format={rsFmt} appIcon="wallet" sensitive valueClassName="whitespace-nowrap text-lg sm:text-xl" tone={4} delay={80} />
           <StatTile
@@ -63,15 +63,15 @@ export function OverviewTab({ m }) {
       </FinanceMetricRow>
       <FinanceMetricRow label="Finance summary: investment and cash">
         <StatTile label="Total investment" value={all.invested} format={rsFmt} appIcon="coins" sensitive valueClassName="whitespace-nowrap text-lg sm:text-xl" tone={6} delay={160} />
-        <StatTile label={`Withdrawn (${m.period.label})`} value={now.withdrawn} format={rsFmt} appIcon="wallet" sensitive valueClassName="whitespace-nowrap text-lg sm:text-xl" tone={3} delay={200} />
+        <StatTile label="Withdrawn" value={now.withdrawn} format={rsFmt} appIcon="wallet" sensitive valueClassName="whitespace-nowrap text-lg sm:text-xl" tone={3} delay={200} />
         <StatTile label="Return on investment" value={m.roi == null ? '—' : m.roi} format={pct} appIcon="arrow_trend_up" tone={5} delay={240} />
         <StatTile label="Cash in hand" value={m.cash} format={rsFmt} appIcon="wallet" sensitive valueClassName="whitespace-nowrap text-lg sm:text-xl" tone={m.cash < 0 ? 4 : 2} delay={280} />
       </FinanceMetricRow>
       <FinanceMetricRow label="Finance summary: orders and other amounts">
         <StatTile label="Orders on the way" value={m.pipelineValue} format={rsFmt} appIcon="clock" sensitive valueClassName="whitespace-nowrap text-lg sm:text-xl" tone={5} delay={320} />
         <StatTile label="Lost to cancels & returns" value={m.lostValue} format={rsFmt} appIcon="alert" sensitive valueClassName="whitespace-nowrap text-lg sm:text-xl" tone={4} delay={360} />
-        <StatTile label={`Other income (${m.period.label})`} value={now.income} format={rsFmt} appIcon="coins" sensitive valueClassName="whitespace-nowrap text-lg sm:text-xl" tone={7} delay={400} />
-        <StatTile label={`Stock bought (${m.period.label})`} value={now.stockSpend} format={rsFmt} appIcon="single_box" sensitive valueClassName="whitespace-nowrap text-lg sm:text-xl" tone={3} delay={440} />
+        <StatTile label="Other income" value={now.income} format={rsFmt} appIcon="coins" sensitive valueClassName="whitespace-nowrap text-lg sm:text-xl" tone={7} delay={400} />
+        <StatTile label="Stock bought" value={now.stockSpend} format={rsFmt} appIcon="single_box" sensitive valueClassName="whitespace-nowrap text-lg sm:text-xl" tone={3} delay={440} />
       </FinanceMetricRow>
 
       <div className={grid}>
@@ -150,8 +150,8 @@ export function InventoryTab({ m, onRestock }) {
       <div className={tiles}>
         <StatTile label="Products in stock" value={inv.inStock.length} hint={`of ${total} products`} appIcon="boxes" tone={2} delay={0} />
         <StatTile label="Out of stock" value={inv.outOfStock.length} appIcon="single_box" tone={4} delay={40} />
-        <StatTile label="Stock value (cost)" value={inv.stockCost} format={rsShort} hint="what you paid for it" appIcon="pkr" sensitive tone={3} delay={80} />
-        <StatTile label="Stock value (selling)" value={inv.stockRetail} format={rsShort} hint={`potential profit ${rsShort(inv.stockRetail - inv.stockCost)}`} appIcon="arrow_trend_up" sensitive tone={7} delay={120} />
+        <StatTile label="Stock cost" value={inv.stockCost} format={rsShort} hint="what you paid for it" appIcon="pkr" sensitive tone={3} delay={80} />
+        <StatTile label="Stock retail value" value={inv.stockRetail} format={rsShort} hint={`potential profit ${rsShort(inv.stockRetail - inv.stockCost)}`} appIcon="arrow_trend_up" sensitive tone={7} delay={120} />
       </div>
       <div className={grid}>
         <ChartCard title="Stock status" subtitle="Products in and out of stock" icon={PieChart} tone={2}>

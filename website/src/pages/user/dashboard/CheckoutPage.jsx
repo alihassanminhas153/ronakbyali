@@ -24,6 +24,8 @@ import {
 import { getMainImageUrl } from "../../../store/slices/productsSlice";
 import { PATHS } from "../../../router/path";
 import { LOGIN_REQUIRED } from "../../../store/slices/utils";
+import { validateDetails } from "../../../lib/checkoutDraft";
+import { ContactSummary } from "../../../ui/custom/checkout/CheckoutParts";
 
 const money = (v) => `Rs ${Number(v || 0).toLocaleString("en-PK")}`;
 const FIELD =
@@ -55,6 +57,7 @@ export default function Checkout() {
     notes: "",
   });
   const [errors, setErrors] = useState({});
+  const [editingContact, setEditingContact] = useState(() => !(profile?.name && profile?.phone));
   const [submitting, setSubmitting] = useState(false);
   const [serverError, setServerError] = useState(null);
 
@@ -75,6 +78,7 @@ export default function Checkout() {
       address: f.address || profile.lastAddress || "",
       notes: f.notes,
     }));
+    setEditingContact((open) => open || !(profile.name && profile.phone));
   }, [profile]);
 
   // Nothing is asked until we know whether an earlier order is still open.
@@ -101,12 +105,9 @@ export default function Checkout() {
   const set = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }));
 
   const validate = () => {
-    const next = {};
-    if (!form.customerName.trim()) next.customerName = "Enter your name.";
-    if (!form.customerPhone.trim()) next.customerPhone = "Enter a phone number we can reach.";
-    if (!form.city.trim()) next.city = "Enter your city.";
-    if (!form.address.trim()) next.address = "Enter your delivery address.";
+    const next = validateDetails(form); // client-side only, nothing is sent until it passes
     setErrors(next);
+    if (next.customerName || next.customerPhone) setEditingContact(true);
     return Object.keys(next).length === 0;
   };
 
@@ -198,24 +199,16 @@ export default function Checkout() {
             !mustChoose && (
               <section className="space-y-4 rounded-lg border border-neutral-200 p-4 dark:border-neutral-800 sm:space-y-5 sm:p-5">
                 <h2 className="text-lg font-semibold text-neutral-900 dark:text-white">Delivery details</h2>
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <Field label="Full name" error={errors.customerName}>
-                    <input className={FIELD} value={form.customerName} onChange={set("customerName")} maxLength={128} autoComplete="name" required aria-invalid={Boolean(errors.customerName)} />
-                  </Field>
-                  <Field label="Phone" error={errors.customerPhone}>
-                    <input className={FIELD} type="tel" value={form.customerPhone} onChange={set("customerPhone")} maxLength={20} inputMode="tel" autoComplete="tel" required aria-invalid={Boolean(errors.customerPhone)} />
+                <ContactSummary profile={profile} form={form} errors={errors} onChange={set} editing={editingContact} setEditing={setEditingContact} />
+                <div className="grid gap-4 border-t border-border pt-4 sm:grid-cols-2">
+                  <Field label="City" required error={errors.city}>
+                    <input className={FIELD} value={form.city} onChange={set("city")} maxLength={100} autoComplete="address-level2" required aria-invalid={Boolean(errors.city)} />
                   </Field>
                 </div>
-                <Field label="Email (optional)">
-                  <input className={FIELD} type="email" value={form.customerEmail} onChange={set("customerEmail")} autoComplete="email" />
-                </Field>
-                <Field label="City" error={errors.city}>
-                  <input className={FIELD} value={form.city} onChange={set("city")} maxLength={100} autoComplete="address-level2" required aria-invalid={Boolean(errors.city)} />
-                </Field>
-                <Field label="Address" error={errors.address}>
+                <Field label="Address" required error={errors.address}>
                   <textarea className={`${FIELD} resize-none`} rows={3} value={form.address} onChange={set("address")} maxLength={500} autoComplete="street-address" required aria-invalid={Boolean(errors.address)} />
                 </Field>
-                <Field label="Notes for us (optional)">
+                <Field label="Notes">
                   <textarea className={`${FIELD} resize-none`} rows={2} value={form.notes} onChange={set("notes")} maxLength={1000} />
                 </Field>
 
@@ -385,10 +378,11 @@ function Choice({ name, checked, onChange, title, detail, equalHeight = false })
   );
 }
 
-function Field({ label, error, children }) {
+function Field({ label, required = false, error, children }) {
   return (
     <label className="block text-sm font-medium text-neutral-900 dark:text-white">
       {label}
+      {required && <span className="text-error" aria-hidden="true"> *</span>}
       {children}
       {error && (
         <span role="alert" className="mt-1 block text-sm font-normal text-red-600 dark:text-red-400">

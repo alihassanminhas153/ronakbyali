@@ -1,21 +1,22 @@
 import { CheckCircle2, Clock, Cog, PackageCheck, Truck, Undo2, XCircle } from 'lucide-react';
+import { entityColorStep, toneColor } from '../../../lib/entityColors';
 
 // tone = the theme accent shade used by the badge, tab, and timeline dot
 export const STATUS_META = {
-  pending: { label: 'Pending', tone: 3, icon: Clock },
-  confirmed: { label: 'Confirmed', tone: 1, icon: CheckCircle2 },
-  processing: { label: 'Processing', tone: 6, icon: Cog },
-  shipped: { label: 'Shipped', tone: 5, icon: Truck },
-  delivered: { label: 'Delivered', tone: 7, icon: PackageCheck },
-  cancelled: { label: 'Cancelled', tone: 4, icon: XCircle },
-  returned: { label: 'Returned', tone: 8, icon: Undo2 },
+  pending: { label: 'Pending', tone: entityColorStep('orderStatus', 'pending'), icon: Clock },
+  confirmed: { label: 'Confirmed', tone: entityColorStep('orderStatus', 'confirmed'), icon: CheckCircle2 },
+  processing: { label: 'Processing', tone: entityColorStep('orderStatus', 'processing'), icon: Cog },
+  shipped: { label: 'Shipped', tone: entityColorStep('orderStatus', 'shipped'), icon: Truck },
+  delivered: { label: 'Delivered', tone: entityColorStep('orderStatus', 'delivered'), icon: PackageCheck },
+  cancelled: { label: 'Cancelled', tone: entityColorStep('orderStatus', 'cancelled'), icon: XCircle },
+  returned: { label: 'Returned', tone: entityColorStep('orderStatus', 'returned'), icon: Undo2 },
 };
 
 export const PAYMENT_META = {
-  unpaid: { label: 'Unpaid', tone: 4 },
-  partial: { label: 'Partial', tone: 3 },
-  paid: { label: 'Paid', tone: 7 },
-  refunded: { label: 'Refunded', tone: 8 },
+  unpaid: { label: 'Unpaid', tone: entityColorStep('paymentStatus', 'unpaid') },
+  partial: { label: 'Partial', tone: entityColorStep('paymentStatus', 'partial') },
+  paid: { label: 'Paid', tone: entityColorStep('paymentStatus', 'paid') },
+  refunded: { label: 'Refunded', tone: entityColorStep('paymentStatus', 'refunded') },
 };
 
 export const METHOD_LABEL = {
@@ -52,4 +53,4 @@ export const timeAgo = (iso) => {
   return new Date(iso).toLocaleDateString('en-PK', { day: 'numeric', month: 'short', year: 'numeric' });
 };
 
-export const toneColor = (tone) => `var(--accent-tone-${tone})`;
+export { toneColor };

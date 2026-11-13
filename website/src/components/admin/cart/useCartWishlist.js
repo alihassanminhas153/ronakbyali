@@ -4,6 +4,7 @@ import cartService from '../../../lib/appwrite/cart';
 import wishlistService from '../../../lib/appwrite/wishlist';
 import productService from '../../../lib/appwrite/product';
 import { toneVar } from '../../../ui/graphs/utils';
+import { entityColorStep } from '../../../lib/entityColors';
 import { money } from '../orders/orderMeta';
 
 const PAGE = 100;
@@ -19,14 +20,14 @@ const daysSince = (iso) => (iso ? Math.max(0, (Date.now() - new Date(iso).getTim
 // What state is a product in, for someone holding `qty` of it?
 //   ok | low | short (cart wants more than is left) | out | removed (product row is gone)
 export function stockOf(product, qty = 0) {
-  if (!product) return { key: 'removed', label: 'Removed', tone: 8 };
+  if (!product) return { key: 'removed', label: 'Removed', tone: entityColorStep('stockStatus', 'removed') };
   const remaining = product.remaining == null ? null : Number(product.remaining);
   if (product.status === 'outOfStock' || (remaining != null && remaining <= 0)) {
-    return { key: 'out', label: 'Out of stock', tone: 4 };
+    return { key: 'out', label: 'Out of stock', tone: entityColorStep('stockStatus', 'out') };
   }
-  if (remaining != null && qty > remaining) return { key: 'short', label: `Only ${remaining} left`, tone: 3 };
-  if (remaining != null && remaining <= LOW_STOCK) return { key: 'low', label: `Low · ${remaining} left`, tone: 3 };
-  return { key: 'ok', label: 'In stock', tone: 7 };
+  if (remaining != null && qty > remaining) return { key: 'short', label: `Only ${remaining} left`, tone: entityColorStep('stockStatus', 'short') };
+  if (remaining != null && remaining <= LOW_STOCK) return { key: 'low', label: `Low · ${remaining} left`, tone: entityColorStep('stockStatus', 'low') };
+  return { key: 'ok', label: 'In stock', tone: entityColorStep('stockStatus', 'in') };
 }
 export const isProblem = (stock) => ['out', 'short', 'removed'].includes(stock.key);
 
@@ -177,11 +178,11 @@ export default function useCartWishlist() {
     const mix = { ok: 0, low: 0, short: 0, out: 0, removed: 0 };
     demand.forEach((d) => { mix[d.stock.key] += 1; });
     const stockMix = [
-      { key: 'ok', label: 'In stock', tone: 7 },
-      { key: 'low', label: 'Low stock', tone: 3 },
-      { key: 'short', label: 'Carts want more than is left', tone: 5 },
-      { key: 'out', label: 'Out of stock', tone: 4 },
-      { key: 'removed', label: 'Product removed', tone: 8 },
+      { key: 'ok', label: 'In stock', tone: entityColorStep('stockStatus', 'in') },
+      { key: 'low', label: 'Low stock', tone: entityColorStep('stockStatus', 'low') },
+      { key: 'short', label: 'Carts want more than is left', tone: entityColorStep('stockStatus', 'short') },
+      { key: 'out', label: 'Out of stock', tone: entityColorStep('stockStatus', 'out') },
+      { key: 'removed', label: 'Product removed', tone: entityColorStep('stockStatus', 'removed') },
     ]
       .map((m) => ({ label: m.label, value: mix[m.key], color: toneVar(m.tone) }))
       .filter((m) => m.value > 0);
