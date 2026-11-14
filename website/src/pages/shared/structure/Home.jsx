@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Link } from "react-router";
+import Lenis from "lenis";
 import { ArrowUpRight, BadgePercent, Globe, Palette, ShieldCheck } from "lucide-react";
 
 // Adjust this path to where Home.jsx lives (this assumes src/pages/shared/Home.jsx)
@@ -307,6 +308,23 @@ export default function Home() {
   const sectionRef = useRef(null);
   const [minTimePassed, setMinTimePassed] = useState(false);
   const [imageDone, setImageDone] = useState(false); // loaded or failed, either way do not hang the loader
+
+  useEffect(() => {
+    if (prefersReducedMotion()) return undefined;
+
+    const lenis = new Lenis({ lerp: 0.1, smoothWheel: true, wheelMultiplier: 0.9 });
+    let frameId;
+    const raf = (time) => {
+      lenis.raf(time);
+      frameId = requestAnimationFrame(raf);
+    };
+    frameId = requestAnimationFrame(raf);
+
+    return () => {
+      cancelAnimationFrame(frameId);
+      lenis.destroy();
+    };
+  }, []);
 
   useEffect(() => {
     const id = setTimeout(() => setMinTimePassed(true), MIN_LOADER_MS);
