@@ -106,3 +106,9 @@ export function histogramBins(values = [], bins = 6, format = (n) => Math.round(
 
 export const compact = (n) =>
   new Intl.NumberFormat('en', { notation: 'compact', maximumFractionDigits: 1 }).format(Number(n) || 0);
+
+export const maskLength = (value) => {
+  const amount = Math.abs(Math.round(Number(value) || 0));
+  const digits = amount === 0 ? 1 : Math.floor(Math.log10(amount)) + 1;
+  return Math.min(6, Math.max(3, digits));
+};

@@ -94,7 +94,10 @@ export class UserService {
                     });
                     // Brand-new account only: make its cart + wishlist rows
                     // and store their ids on the profile.
-                    if (profile) return await this._createCartAndWishlist(profile);
+                    if (profile) {
+                        const linked = await this._createCartAndWishlist(profile);
+                        return { ...linked, isNew: true };
+                    }
                 } catch (error) {
                     if (error.code !== 409) throw error;
                     // Row for this user already exists? Then just return it.
@@ -140,8 +143,9 @@ export class UserService {
     //  2. profile with the same email exists -> return it
     //  3. otherwise create a new profile with role "new", a random username,
     //     and (only this once) a cart row + wishlist row linked to it
+    // `avatarFile` is uploaded only for a newly created row; `isNew` is transient.
     // `user` is the object from authService.getCurrentUser().
-    async ensureProfile({ user, defaults = {} }) {
+    async ensureProfile({ user, defaults = {}, avatarFile = null }) {
         try {
             if (!user) return false;
 
@@ -158,16 +162,22 @@ export class UserService {
                 return touched || existing;
             }
 
-            return await this.createProfile({
+            const uploadedAvatar = avatarFile ? await this.uploadAvatar({ file: avatarFile }) : false;
+            const profile = await this.createProfile({
                 userId: user.$id,
                 data: {
                     name: user.name || (user.email ? user.email.split('@')[0] : ''),
                     email: user.email || '',
                     role: ROLES.NEW,
                     lastLoginAt: new Date().toISOString(),
+                    ...(uploadedAvatar ? { avatarFileId: uploadedAvatar.$id } : {}),
                     ...defaults,
                 },
             });
+            if (uploadedAvatar && profile?.avatarFileId !== uploadedAvatar.$id) {
+                await this.deleteAvatar({ fileId: uploadedAvatar.$id });
+            }
+            return profile;
         } catch (error) {
             console.error(error.message);
             return false;

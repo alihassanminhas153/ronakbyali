@@ -8,6 +8,7 @@ import SearchSelect from '../../../ui/custom/input/SearchSelect';
 import SwitchField from '../../../ui/custom/input/SwitchField';
 import { Field } from '../../../ui/custom/input/FormField';
 import { inputCls } from '../../../ui/custom/input/inputStyles';
+import AppIcon, { resolveAppIconName } from '../../../ui/custom/AppIcon';
 import { STOCK_CATEGORY, rs, toDateKey, keyToIso } from './financeSchema';
 
 // Adds stock to a product and (optionally) records what it cost.
@@ -99,7 +100,7 @@ export default function RestockForm({ open, products = [], preset = null, onClos
         </div>
 
         <div className="mt-4 flex items-center justify-between rounded-md bg-surface px-3 py-2.5 text-sm">
-          <span className="flex items-center gap-2 text-muted"><Boxes size={15} className="text-accent-tone-2" />Units left</span>
+          <span className="flex items-center gap-2 text-muted"><AppIcon name={resolveAppIconName(Boxes)} tone={2} className="size-4 object-contain" />Units left</span>
           <span className="tabular-nums text-text">{before} <span className="text-muted">to</span> <b className="text-accent-tone-2">{before + n}</b></span>
         </div>
         {cost > 0 && n > 0 && (

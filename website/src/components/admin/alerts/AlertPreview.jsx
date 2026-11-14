@@ -1,4 +1,5 @@
 import { X } from 'lucide-react';
+import AppIcon, { resolveAppIconName } from '../../../ui/custom/AppIcon';
 import { tint, toneVar } from '../../../ui/graphs/utils';
 import { TYPE_META } from './alertMeta';
 
@@ -15,7 +16,7 @@ export default function AlertPreview({ alert }) {
     return (
       <div className="mx-auto w-full max-w-xs rounded-lg border border-border bg-surface p-5 text-center shadow-soft" style={{ borderTop: `3px solid ${color}` }}>
         <span className="mx-auto grid h-12 w-12 place-items-center rounded-full" style={{ background: tint(color, 14), color }}>
-          <Icon size={22} />
+          <AppIcon name={resolveAppIconName(Icon, 'alert')} tone={meta.tone} className="size-7 object-contain" />
         </span>
         <h4 className="heading-sm mt-3 break-words text-text">{title}</h4>
         <p className="mt-1.5 whitespace-pre-line break-words text-xs text-muted">{message}</p>
@@ -29,7 +30,7 @@ export default function AlertPreview({ alert }) {
 
   return (
     <div className="flex items-start gap-3 rounded-md border border-border px-3 py-2.5" style={{ background: tint(color, 10), borderLeft: `3px solid ${color}` }}>
-      <span className="mt-0.5 shrink-0" style={{ color }}><Icon size={18} /></span>
+      <AppIcon name={resolveAppIconName(Icon, 'alert')} tone={meta.tone} className="mt-0.5 size-5 shrink-0 object-contain" />
       <div className="min-w-0 flex-1">
         <p className="break-words text-sm font-semibold text-text">{title}</p>
         <p className="whitespace-pre-line break-words text-xs text-muted">{message}</p>

@@ -3,7 +3,9 @@ import { Activity, Eye, EyeOff } from 'lucide-react';
 
 import CountUp from '../custom/motion/CountUp';
 import AppIcon from '../custom/AppIcon';
-import { tint, toneVar } from './utils';
+import { maskLength, tint, toneVar } from './utils';
+import Tooltip from '../custom/tooltip/Tooltip';
+import { formatCardNumber, fullCardValue } from './CardMoney';
 
 // Number tile. `value` can be a number (it counts up) or text.
 //   format: how to print the animated number, e.g. (n) => `Rs ${Math.round(n).toLocaleString()}`
@@ -22,11 +24,12 @@ export default function StatTile({
   const color = toneVar(tone);
   const [hidden, setHidden] = useState(false);
   return (
+    <Tooltip label={hidden ? 'Hidden' : fullCardValue(value, format)} block className="h-full w-full min-w-0">
     <div
       style={{ animationDelay: `${delay}ms`, '--tile-tone': color }}
-      className="group/tile animate-rise flex min-w-0 flex-col gap-3 rounded-xl border border-border bg-surface p-3 shadow-soft transition-all duration-300 hover:-translate-y-0.5 hover:border-[color-mix(in_srgb,var(--tile-tone)_45%,var(--border))] sm:p-4"
+      className="group/tile flex h-full min-h-[8.5rem] w-full min-w-0 flex-col gap-2.5 rounded-xl border border-border bg-surface p-2.5 shadow-soft transition-all duration-300 hover:-translate-y-0.5 hover:border-[color-mix(in_srgb,var(--tile-tone)_45%,var(--border))] hover:bg-surface-alt/30 sm:p-3"
     >
-      <div className="flex min-w-0 items-center justify-between gap-2">
+      <div className="flex min-h-7 min-w-0 items-center justify-between gap-2">
         <p className="min-w-0 truncate text-xs text-muted">{label}</p>
         {sensitive && (
           <button
@@ -41,7 +44,7 @@ export default function StatTile({
           </button>
         )}
       </div>
-      <div className="flex min-w-0 items-end gap-3">
+      <div className="flex min-w-0 items-start gap-3">
         {appIcon ? (
           <AppIcon
             name={appIcon}
@@ -58,11 +61,14 @@ export default function StatTile({
         )}
         <div className="min-w-0 flex-1">
           <p className={`heading leading-tight text-text ${valueClassName || 'truncate text-xl sm:text-2xl'}`} aria-live={sensitive ? 'polite' : undefined}>
-            {hidden ? '***' : typeof value === 'number' ? <CountUp value={value} format={format} /> : value}
+            <span className={`inline-block transition-all duration-300 motion-reduce:transition-none ${hidden ? 'scale-95 blur-[2px] opacity-60' : 'scale-100 blur-0 opacity-100'}`}>
+              {hidden ? '*'.repeat(maskLength(value)) : typeof value === 'number' ? <CountUp value={value} format={(n) => formatCardNumber(n, format)} /> : value}
+            </span>
           </p>
-          {hint && <p className="truncate text-xs text-muted">{hidden ? 'Hidden' : hint}</p>}
         </div>
       </div>
+      {hint && <p className="w-full truncate text-xs text-muted">{hidden ? 'Hidden' : hint}</p>}
     </div>
+    </Tooltip>
   );
 }

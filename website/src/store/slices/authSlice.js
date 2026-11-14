@@ -10,6 +10,7 @@
 import { createAsyncThunk, createSlice, isAnyOf } from '@reduxjs/toolkit';
 import { authService, userService } from './services';
 import { fail, getUserId, isRow, stripToast } from './utils';
+import { AVATAR_PREF_KEY } from '../../lib/appwrite/accountExtras';
 
 const STAFF_ROLES = ['admin', 'support', 'manager'];
 
@@ -75,7 +76,7 @@ export const registerWithEmail = createAsyncThunk('auth/registerWithEmail', asyn
 // Step 2 of email signup: writes the name column of the users table (and the
 // Appwrite auth name, best effort), then the user counts as logged in.
 export const saveName = createAsyncThunk('auth/saveName', async (arg, { getState, rejectWithValue }) => {
-  const { name } = stripToast(arg);
+  const { name, avatarFile } = stripToast(arg);
   const { pendingProfile, profile: current } = getState().auth;
   const profile = pendingProfile || current;
   const userId = getUserId(profile);
@@ -84,8 +85,22 @@ export const saveName = createAsyncThunk('auth/saveName', async (arg, { getState
   const result = await userService.updateProfile({ userId, data: { name } });
   if (!result) return fail(rejectWithValue, 'Could not save your name. Please try again.', arg);
 
+  let savedProfile = isRow(result) ? result : { ...profile, name };
+  if (avatarFile) {
+    const withAvatar = await userService.changeAvatar({
+      userId,
+      file: avatarFile,
+      oldFileId: profile.avatarFileId,
+    });
+    if (!withAvatar) return fail(rejectWithValue, 'Your name was saved, but your photo could not be uploaded.', arg);
+    savedProfile = withAvatar;
+    if (savedProfile.avatarFileId) {
+      await authService.updatePref({ key: AVATAR_PREF_KEY, value: savedProfile.avatarFileId });
+    }
+  }
+
   await authService.updateName({ name }); // auth record only; a failure here must not block the flow
-  return isRow(result) ? result : { ...profile, name };
+  return savedProfile;
 });
 
 export const completeLogin = profileThunk('auth/completeLogin', () => authService.completeLogin()); // /auth/callback, call once
@@ -139,6 +154,9 @@ export const changeAvatar = createAsyncThunk('auth/changeAvatar', async (arg, { 
   const userId = getUserId(profile);
   const result = await userService.changeAvatar({ userId, file, oldFileId });
   if (!result) return fail(rejectWithValue, 'Could not change your photo.', arg);
+  if (result.avatarFileId) {
+    await authService.updatePref({ key: AVATAR_PREF_KEY, value: result.avatarFileId });
+  }
   if (isRow(result)) return result;
   return (await userService.getProfile({ userId })) || profile;
 });

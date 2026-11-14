@@ -1,6 +1,7 @@
 // USAGE (visitors: customers and guests. Staff get empty lists, they never see alerts)
 //   dispatch(fetchAlertBars());                         // announcement bars
 //   const bars = useSelector(selectAlertBars);
+//   dispatch(fetchAlertNotifications());                // header feed: bars + popups
 //   dispatch(fetchAlertPopups());                       // popups still unseen
 //   const popup = useSelector(selectCurrentPopup);      // highest priority one, or null
 //   dispatch(trackAlertImpression({ alert: popup }));   // once per session
@@ -39,7 +40,7 @@ const initialState = adapter.getInitialState({
   saving: false,
   saveError: null,
   // what visitors see
-  visitor: { bars: [], popups: [], status: 'idle' },
+  visitor: { bars: [], popups: [], notifications: [], status: 'idle', notificationsStatus: 'idle' },
 });
 
 /* ---------- helpers ---------- */
@@ -61,6 +62,14 @@ export const fetchAlertBars = createAsyncThunk('alerts/bars', async (_arg, { get
   const profile = getState().auth.profile;
   if (isStaff(profile)) return [];
   return alertService.getActiveAlerts({ userId: getUserId(profile) });
+});
+
+export const fetchAlertNotifications = createAsyncThunk('alerts/notifications', async (_arg, { getState, rejectWithValue }) => {
+  const profile = getState().auth.profile;
+  if (isStaff(profile)) return [];
+  const alerts = await alertService.getActiveNotifications({ userId: getUserId(profile) });
+  if (!alerts) return fail(rejectWithValue, alertService.lastError || 'Could not load alerts.');
+  return alerts;
 });
 
 export const fetchAlertPopups = createAsyncThunk('alerts/popups', async (_arg, { getState }) => {
@@ -167,6 +176,20 @@ const alertSlice = createSlice({
       })
       .addCase(fetchAlertPopups.fulfilled, (state, action) => {
         state.visitor.popups = action.payload;
+      })
+      .addCase(fetchAlertPopups.rejected, (state) => {
+        state.visitor.popups = [];
+      })
+      .addCase(fetchAlertNotifications.pending, (state) => {
+        state.visitor.notificationsStatus = 'loading';
+      })
+      .addCase(fetchAlertNotifications.fulfilled, (state, action) => {
+        state.visitor.notifications = action.payload;
+        state.visitor.notificationsStatus = 'succeeded';
+      })
+      .addCase(fetchAlertNotifications.rejected, (state) => {
+        state.visitor.notifications = [];
+        state.visitor.notificationsStatus = 'failed';
       })
       // gone from the screen at once; the saving happens in the background
       .addCase(markAlertSeen.pending, (state, action) => {
@@ -280,5 +303,7 @@ export const selectAlertById = (id) => (s) =>
 // visitors
 export const selectAlertBars = (s) => s.alerts.visitor.bars;
 export const selectAlertPopups = (s) => s.alerts.visitor.popups;
+export const selectAlertNotifications = (s) => s.alerts.visitor.notifications;
+export const selectAlertNotificationsStatus = (s) => s.alerts.visitor.notificationsStatus;
 export const selectCurrentPopup = (s) => s.alerts.visitor.popups[0] ?? null;
 export const selectVisitorAlertsStatus = (s) => s.alerts.visitor.status;

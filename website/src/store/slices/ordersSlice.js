@@ -71,6 +71,9 @@ const initialState = adapter.getInitialState({
     updateError: null,
     warning: null, // e.g. "status changed but stock could not be updated"
     counts: {},
+    analytics: [],
+    analyticsStatus: 'idle',
+    analyticsError: null,
   }),
 });
 
@@ -361,6 +364,14 @@ export const fetchStaffCounts = createAsyncThunk('orders/staffCounts', async (ar
   return counts;
 });
 
+export const fetchStaffOrderAnalytics = createAsyncThunk('orders/staffAnalytics', async (arg, { getState, rejectWithValue }) => {
+  if (notStaff(getState().auth.profile)) return rejectWithValue('You do not have access to order analytics.');
+  const from = new Date(Date.now() - 182 * 864e5).toISOString();
+  const rows = await orderService.getOrdersSince(from);
+  if (!rows) return fail(rejectWithValue, orderService.lastError || 'Could not load order analytics.', arg);
+  return rows;
+});
+
 /* ---------- staff: tracker (courier link + timeline) ---------- */
 
 const orderFor = (state, orderId) => state.orders.staff.entities[orderId] || state.orders.entities[orderId] || { $id: orderId };
@@ -609,6 +620,18 @@ const ordersSlice = createSlice({
       })
       .addCase(fetchStaffCounts.fulfilled, (state, action) => {
         state.staff.counts = action.payload;
+      })
+      .addCase(fetchStaffOrderAnalytics.pending, (state) => {
+        state.staff.analyticsStatus = 'loading';
+        state.staff.analyticsError = null;
+      })
+      .addCase(fetchStaffOrderAnalytics.fulfilled, (state, action) => {
+        state.staff.analytics = action.payload;
+        state.staff.analyticsStatus = 'succeeded';
+      })
+      .addCase(fetchStaffOrderAnalytics.rejected, (state, action) => {
+        state.staff.analyticsStatus = 'failed';
+        state.staff.analyticsError = action.payload || action.error?.message;
       });
 
     staffEdits.forEach((thunk) => {
@@ -623,6 +646,8 @@ const ordersSlice = createSlice({
           state.staff.updating = false;
           state.staff.warning = warning;
           staffAdapter.upsertOne(state.staff, order);
+          const analyticsIndex = state.staff.analytics.findIndex((entry) => entry.$id === order.$id);
+          if (analyticsIndex >= 0) state.staff.analytics[analyticsIndex] = order;
           if (state.entities[order.$id]) adapter.upsertOne(state, order);
         })
         .addCase(thunk.rejected, (state, action) => {
@@ -701,6 +726,9 @@ export const selectStaffUpdating = (s) => s.orders.staff.updating;
 export const selectStaffUpdateError = (s) => s.orders.staff.updateError;
 export const selectStaffWarning = (s) => s.orders.staff.warning;
 export const selectStaffCounts = (s) => s.orders.staff.counts;
+export const selectStaffOrderAnalytics = (s) => s.orders.staff.analytics;
+export const selectStaffOrderAnalyticsStatus = (s) => s.orders.staff.analyticsStatus;
+export const selectStaffOrderAnalyticsError = (s) => s.orders.staff.analyticsError;
 export const selectStaffOrderById = (id) => (s) => s.orders.staff.entities[id] ?? null;
 
 // Tracker (courier link + timeline, newest update first)

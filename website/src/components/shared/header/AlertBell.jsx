@@ -21,7 +21,7 @@ function timeAgo(value) {
 }
 
 export default function AlertBell({ data }) {
-  const { alerts, unreadCount, isUnread, markSeen, markAllSeen, refresh, alertPath } = data;
+  const { alerts, alertsStatus, unreadCount, isUnread, markSeen, markAllSeen, refresh, alertPath } = data;
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const rootRef = useRef(null);
@@ -111,8 +111,14 @@ export default function AlertBell({ data }) {
         {preview.length === 0 ? (
           <div className="flex flex-col items-center gap-2 px-6 py-10 text-center">
             <Bell size={24} className="text-muted" aria-hidden="true" />
-            <p className="text-sm font-medium text-text">No alerts yet</p>
-            <p className="text-sm text-muted">Updates about your orders and the store will appear here.</p>
+            <p className="text-sm font-medium text-text">
+              {alertsStatus === 'loading' ? 'Loading alerts…' : alertsStatus === 'failed' ? 'Could not load alerts' : 'No alerts yet'}
+            </p>
+            <p className="text-sm text-muted">
+              {alertsStatus === 'failed'
+                ? 'Please try opening the notification panel again.'
+                : 'Updates about your orders and the store will appear here.'}
+            </p>
           </div>
         ) : (
           <ul className="max-h-[min(24rem,60vh)] divide-y divide-border overflow-y-auto overscroll-contain">

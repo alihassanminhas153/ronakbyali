@@ -11,10 +11,14 @@ import {
   PAYMENT_STATUS,
   clearStaffWarning,
   fetchStaffCounts,
+  fetchStaffOrderAnalytics,
   fetchStaffOrders,
   searchStaffOrders,
   selectStaffCounts,
   selectStaffError,
+  selectStaffOrderAnalytics,
+  selectStaffOrderAnalyticsError,
+  selectStaffOrderAnalyticsStatus,
   selectStaffOrders,
   selectStaffStatus,
   selectStaffTotal,
@@ -30,6 +34,7 @@ import {
   toOptions,
   toneColor,
 } from '../../../components/admin/orders';
+import OrderAnalytics from '../../../components/admin/orders/OrderAnalytics';
 import ActionButton from '../../../ui/custom/button/ActionButton';
 import SearchInput from '../../../ui/custom/input/SearchInput';
 import SelectInput from '../../../ui/custom/input/SelectInput';
@@ -67,6 +72,9 @@ export default function Orders() {
   const status = useSelector(selectStaffStatus);
   const error = useSelector(selectStaffError);
   const counts = useSelector(selectStaffCounts);
+  const analyticsOrders = useSelector(selectStaffOrderAnalytics);
+  const analyticsStatus = useSelector(selectStaffOrderAnalyticsStatus);
+  const analyticsError = useSelector(selectStaffOrderAnalyticsError);
 
   const [filters, setFilters] = useState(EMPTY);
   const [selectedId, setSelectedId] = useState(null);
@@ -102,6 +110,7 @@ export default function Orders() {
     dispatch(clearStaffWarning());
     load(EMPTY);
     dispatch(fetchStaffCounts());
+    dispatch(fetchStaffOrderAnalytics());
   }, [dispatch, load]);
 
   const applyFilters = useCallback(
@@ -131,7 +140,7 @@ export default function Orders() {
   const refresh = async () => {
     setRefreshing(true);
     try {
-      await Promise.all([load(filters), dispatch(fetchStaffCounts())]);
+      await Promise.all([load(filters), dispatch(fetchStaffCounts()), dispatch(fetchStaffOrderAnalytics())]);
     } finally {
       setRefreshing(false);
     }
@@ -153,7 +162,7 @@ export default function Orders() {
   const filtered = Boolean(searching || filters.status || filters.paymentStatus || filters.deliveryType || filters.paymentMethod);
   const hasMore = !searching && rows.length < total;
   const visibleOrders = searching ? orders.slice(0, visibleSearch) : orders;
-  const busy = refreshing || loading;
+  const busy = refreshing || loading || analyticsStatus === 'loading';
 
   const pending = counts?.pending || 0;
   const allCount = Object.values(counts || {}).reduce((s, n) => s + (Number(n) || 0), 0);
@@ -248,8 +257,15 @@ export default function Orders() {
         </span>
       </button>
 
-      <Tabs iconOnly tabs={tabs} value={filters.status || 'all'} onChange={(id) => applyFilters({ status: id === 'all' ? '' : id })} />
+      <OrderAnalytics
+        orders={analyticsOrders}
+        status={analyticsStatus}
+        error={analyticsError}
+        onRetry={() => dispatch(fetchStaffOrderAnalytics())}
+      />
 
+      <Tabs iconOnly tabs={tabs} value={filters.status || 'all'} onChange={(id) => applyFilters({ status: id === 'all' ? '' : id })} />
+      
       <TabPanel key={filters.status || 'all'} className="space-y-6">
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_12rem_12rem_12rem]">
           <SearchInput

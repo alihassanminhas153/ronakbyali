@@ -5,7 +5,14 @@ import { selectProfile } from '../../../store/slices/authSlice';
 import { selectMe } from '../../../store/slices/userSlice';
 import userService, { isStaffRole } from '../../../lib/appwrite/user';
 import { dashboardHome, PATHS } from '../../../router/path';
-import { fetchAlertBars, selectAlertBars } from '../../../store/slices/alertSlice';
+import {
+  fetchAlertBars,
+  fetchAlertNotifications,
+  selectAlertBars,
+  selectAlertNotifications,
+  selectAlertNotificationsStatus,
+  trackAlertImpression,
+} from '../../../store/slices/alertSlice';
 import useSeenAlerts from './useSeenAlerts';
 
 export const alertTitle = (alert) => alert.title ?? alert.subject ?? 'Alert';
@@ -17,11 +24,14 @@ export default function useHeaderData() {
   const dispatch = useAppDispatch();
   const authProfile = useAppSelector(selectProfile);
   const user = useAppSelector(selectMe);
-  const list = useAppSelector(selectAlertBars);
+  const bars = useAppSelector(selectAlertBars);
+  const list = useAppSelector(selectAlertNotifications);
+  const alertsStatus = useAppSelector(selectAlertNotificationsStatus);
   const userId = authProfile?.userId ?? authProfile?.$id ?? user?.$id ?? null;
   const { seen, markSeen } = useSeenAlerts(userId);
   const username = user?.username ?? authProfile?.username ?? '';
-  const isStaff = isStaffRole(user?.role);
+  const isStaff = isStaffRole(user?.role ?? authProfile?.role);
+  const cartPath = username && !isStaff ? PATHS.user.cart(username) : null;
   const alertPath = username
     ? isStaff
       ? PATHS.admin.alerts(username)
@@ -33,12 +43,19 @@ export default function useHeaderData() {
   // Loads the active alerts for this user (staff get an empty list from the slice).
   // Runs again whenever the user changes (sign-in / sign-out).
   const refresh = useCallback(() => {
-    if (userId) dispatch(fetchAlertBars());
+    dispatch(fetchAlertBars());
+    if (userId) {
+      dispatch(fetchAlertNotifications());
+    }
   }, [dispatch, userId]);
 
   useEffect(() => {
     refresh();
   }, [refresh]);
+
+  useEffect(() => {
+    bars.forEach((alert) => dispatch(trackAlertImpression({ alert })));
+  }, [bars, dispatch]);
 
   const alerts = useMemo(
     () =>
@@ -58,7 +75,10 @@ export default function useHeaderData() {
     avatar,
     accountPath,
     alertPath,
+    cartPath,
+    bars,
     alerts,
+    alertsStatus,
     unreadCount,
     isUnread,
     markSeen,

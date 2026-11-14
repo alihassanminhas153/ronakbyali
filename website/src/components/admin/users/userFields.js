@@ -19,7 +19,6 @@ export const ROLE_FILTER_OPTIONS = [
   { value: 'all', label: 'All roles' },
   ...ROLE_VALUES.map((value) => ({ value, label: cap(value) })),
 ];
-export const ROLE_EDIT_OPTIONS = ROLE_VALUES.map((value) => ({ value, label: cap(value) }));
 
 export const BLOCKED_FILTER_OPTIONS = [
   { value: 'all', label: 'All' },
@@ -74,9 +73,6 @@ export const blockLockReason = (user, meId) => {
   return '';
 };
 
-export const roleLockReason = (user, meId) =>
-  user.$id === meId ? 'You cannot change your own role' : '';
-
 /* ---------- formatting ---------- */
 
 // Same formatter the products table uses for prices.
@@ -127,7 +123,7 @@ export const avatarOf = (user) => getAvatarUrl(user?.avatarFileId);
 
 /* ---------- detail modal sections (every column is shown here or in the table) ---------- */
 
-// role and isBlocked are editable and live in the "Access" block of UserForm.
+// Access data is displayed in UserForm; only isBlocked is editable there.
 export const USER_SECTIONS = [
   {
     title: 'Profile',

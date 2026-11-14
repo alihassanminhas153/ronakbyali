@@ -7,6 +7,7 @@ import {
 
 import userService, { isStaffRole } from '../../lib/appwrite/user';
 import orderService from '../../lib/appwrite/order';
+import labelService from '../../lib/appwrite/labels';
 import { clearAvatarPref } from '../../lib/appwrite/accountExtras';
 
 /*
@@ -178,6 +179,20 @@ export const setUserRole = createAsyncThunk(
     }
 );
 
+// Labels + role in ONE call (Appwrite Function). "labels" = extra labels only.
+export const setUserAccess = createAsyncThunk(
+    'users/setUserAccess',
+    async ({ userId, role, labels = [] }, { getState, rejectWithValue }) => {
+        const state = getState();
+        if (state.users.scope !== 'team') return rejectWithValue('Only the team can change access.');
+        if (userId === state.users.meId) return rejectWithValue('You cannot change your own access.');
+
+        const res = await labelService.setAccess({ userId, role, labels });
+        if (!res.ok) return rejectWithValue(res.message);
+        return res.profile;
+    }
+);
+
 // ---------- Slice ----------
 
 const addPending = (state, id) => {
@@ -307,6 +322,20 @@ const usersSlice = createSlice({
                 removePending(state, payload.$id);
             })
             .addCase(setUserRole.rejected, (state, { meta, payload, error }) => {
+                removePending(state, meta.arg.userId);
+                state.error = payload || error.message;
+            })
+
+            // --- labels + role (function) ---
+            .addCase(setUserAccess.pending, (state, { meta }) => {
+                addPending(state, meta.arg.userId);
+            })
+            .addCase(setUserAccess.fulfilled, (state, { payload }) => {
+                const totalSpent = state.entities[payload.$id]?.totalSpent;
+                adapter.upsertOne(state, { ...payload, totalSpent: totalSpent ?? payload.totalSpent });
+                removePending(state, payload.$id);
+            })
+            .addCase(setUserAccess.rejected, (state, { meta, payload, error }) => {
                 removePending(state, meta.arg.userId);
                 state.error = payload || error.message;
             });

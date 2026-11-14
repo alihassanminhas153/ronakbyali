@@ -6,8 +6,8 @@ import {
   BarChart, ChartCard, Donut, HeatmapCalendar, Histogram, StatTile, TrendGraph,
   colorFor, compact, countByDay, groupBy, monthlySeries, topWithOthers,
 } from '../../../ui/graphs';
+import { formatCardMoney } from '../../../ui/graphs/CardMoney';
 
-const rsFmt = (n) => `Rs ${Math.round(Number(n) || 0).toLocaleString('en-PK')}`;
 const sum = (rows, key) => rows.reduce((s, r) => s + (Number(r[key]) || 0), 0);
 const grid = 'grid gap-4 lg:grid-cols-2';
 const colored = (data) => data.map((d) => ({ ...d, color: colorFor(d.label) })); // same name = same colour everywhere
@@ -96,7 +96,7 @@ export function PricingTab({ rows }) {
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <StatTile label="Average price" value={avg} format={rsFmt} icon={Tag} tone={3} delay={0} />
+        <StatTile label="Average price" value={avg} format={formatCardMoney} icon={Tag} tone={3} delay={0} />
         <StatTile label="On discount" value={discounted.length} hint={`of ${rows.length} products`} icon={Percent} tone={4} delay={50} />
         <StatTile
           label="Avg. margin"
@@ -107,7 +107,7 @@ export function PricingTab({ rows }) {
           tone={7}
           delay={100}
         />
-        <StatTile label="Stock value" value={stockValue} format={(n) => `Rs ${compact(n)}`} icon={Wallet} tone={5} delay={150} />
+        <StatTile label="Stock value" value={stockValue} format={formatCardMoney} icon={Wallet} tone={5} delay={150} />
       </div>
       <div className={grid}>
         <ChartCard title="Price ranges" subtitle="Products in each price range (Rs)" icon={Coins} tone={3}>

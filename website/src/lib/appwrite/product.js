@@ -1,5 +1,6 @@
 import envVars from '../../../env/var';
 import { Client, Storage, TablesDB, Query, ID } from 'appwrite';
+import { optimizeImage, optimizeImages } from '../imageOptimizer';
 
 export const PRODUCT_STATUS = { IN_STOCK: 'inStock', OUT_OF_STOCK: 'outOfStock' };
 
@@ -517,12 +518,14 @@ export class ProductService {
     // A product keeps ALL its image ids in the `imageIds` array.
     // imageIds[0] is the main image.
 
+    // Every image is compressed and converted to .webp first (lib/imageOptimizer.js).
     async uploadImage(file) {
         try {
+            const optimized = await optimizeImage(file);
             const uploaded = await this.bucket.createFile({
                 bucketId: this.bucketId,
                 fileId: ID.unique(),
-                file,
+                file: optimized,
             });
             return uploaded ? uploaded : false;
         } catch (error) {
@@ -534,7 +537,8 @@ export class ProductService {
     // files: array of File objects -> uploaded files in order, or false.
     async uploadImages(files) {
         try {
-            return await this._inChunks(files, 5, (file) =>
+            const optimized = await optimizeImages(files); // compress + .webp, one by one
+            return await this._inChunks(optimized, 5, (file) =>
                 this.bucket.createFile({
                     bucketId: this.bucketId,
                     fileId: ID.unique(),

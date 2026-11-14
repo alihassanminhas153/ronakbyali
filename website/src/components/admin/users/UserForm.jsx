@@ -8,20 +8,17 @@ import {
   selectPendingUserIds,
   selectUserById,
   selectUsersError,
-  setUserRole,
 } from '../../../store/slices/userSlice';
 
-import SelectInput from '../../../ui/custom/input/SelectInput';
-import { tint, toneVar } from '../../../ui/graphs/utils';
+import { toneVar } from '../../../ui/graphs/utils';
 import { Avatar, BlockedBadge, ProviderChip, RoleBadge } from './UserBadges';
 import UserErrorBanner from './UserErrorBanner';
 import {
-  ROLE_EDIT_OPTIONS,
   USER_SECTIONS,
   blockLockReason,
   readField,
-  roleLockReason,
 } from './userFields';
+import AppIcon, { resolveAppIconName } from '../../../ui/custom/AppIcon';
 
 /* ---------- section pieces (same look as ProductForm) ---------- */
 
@@ -32,12 +29,11 @@ function SectionHead({ icon: Icon, title, subtitle, tone, readOnly }) {
   const color = toneVar(tone);
   return (
     <div className="flex items-center gap-3">
-      <span
-        className="grid h-9 w-9 shrink-0 place-items-center rounded-lg transition-transform duration-300 group-hover/sec:-rotate-6 group-hover/sec:scale-110"
-        style={{ background: tint(color, 14), color }}
-      >
-        <Icon size={18} />
-      </span>
+      <AppIcon
+        name={resolveAppIconName(Icon)}
+        tone={tone}
+        className="h-9 w-9 shrink-0 object-contain transition-transform duration-300 group-hover/sec:-rotate-6 group-hover/sec:scale-110"
+      />
       <div className="min-w-0 flex-1">
         <h3 className="heading-sm" style={{ color }}>{title}</h3>
         {subtitle && <p className="text-xs text-muted">{subtitle}</p>}
@@ -54,8 +50,8 @@ function SectionHead({ icon: Icon, title, subtitle, tone, readOnly }) {
 function Section({ title, subtitle, icon, tone = 1, readOnly = false, children, delay = 0 }) {
   return (
     <section
-      style={{ animationDelay: `${delay}ms`, borderTopColor: toneVar(tone) }}
-      className="group/sec animate-rise rounded-lg border border-border border-t-2 bg-surface-alt/40 p-4"
+      style={{ animationDelay: `${delay}ms` }}
+      className="group/sec animate-rise rounded-lg border border-border bg-surface-alt/40 p-4"
     >
       <SectionHead icon={icon} title={title} subtitle={subtitle} tone={tone} readOnly={readOnly} />
       <div className="mt-4 grid gap-4 sm:grid-cols-2">{children}</div>
@@ -111,10 +107,10 @@ function Switch({ checked, onChange, label, hint, disabled }) {
 
 // Detail drawer, same design and slide-in as ProductForm.
 //   userId           -> row to show (read live from the store, so the optimistic
-//                       block switch and role changes show up immediately)
+//                       block switch and profile refreshes show up immediately)
 //   meId             -> the signed-in user, for the self guards
 //   onToggleBlocked  -> (user, nextBlocked); the page owns the confirm dialog
-// Only role (setUserRole) and isBlocked (setUserBlocked) can be edited; the rest is read-only.
+// Only isBlocked can be changed here; all other profile data is read-only.
 export default function UserForm({ open = true, userId = null, meId = null, onClose, onToggleBlocked }) {
   const dispatch = useAppDispatch();
   const user = useAppSelector((state) => (userId ? selectUserById(state, userId) : undefined));
@@ -148,11 +144,6 @@ export default function UserForm({ open = true, userId = null, meId = null, onCl
 
   const pending = pendingIds.includes(user.$id);
   const blockLock = blockLockReason(user, meId);
-  const roleLock = roleLockReason(user, meId);
-
-  const onRole = (role) => {
-    if (role && role !== user.role) dispatch(setUserRole({ userId: user.$id, role }));
-  };
 
   return (
     <div
@@ -204,16 +195,8 @@ export default function UserForm({ open = true, userId = null, meId = null, onCl
           </div>
 
           {/* the only editable part */}
-          <Section title="Access" subtitle="The only things you can change here." icon={ShieldCheck} tone={4} delay={60}>
-            <Field label="Role" hint={roleLock || (pending ? 'Saving…' : 'saves when you pick')}>
-              <SelectInput
-                aria-label="Role"
-                options={ROLE_EDIT_OPTIONS}
-                value={user.role || 'new'}
-                onChange={onRole}
-                disabled={pending || Boolean(roleLock)}
-              />
-            </Field>
+          <Section title="Access" subtitle="Only blocked status can be changed here." icon={ShieldCheck} tone={4} delay={60}>
+            <ReadValue label="Role"><RoleBadge role={user.role} /></ReadValue>
             <div className="flex items-end">
               <Switch
                 label="Blocked"

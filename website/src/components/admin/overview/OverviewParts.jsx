@@ -5,6 +5,9 @@ import { Activity, ArrowRight, ArrowUpRight, Eye, EyeOff } from 'lucide-react';
 import AppIcon from '../../../ui/custom/AppIcon';
 import CountUp from '../../../ui/custom/motion/CountUp';
 import { ChartCard, tint, toneVar } from '../../../ui/graphs';
+import { maskLength } from '../../../ui/graphs/utils';
+import Tooltip from '../../../ui/custom/tooltip/Tooltip';
+import { formatCardNumber, fullCardValue } from '../../../ui/graphs/CardMoney';
 
 // Clickable number tile (same look as StatTile, goes to a page).
 export function LinkTile({ to, label, value, format, hint, icon: Icon, appIcon, sensitive = false, tone = 1, delay = 0 }) {
@@ -12,13 +15,14 @@ export function LinkTile({ to, label, value, format, hint, icon: Icon, appIcon, 
   const [hidden, setHidden] = useState(false);
   return (
     <div className="relative min-w-0">
+      <Tooltip label={hidden ? 'Hidden' : fullCardValue(value, format)} block className="h-full w-full min-w-0">
       <Link
         to={to}
         style={{ animationDelay: `${delay}ms`, '--tile-tone': color }}
-        className={`group/tile animate-rise relative flex min-w-0 flex-col gap-3 rounded-xl border border-border bg-surface p-3 shadow-soft transition-all duration-300 hover:-translate-y-0.5 hover:border-[color-mix(in_srgb,var(--tile-tone)_45%,var(--border))] sm:p-4 ${sensitive ? 'pr-10' : ''}`}
+        className={`group/tile relative flex h-full min-h-[8.5rem] w-full min-w-0 flex-col gap-2.5 rounded-xl border border-border bg-surface p-2.5 shadow-soft transition-all duration-300 hover:-translate-y-0.5 hover:border-[color-mix(in_srgb,var(--tile-tone)_45%,var(--border))] hover:bg-surface-alt/30 sm:p-3 ${sensitive ? 'pr-9' : ''}`}
       >
-        <p className="min-w-0 truncate pr-6 text-xs text-muted">{label}</p>
-        <div className="flex min-w-0 items-end gap-3">
+        <p className="flex min-h-7 min-w-0 items-center truncate pr-6 text-xs text-muted">{label}</p>
+        <div className="flex min-w-0 items-start gap-3">
           {appIcon ? (
             <AppIcon
               name={appIcon}
@@ -32,16 +36,19 @@ export function LinkTile({ to, label, value, format, hint, icon: Icon, appIcon, 
           )}
           <div className="min-w-0 flex-1">
           <p className="heading truncate text-xl leading-tight text-text sm:text-2xl">
-            {hidden ? '***' : typeof value === 'number' ? <CountUp value={value} format={format} /> : value}
+            <span className={`inline-block transition-all duration-300 motion-reduce:transition-none ${hidden ? 'scale-95 blur-[2px] opacity-60' : 'scale-100 blur-0 opacity-100'}`}>
+              {hidden ? '*'.repeat(maskLength(value)) : typeof value === 'number' ? <CountUp value={value} format={(n) => formatCardNumber(n, format)} /> : value}
+            </span>
           </p>
-          {hint && <p className="truncate text-xs text-muted">{hidden ? 'Hidden' : hint}</p>}
           </div>
         </div>
+        {hint && <p className="w-full truncate text-xs text-muted">{hidden ? 'Hidden' : hint}</p>}
         <ArrowUpRight
           size={16}
           className={`absolute text-muted opacity-0 transition-all duration-300 group-hover/tile:translate-x-0.5 group-hover/tile:-translate-y-0.5 group-hover/tile:opacity-100 ${sensitive ? 'bottom-3 right-3 top-auto' : 'right-3 top-3'}`}
         />
       </Link>
+      </Tooltip>
       {sensitive && (
         <button
           type="button"
@@ -83,12 +90,14 @@ export function Mini({ items }) {
   return (
     <div className="mb-3 grid min-w-0 grid-cols-3 gap-1.5 sm:mb-4 sm:gap-2">
       {items.map((it) => (
-        <div key={it.label} className="min-w-0 rounded-md bg-surface-alt/60 px-2 py-2 sm:px-3">
+        <Tooltip key={it.label} label={fullCardValue(it.value, it.format)} block className="h-full w-full min-w-0">
+        <div className="w-full min-w-0 rounded-md bg-surface-alt/60 px-1.5 py-1.5 sm:px-2.5 sm:py-2">
           <p className="truncate text-[11px] text-muted">{it.label}</p>
           <p className="heading truncate text-lg leading-tight" style={{ color: toneVar(it.tone) }}>
-            {typeof it.value === 'number' ? <CountUp value={it.value} format={it.format} duration={800} /> : it.value}
+            {typeof it.value === 'number' ? <CountUp value={it.value} format={(n) => formatCardNumber(n, it.format)} duration={800} /> : it.value}
           </p>
         </div>
+        </Tooltip>
       ))}
     </div>
   );

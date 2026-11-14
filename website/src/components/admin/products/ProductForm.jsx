@@ -5,6 +5,7 @@ import { Boxes, FileText, ImagePlus, Star, Truck, Wallet, X, Image as ImageIcon 
 import { addProduct, updateProduct } from '../../../store/slices/productsSlice';
 import productService from '../../../lib/appwrite/product';
 import SearchSelect from '../../../ui/custom/input/SearchSelect';
+import AppIcon, { resolveAppIconName } from '../../../ui/custom/AppIcon';
 import { colorFor, tint, toneVar } from '../../../ui/graphs/utils';
 import { autoPrice, slugify, toForm, toPayload, validate } from './productSchema';
 
@@ -34,9 +35,11 @@ function SectionHead({ icon: Icon, title, subtitle, tone }) {
   const color = toneVar(tone);
   return (
     <div className="flex items-center gap-3">
-      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg transition-transform duration-300 group-hover/sec:-rotate-6 group-hover/sec:scale-110" style={{ background: tint(color, 14), color }}>
-        <Icon size={18} />
-      </span>
+      <AppIcon
+        name={resolveAppIconName(Icon)}
+        tone={tone}
+        className="h-9 w-9 shrink-0 object-contain transition-transform duration-300 group-hover/sec:-rotate-6 group-hover/sec:scale-110"
+      />
       <div className="min-w-0">
         <h3 className="heading-sm" style={{ color }}>{title}</h3>
         {subtitle && <p className="text-xs text-muted">{subtitle}</p>}

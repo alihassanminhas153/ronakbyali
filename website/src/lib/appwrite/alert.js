@@ -72,6 +72,16 @@ export class AlertService {
         }
     }
 
+    // All currently active alerts for the header notification feed.
+    async getActiveNotifications({ userId } = {}) {
+        this.lastError = null;
+        try {
+            return await this._listLive({ userId });
+        } catch (error) {
+            return this._fail(error, 'Could not load alerts.');
+        }
+    }
+
     // Popups this visitor should still see (not confirmed, not dismissed this session).
     // Highest priority first.
     async getPopupAlerts({ userId } = {}) {
@@ -165,6 +175,10 @@ export class AlertService {
             }
             const dateError = this._dateError(clean);
             if (dateError) return this._fail(null, dateError);
+            if (clean.popup && clean.status !== ALERT_STATUS.INACTIVE) {
+                const demoted = await this._demoteOtherPopups();
+                if (!demoted) return false;
+            }
 
             const alert = await this.table.createRow({
                 databaseId: this.databaseId,
@@ -221,6 +235,12 @@ export class AlertService {
             if (dateError) return this._fail(null, dateError);
             if (merged.endsAt && new Date(merged.endsAt).getTime() <= Date.now()) {
                 return this._fail(null, 'The end time is already in the past.');
+            }
+            const nextStatus = clean.status || current.status;
+            const nextPopup = clean.popup ?? current.popup;
+            if (nextPopup && nextStatus === ALERT_STATUS.ACTIVE) {
+                const demoted = await this._demoteOtherPopups(rowId);
+                if (!demoted) return false;
             }
             return await this._write(rowId, clean);
         } catch (error) {
@@ -308,17 +328,36 @@ export class AlertService {
     // =====================================================================
 
     async _listLive({ popup, userId }) {
+        const queries = [
+            Query.equal('status', ALERT_STATUS.ACTIVE),
+            Query.orderDesc('priority'),
+            Query.limit(50),
+        ];
+        if (popup !== undefined) queries.splice(1, 0, Query.equal('popup', popup));
         const res = await this.table.listRows({
             databaseId: this.databaseId,
             tableId: this.tableId,
-            queries: [
-                Query.equal('status', ALERT_STATUS.ACTIVE),
-                Query.equal('popup', popup),
-                Query.orderDesc('priority'),
-                Query.limit(50),
-            ],
+            queries,
         });
         return (res?.rows || []).filter((a) => alertState(a) === 'active' && this._isForUser(a, userId));
+    }
+
+    async _demoteOtherPopups(excludeId = null) {
+        let rows;
+        try {
+            rows = await this._listAll([
+                Query.equal('status', ALERT_STATUS.ACTIVE),
+                Query.equal('popup', true),
+            ]);
+        } catch (error) {
+            return this._fail(error, 'Could not replace the existing popup alert.');
+        }
+        const current = rows.filter((row) => row.$id !== excludeId && alertState(row) !== 'expired');
+        const saved = await Promise.all(current.map((row) => this._write(row.$id, { popup: false })));
+        if (saved.some((row) => !row)) {
+            return this._fail(null, 'Could not replace the existing popup alert.');
+        }
+        return true;
     }
 
     async _listAll(queries = [], max = 500) {

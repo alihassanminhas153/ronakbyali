@@ -34,6 +34,7 @@ import { fetchWishlist, selectWishlistProducts, selectWishlistStatus } from '../
 import { fetchMyReviews, selectMyReviews, selectMyReviewsStatus } from '../../../store/slices/reviewSlice';
 import { fetchAlertBars, selectAlertBars } from '../../../store/slices/alertSlice';
 import { BarChart, Donut, TrendGraph, compact, toneVar } from '../../../ui/graphs';
+import { formatCardMoney } from '../../../ui/graphs/CardMoney';
 import CountUp from '../../../ui/custom/motion/CountUp';
 import Typewriter from '../../../ui/custom/motion/Typewriter';
 import useEntered from '../../../ui/custom/motion/useEntered';
@@ -379,9 +380,9 @@ function OverviewView({ me }) {
       {/* Key numbers: every tile opens its page */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <LinkTile to="orders" label="Orders placed" value={orderCount} hint={`${o.delivered} delivered`} appIcon="list" tone={1} delay={0} />
-        <LinkTile to="orders" label="Total spent" value={spent} format={short} hint={orderCount ? `${short(spent / orderCount)} per order` : 'no orders yet'} appIcon="wallet" sensitive tone={2} delay={40} />
+        <LinkTile to="orders" label="Total spent" value={spent} format={formatCardMoney} hint={orderCount ? `${short(spent / orderCount)} per order` : 'no orders yet'} appIcon="wallet" sensitive tone={2} delay={40} />
         <LinkTile to="orders" label="Orders on the way" value={o.open} hint={`${o.pending} pending`} appIcon="truck" tone={3} delay={80} />
-        <LinkTile to="cart" label="Value in cart" value={cartSubtotal} format={short} hint={`${cartCount} ${cartCount === 1 ? 'item' : 'items'}`} appIcon="cart" sensitive tone={1} delay={120} />
+        <LinkTile to="cart" label="Value in cart" value={cartSubtotal} format={formatCardMoney} hint={`${cartCount} ${cartCount === 1 ? 'item' : 'items'}`} appIcon="cart" sensitive tone={1} delay={120} />
         <LinkTile to="wishlist" label="Wishlist" value={o.wish.total} hint={`${o.wish.out} out of stock`} appIcon="popular" tone={4} delay={160} />
         <LinkTile to="reviews" label="Reviews written" value={o.reviews.total} hint={o.reviews.pending ? `${o.reviews.pending} awaiting approval` : 'all reviewed'} appIcon="reviews" tone={5} delay={200} />
         <LinkTile to="alerts" label="New alerts" value={bars.length} hint="offers and updates" appIcon="alert" tone={6} delay={240} />
@@ -438,7 +439,7 @@ function OverviewView({ me }) {
         <OverviewCard to="cart" cta="Cart" title="Cart" subtitle="Pick up where you left off" appIcon="cart" tone={3} delay={80}>
           <Mini items={[
             { label: 'Items', value: cartCount, tone: 1 },
-            { label: 'Subtotal', value: cartSubtotal, format: short, tone: 7 },
+            { label: 'Subtotal', value: cartSubtotal, format: formatCardMoney, tone: 7 },
             { label: 'Lines', value: cartLines.length, tone: 3 },
           ]} />
           <BarChart

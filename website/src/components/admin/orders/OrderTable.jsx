@@ -2,19 +2,16 @@ import { memo } from 'react';
 import { Eye } from 'lucide-react';
 import '../users/userScroll.css';
 
+import AppIcon from '../../../ui/custom/AppIcon';
 import Tooltip from '../../../ui/custom/tooltip/Tooltip';
-import { parseOrderItems } from '../../../store/slices/ordersSlice';
 import { DeliveryChip, PaymentBadge, StatusBadge } from './OrderBadges';
-import { fullDate, money, timeAgo } from './orderMeta';
+import { money, STATUS_META } from './orderMeta';
 
 const COLUMNS = [
-  { label: 'Order' },
+  { label: 'Order ID' },
   { label: 'Customer' },
-  { label: 'Items', right: true },
-  { label: 'Total', right: true },
   { label: 'Payment' },
   { label: 'Status' },
-  { label: 'Placed' },
   { label: 'Actions', right: true },
 ];
 
@@ -23,18 +20,16 @@ const rise = (i) => ({ animationDelay: `${Math.min(i, 12) * 35}ms` });
 const ICON_BTN =
   'grid size-9 place-items-center rounded-md text-muted transition-colors hover:bg-surface-alt hover:text-text focus-visible:outline-2 focus-visible:outline-accent';
 
-const countItems = (order) => parseOrderItems(order).reduce((s, i) => s + (Number(i.quantity) || 0), 0);
-
 // Table on larger screens, cards below. Clicking a row opens the order drawer.
 function Shell({ children, always = false }) {
   return (
-    <div className={`overflow-hidden rounded-lg border border-border bg-surface ${always ? '' : 'hidden lg:block'}`}>
+    <div className={`overflow-hidden rounded-xl border border-border bg-surface shadow-soft ${always ? '' : 'hidden lg:block'}`}>
       <div className="user-scroll overflow-x-auto">
-        <table className="w-full min-w-[60rem] text-left">
-          <thead className="bg-surface-alt/60 text-xs text-muted">
+        <table className="w-full min-w-[44rem] text-left">
+          <thead className="sticky top-0 z-10 border-b border-border bg-surface-alt/90 text-[11px] uppercase tracking-wide text-muted backdrop-blur">
             <tr>
-              {COLUMNS.map((c) => (
-                <th key={c.label} className={`px-4 py-3 font-medium ${c.right ? 'text-right' : ''}`}>{c.label}</th>
+              {COLUMNS.map((column) => (
+                <th key={column.label} className={`px-4 py-3 font-semibold ${column.right ? 'text-right' : ''}`}>{column.label}</th>
               ))}
             </tr>
           </thead>
@@ -42,14 +37,6 @@ function Shell({ children, always = false }) {
         </table>
       </div>
     </div>
-  );
-}
-
-function Placed({ value }) {
-  return (
-    <Tooltip label={fullDate(value)}>
-      <time dateTime={value} className="whitespace-nowrap text-sm text-muted">{timeAgo(value)}</time>
-    </Tooltip>
   );
 }
 
@@ -65,6 +52,7 @@ function ViewButton({ order, onView }) {
 
 const OrderRow = memo(function OrderRow({ order, index, onView }) {
   const dim = ['cancelled', 'returned'].includes(order.status) ? 'opacity-60' : '';
+  const iconTone = STATUS_META[order.status]?.tone || 1;
   return (
     <tr
       style={rise(index)}
@@ -72,18 +60,21 @@ const OrderRow = memo(function OrderRow({ order, index, onView }) {
       className="group/row animate-rise cursor-pointer transition-colors hover:bg-surface-alt/50"
     >
       <td className={`px-4 py-3 ${dim}`}>
-        <p className="text-sm font-semibold tabular-nums text-text">{order.orderNumber}</p>
-        <p className="mt-0.5"><DeliveryChip type={order.deliveryType} /></p>
+        <p className="flex items-center gap-2 whitespace-nowrap text-sm font-semibold tabular-nums text-text">
+          <AppIcon name="single_box" tone={iconTone} className="size-5 shrink-0 object-contain" />
+          {order.orderNumber}
+        </p>
+        <div className="mt-1"><DeliveryChip type={order.deliveryType} /></div>
       </td>
       <td className={`px-4 py-3 ${dim}`}>
-        <p className="max-w-52 truncate text-sm font-medium text-text">{order.customerName}</p>
-        <p className="mt-0.5 max-w-52 truncate text-xs text-muted">{order.customerPhone} · {order.city}</p>
+        <p className="max-w-64 truncate text-sm font-medium text-text">{order.customerName}</p>
+        <p className="mt-0.5 max-w-64 truncate text-xs text-muted">{order.customerPhone} · {order.city}</p>
       </td>
-      <td className={`px-4 py-3 text-right text-sm tabular-nums text-text ${dim}`}>{countItems(order)}</td>
-      <td className={`whitespace-nowrap px-4 py-3 text-right text-sm font-medium tabular-nums text-text ${dim}`}>{money(order.total)}</td>
-      <td className="px-4 py-3"><PaymentBadge status={order.paymentStatus} /></td>
+      <td className={`whitespace-nowrap px-4 py-3 ${dim}`}>
+        <PaymentBadge status={order.paymentStatus} />
+        <p className="mt-1 text-xs tabular-nums text-muted">{money(order.total)}</p>
+      </td>
       <td className="px-4 py-3"><StatusBadge status={order.status} /></td>
-      <td className={`px-4 py-3 ${dim}`}><Placed value={order.$createdAt} /></td>
       <td className="cursor-default px-4 py-3" onClick={stop}>
         <div className="flex justify-end"><ViewButton order={order} onView={onView} /></div>
       </td>
@@ -92,27 +83,33 @@ const OrderRow = memo(function OrderRow({ order, index, onView }) {
 });
 
 const OrderCard = memo(function OrderCard({ order, index, onView }) {
+  const iconTone = STATUS_META[order.status]?.tone || 1;
   return (
     <li
       style={rise(index)}
       onClick={() => onView?.(order)}
-      className="group/row animate-rise cursor-pointer rounded-lg border border-border bg-surface p-3 transition-colors hover:border-accent/40"
+      className="group/row animate-rise cursor-pointer rounded-xl border border-border bg-surface p-4 shadow-soft transition-all hover:-translate-y-0.5 hover:border-accent/40 hover:bg-surface-alt/30"
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-sm font-semibold tabular-nums text-text">{order.orderNumber}</p>
-          <p className="mt-0.5 truncate text-xs text-muted">{order.customerName} · {order.city}</p>
+          <p className="flex items-center gap-2 text-sm font-semibold tabular-nums text-text">
+            <AppIcon name="single_box" tone={iconTone} className="size-5 shrink-0 object-contain" />
+            {order.orderNumber}
+          </p>
+          <div className="mt-1"><DeliveryChip type={order.deliveryType} /></div>
+        </div>
+      </div>
+      <div className="mt-3 min-w-0">
+        <p className="truncate text-sm font-medium text-text">{order.customerName}</p>
+        <p className="mt-0.5 truncate text-xs text-muted">{order.customerPhone} · {order.city}</p>
+      </div>
+      <div className="mt-3 flex items-center justify-between gap-3 border-t border-border pt-3">
+        <div>
+          <PaymentBadge status={order.paymentStatus} />
+          <p className="mt-1 text-xs tabular-nums text-muted">{money(order.total)}</p>
         </div>
         <StatusBadge status={order.status} />
-      </div>
-      <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-border pt-3">
-        <PaymentBadge status={order.paymentStatus} />
-        <DeliveryChip type={order.deliveryType} />
-        <span className="ml-auto text-sm font-medium tabular-nums text-text">{money(order.total)}</span>
-      </div>
-      <div className="mt-2 flex items-center justify-between text-xs text-muted">
-        <span>{countItems(order)} {countItems(order) === 1 ? 'item' : 'items'} · <Placed value={order.$createdAt} /></span>
-        <span onClick={stop}><ViewButton order={order} onView={onView} /></span>
+        <ViewButton order={order} onView={onView} />
       </div>
     </li>
   );

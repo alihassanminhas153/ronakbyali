@@ -28,6 +28,8 @@ import {
   X,
   XCircle,
 } from 'lucide-react';
+import Tooltip from '../../../ui/custom/tooltip/Tooltip';
+import { formatCardNumber, formatCardMoney, formatFullCardMoney } from '../../../ui/graphs/CardMoney';
 
 import { useAppDispatch, useAppSelector } from '../../../store/slices/hooks';
 import {
@@ -183,14 +185,15 @@ function Notice({ type, text, onDismiss }) {
   );
 }
 
-function StatTile({ icon: Icon, appIcon, label, color, tone, sensitive = false, children }) {
+function StatTile({ icon: Icon, appIcon, label, color, tone, sensitive = false, children, tooltip }) {
   const [hidden, setHidden] = useState(false);
   return (
+    <Tooltip label={hidden ? 'Hidden' : tooltip ?? children} block className="h-full w-full">
     <div
-      className="group flex min-w-0 flex-col gap-3 rounded-xl border border-border bg-surface p-4 shadow-soft transition-all duration-200 hover:-translate-y-0.5 hover:border-[color:var(--tile)]"
+      className="group flex h-full min-h-[8.5rem] w-full min-w-0 flex-col gap-2.5 rounded-xl border border-border bg-surface p-3 shadow-soft transition-all duration-200 hover:-translate-y-0.5 hover:border-[color:var(--tile)] hover:bg-surface-alt/40 sm:p-4"
       style={{ '--tile': color }}
     >
-      <div className="flex min-w-0 items-center justify-between gap-2">
+      <div className="flex min-h-7 min-w-0 items-center justify-between gap-2">
         <p className="min-w-0 truncate text-xs text-muted">{label}</p>
         {sensitive && (
           <button
@@ -205,7 +208,7 @@ function StatTile({ icon: Icon, appIcon, label, color, tone, sensitive = false, 
           </button>
         )}
       </div>
-      <div className="flex min-w-0 items-end gap-3">
+      <div className="flex min-w-0 items-start gap-3">
       {appIcon ? (
         <AppIcon name={appIcon} tone={tone} className="size-10 shrink-0 object-contain transition-transform duration-300 group-hover:scale-105 sm:size-11" />
       ) : (
@@ -221,6 +224,7 @@ function StatTile({ icon: Icon, appIcon, label, color, tone, sensitive = false, 
       </div>
       </div>
     </div>
+    </Tooltip>
   );
 }
 
@@ -768,16 +772,16 @@ export default function Orders() {
       {/* Stats */}
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <StatTile appIcon="list" label="Orders placed" color="var(--accent-tone-1)" tone={1}>
-          <CountUp value={orders.length} />
+          <CountUp value={orders.length} format={formatCardNumber} />
         </StatTile>
         <StatTile appIcon="clock" label="Still changeable" color="var(--accent-tone-3)" tone={3}>
-          <CountUp value={stats.open} />
+          <CountUp value={stats.open} format={formatCardNumber} />
         </StatTile>
         <StatTile appIcon="truck" label="Delivered" color="var(--accent-tone-7)" tone={7}>
-          <CountUp value={stats.counts.delivered} />
+          <CountUp value={stats.counts.delivered} format={formatCardNumber} />
         </StatTile>
-        <StatTile appIcon="wallet" label="Total spent" color="var(--accent-tone-2)" tone={2} sensitive>
-          {formatMoney(stats.spent)}
+        <StatTile appIcon="wallet" label="Total spent" color="var(--accent-tone-2)" tone={2} sensitive tooltip={formatFullCardMoney(stats.spent)}>
+          {formatCardMoney(stats.spent)}
         </StatTile>
       </div>
 
@@ -870,7 +874,10 @@ export default function Orders() {
       {orders.length > 0 && (
         <section className="rounded-xl border border-border bg-surface p-4 sm:p-5">
           <div className="mb-3 flex items-center justify-between gap-3">
-            <h2 className="heading-sm">Order activity</h2>
+            <h2 className="heading-sm flex items-center gap-2">
+              <AppIcon name="single_box" tone={1} className="size-5 object-contain" />
+              Order activity
+            </h2>
             <span className="text-xs text-muted">Orders per day</span>
           </div>
           <OrdersHeatmap data={stats.heat} />

@@ -1,4 +1,5 @@
 import PanelPageTitle from '../../../ui/custom/PanelPageTitle';
+import AppIcon from '../../../ui/custom/AppIcon';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router';
 import {
@@ -18,6 +19,8 @@ import {
   X,
   XCircle,
 } from 'lucide-react';
+import Tooltip from '../../../ui/custom/tooltip/Tooltip';
+import { formatCardNumber } from '../../../ui/graphs/CardMoney';
 
 import { useAppDispatch, useAppSelector } from '../../../store/slices/hooks';
 import { selectMe } from '../../../store/slices/userSlice';
@@ -115,15 +118,17 @@ function Notice({ type, text, onDismiss }) {
 
 function StatTile({ icon: Icon, label, color, children }) {
   return (
-    <div className="group flex min-w-0 flex-col gap-3 rounded-xl border border-border bg-surface p-4 shadow-soft transition-all duration-200 hover:-translate-y-0.5 hover:border-[color:var(--tile)]" style={{ '--tile': color }}>
-      <p className="min-w-0 truncate text-xs text-muted">{label}</p>
-      <div className="flex min-w-0 items-end gap-3">
+    <Tooltip label={children} block className="h-full w-full">
+    <div className="group flex h-full min-h-[8.5rem] w-full min-w-0 flex-col gap-2.5 rounded-xl border border-border bg-surface p-3 shadow-soft transition-all duration-200 hover:-translate-y-0.5 hover:border-[color:var(--tile)] hover:bg-surface-alt/40 sm:p-4" style={{ '--tile': color }}>
+      <p className="flex min-h-7 min-w-0 items-center truncate text-xs text-muted">{label}</p>
+      <div className="flex min-w-0 items-start gap-3">
         <span className="grid size-10 shrink-0 place-items-center rounded-lg transition-transform duration-300 group-hover:scale-110 sm:size-11" style={{ background: `color-mix(in srgb, ${color} 15%, transparent)`, color }}>
           <Icon size={20} aria-hidden="true" />
         </span>
         <p className="min-w-0 truncate font-display text-xl font-semibold text-text">{children}</p>
       </div>
     </div>
+    </Tooltip>
   );
 }
 
@@ -544,16 +549,16 @@ function ReviewsView({ me }) {
       {/* Stats */}
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <StatTile icon={Star} label="Reviews written" color="var(--accent-tone-1)">
-          <CountUp value={counts.total} />
+          <CountUp value={counts.total} format={formatCardNumber} />
         </StatTile>
         <StatTile icon={CheckCircle2} label="Published" color="var(--accent-tone-7)">
-          <CountUp value={counts.approved} />
+          <CountUp value={counts.approved} format={formatCardNumber} />
         </StatTile>
         <StatTile icon={Clock} label="Waiting for approval" color="var(--accent-tone-3)">
-          <CountUp value={counts.pending} />
+          <CountUp value={counts.pending} format={formatCardNumber} />
         </StatTile>
         <StatTile icon={XCircle} label="Not published" color="var(--accent-tone-4)">
-          <CountUp value={counts.rejected} />
+          <CountUp value={counts.rejected} format={formatCardNumber} />
         </StatTile>
       </div>
 
@@ -619,14 +624,20 @@ function ReviewsView({ me }) {
         <TabPanel key="insights" className="grid gap-4 lg:grid-cols-2">
           <section className="rounded-xl border border-border bg-surface p-4 sm:p-5 lg:col-span-2">
             <div className="mb-3 flex items-center justify-between gap-3">
-              <h2 className="heading-sm text-text">Review activity</h2>
+              <h2 className="heading-sm flex items-center gap-2 text-text">
+                <AppIcon name="reviews" tone={5} className="size-5 object-contain" />
+                Review activity
+              </h2>
               <span className="text-xs text-muted">The days you wrote reviews</span>
             </div>
             <HeatmapCalendar data={heatData} label="reviews" />
           </section>
 
           <section className="rounded-xl border border-border bg-surface p-4 sm:p-5">
-            <h2 className="heading-sm text-text">Your ratings</h2>
+            <h2 className="heading-sm flex items-center gap-2 text-text">
+              <AppIcon name="histogram" tone={3} className="size-5 object-contain" />
+              Your ratings
+            </h2>
             <div className="mt-4 space-y-2.5">
               {[5, 4, 3, 2, 1].map((n) => (
                 <div key={n} className="flex items-center gap-3 text-sm">

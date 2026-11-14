@@ -14,6 +14,7 @@ import { rs } from '../../../components/admin/finance';
 import useSession from '../../../router/useSession';
 import { PATHS } from '../../../router/path';
 import { BarChart, Donut, HeatmapCalendar, TrendGraph, colorFor, compact, toneVar } from '../../../ui/graphs';
+import { formatCardMoney } from '../../../ui/graphs/CardMoney';
 import Typewriter from '../../../ui/custom/motion/Typewriter';
 
 const short = (n) => `Rs ${compact(n)}`;
@@ -164,13 +165,13 @@ export default function Overview() {
 
       {/* Key numbers: every tile opens its page */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <LinkTile to={link('finance')} label="Revenue" value={fin.now.revenue} format={short} hint={`${fin.paidCount} orders with payment received`} appIcon="pkr" sensitive tone={1} delay={0} />
-        <LinkTile to={link('finance')} label={loss ? 'Net loss' : 'Net profit'} value={Math.abs(fin.all.net)} format={short} hint={fin.roi == null ? 'add an investment' : `${Math.round(fin.roi)}% return`} appIcon={loss ? 'arrow_trend_down' : 'arrow_trend_up'} sensitive tone={loss ? 4 : 7} delay={40} />
+        <LinkTile to={link('finance')} label="Revenue" value={fin.now.revenue} format={formatCardMoney} hint={`${fin.paidCount} orders with payment received`} appIcon="pkr" sensitive tone={1} delay={0} />
+        <LinkTile to={link('finance')} label={loss ? 'Net loss' : 'Net profit'} value={Math.abs(fin.all.net)} format={formatCardMoney} hint={fin.roi == null ? 'add an investment' : `${Math.round(fin.roi)}% return`} appIcon={loss ? 'arrow_trend_down' : 'arrow_trend_up'} sensitive tone={loss ? 4 : 7} delay={40} />
         <LinkTile to={link('orders')} label="Pending orders" value={orderStats.pending} hint={`${orderStats.open} open in total`} appIcon="clock" tone={3} delay={80} />
         <LinkTile to={link('users')} label="Customers" value={userStats.customers} hint={`${userStats.fresh} new in 30 days`} appIcon="customers" tone={6} delay={120} />
         <LinkTile to={link('products')} label="Products in stock" value={productStats.inStock} hint={`${productStats.out} out of stock`} appIcon="boxes" tone={2} delay={160} />
         <LinkTile to={link('alerts')} label="Active alerts" value={alertStats.active} hint={`${alertStats.popups} popups`} appIcon="alert" tone={5} delay={200} />
-        <LinkTile to={link('carts')} label="Value in carts" value={fin.demand.cartValue} format={short} hint={`${fin.demand.cartsWithItems} carts with items`} appIcon="cart" sensitive tone={1} delay={240} />
+        <LinkTile to={link('carts')} label="Value in carts" value={fin.demand.cartValue} format={formatCardMoney} hint={`${fin.demand.cartsWithItems} carts with items`} appIcon="cart" sensitive tone={1} delay={240} />
         <LinkTile to={link('reviews')} label="Reviews to approve" value={reviewStats.pending} hint={reviewStats.average ? `${reviewStats.average.toFixed(1)} / 5 average` : 'no reviews yet'} appIcon="reviews" tone={4} delay={280} />
       </div>
 
@@ -251,7 +252,7 @@ export default function Overview() {
         <OverviewCard to={link('carts')} cta="Carts & wishlists" title="Carts & wishlists" subtitle="What shoppers are about to buy" appIcon="cart" tone={3} delay={320}>
           <Mini items={[
             { label: 'Carts', value: fin.demand.cartsWithItems, tone: 1 },
-            { label: 'In carts', value: fin.demand.cartValue, format: short, tone: 7 },
+            { label: 'In carts', value: fin.demand.cartValue, format: formatCardMoney, tone: 7 },
             { label: 'Wishlisted', value: fin.demand.wishTotal, tone: 4 },
           ]} />
           <BarChart data={fin.demand.topCarted.slice(0, 5).map((l) => ({ label: l.name, value: l.carts, hint: `${l.qty} pcs` }))} empty="No carts yet." />
@@ -259,9 +260,9 @@ export default function Overview() {
 
         <OverviewCard to={link('finance')} cta="Finance" title="Finance" subtitle="Net profit per month, below the line = loss" appIcon="wallet" tone={7} delay={400}>
           <Mini items={[
-            { label: 'Cash in hand', value: fin.cash, format: short, tone: fin.cash < 0 ? 4 : 2 },
-            { label: 'Invested', value: fin.all.invested, format: short, tone: 6 },
-            { label: 'Expenses', value: fin.now.opex, format: short, tone: 4 },
+            { label: 'Cash in hand', value: fin.cash, format: formatCardMoney, tone: fin.cash < 0 ? 4 : 2 },
+            { label: 'Invested', value: fin.all.invested, format: formatCardMoney, tone: 6 },
+            { label: 'Expenses', value: fin.now.opex, format: formatCardMoney, tone: 4 },
           ]} />
           <TrendGraph data={fin.months.map((m) => ({ label: m.label, value: m.profit }))} color="var(--accent-tone-7)" format={short} />
         </OverviewCard>

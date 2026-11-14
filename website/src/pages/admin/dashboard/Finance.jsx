@@ -9,6 +9,8 @@ import {
 } from '../../../components/admin/finance';
 import financeService from '../../../lib/appwrite/finance';
 import { ChartCard, Donut, HeatmapCalendar, StatTile, TrendGraph, compact, countByDay } from '../../../ui/graphs';
+import { formatCardMoney } from '../../../ui/graphs/CardMoney';
+import FormattedValue from '../../../ui/graphs/FormattedValue';
 import ActionButton from '../../../ui/custom/button/ActionButton';
 import SearchInput from '../../../ui/custom/input/SearchInput';
 import SearchSelect from '../../../ui/custom/input/SearchSelect';
@@ -171,7 +173,7 @@ export default function Finance() {
             ) : (
               <>
                 Net {m.all.net < 0 ? 'loss' : 'profit'} all time{' '}
-                <CountUp value={Math.abs(m.all.net)} format={(n) => rs(n)} className="font-semibold" />
+                <CountUp value={Math.abs(m.all.net)} format={(n) => <FormattedValue value={rs(n)} />} className="font-semibold" />
               </>
             )}
           </p>
@@ -274,9 +276,9 @@ export default function Finance() {
           </div>
 
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-            <StatTile label={isFiltered ? 'Filtered money in' : 'Money in'} value={moneyIn} format={(n) => `Rs ${compact(n)}`} hint="investment + other income" appIcon="pkr" sensitive tone={7} />
-            <StatTile label={isFiltered ? 'Filtered money out' : 'Money out'} value={moneyOut} format={(n) => `Rs ${compact(n)}`} hint="expenses + withdrawals" appIcon="wallet" sensitive tone={4} delay={50} />
-            <StatTile label="Difference" value={moneyIn - moneyOut} format={(n) => `${n < 0 ? '-' : ''}Rs ${compact(Math.abs(n))}`} hint={`${filtered.length} ${filtered.length === 1 ? 'entry' : 'entries'}`} appIcon="coins" sensitive tone={1} delay={100} />
+            <StatTile label={isFiltered ? 'Filtered money in' : 'Money in'} value={moneyIn} format={formatCardMoney} hint="investment + other income" appIcon="pkr" sensitive tone={7} />
+            <StatTile label={isFiltered ? 'Filtered money out' : 'Money out'} value={moneyOut} format={formatCardMoney} hint="expenses + withdrawals" appIcon="wallet" sensitive tone={4} delay={50} />
+            <StatTile label="Difference" value={moneyIn - moneyOut} format={formatCardMoney} hint={`${filtered.length} ${filtered.length === 1 ? 'entry' : 'entries'}`} appIcon="coins" sensitive tone={1} delay={100} />
           </div>
 
           {ledger.length === 0 && !loading ? (

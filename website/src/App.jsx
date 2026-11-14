@@ -19,6 +19,7 @@ import CatchAllRoute from "./router/CatchAllRoute";
 import RedirectRoute from "./router/RedirectRoute";
 import { PATHS, PRODUCT_LIST_ALIASES } from "./router/path";
 import ToastViewport from "./ui/custom/toast/ToastViewport";
+import AlertPopupHost from "./components/shared/AlertPopupHost";
 
 // shared pages
 import Home from "./pages/shared/structure/Home";
@@ -99,6 +100,7 @@ export default function App() {
   return (
     <>
     <ToastViewport />
+    <AlertPopupHost />
     <Routes>
       {/* Pathless layout route ABOVE every other route: a blocked user sees only the
           Blocked page, whatever URL they type. */}

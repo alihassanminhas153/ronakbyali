@@ -19,6 +19,8 @@ import {
   Wallet,
   X,
 } from 'lucide-react';
+import Tooltip from '../../../ui/custom/tooltip/Tooltip';
+import { formatCardNumber, formatCardMoney, formatFullCardMoney } from '../../../ui/graphs/CardMoney';
 
 import { useAppDispatch, useAppSelector } from '../../../store/slices/hooks';
 import {
@@ -100,17 +102,19 @@ function Notice({ type, text, onDismiss }) {
   );
 }
 
-function StatTile({ icon: Icon, label, color, children }) {
+function StatTile({ icon: Icon, label, color, children, tooltip }) {
   return (
-    <div className="group flex min-w-0 flex-col gap-3 rounded-xl border border-border bg-surface p-4 shadow-soft transition-all duration-200 hover:-translate-y-0.5 hover:border-[color:var(--tile)]" style={{ '--tile': color }}>
-      <p className="min-w-0 truncate text-xs text-muted">{label}</p>
-      <div className="flex min-w-0 items-end gap-3">
+    <Tooltip label={tooltip ?? children} block className="h-full w-full">
+    <div className="group flex h-full min-h-[8.5rem] w-full min-w-0 flex-col gap-2.5 rounded-xl border border-border bg-surface p-3 shadow-soft transition-all duration-200 hover:-translate-y-0.5 hover:border-[color:var(--tile)] hover:bg-surface-alt/40 sm:p-4" style={{ '--tile': color }}>
+      <p className="flex min-h-7 min-w-0 items-center truncate text-xs text-muted">{label}</p>
+      <div className="flex min-w-0 items-start gap-3">
         <span className="grid size-10 shrink-0 place-items-center rounded-lg transition-transform duration-300 group-hover:scale-110 sm:size-11" style={{ background: `color-mix(in srgb, ${color} 15%, transparent)`, color }}>
           <Icon size={20} aria-hidden="true" />
         </span>
         <p className="min-w-0 truncate font-display text-xl font-semibold text-text">{children}</p>
       </div>
     </div>
+    </Tooltip>
   );
 }
 
@@ -379,16 +383,16 @@ export default function Cart() {
           {/* Stats */}
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <StatTile icon={ShoppingBag} label="Items" color="var(--accent-tone-1)">
-              <CountUp value={count} />
+              <CountUp value={count} format={formatCardNumber} />
             </StatTile>
-            <StatTile icon={Wallet} label="Subtotal" color="var(--accent-tone-2)">
-              {formatMoney(subtotal)}
+            <StatTile icon={Wallet} label="Subtotal" color="var(--accent-tone-2)" tooltip={formatFullCardMoney(subtotal)}>
+              {formatCardMoney(subtotal)}
             </StatTile>
-            <StatTile icon={Truck} label="Delivery" color="var(--accent-tone-3)">
-              {delivery === 0 ? 'Free' : formatMoney(delivery)}
+            <StatTile icon={Truck} label="Delivery" color="var(--accent-tone-3)" tooltip={delivery === 0 ? 'Free' : formatFullCardMoney(delivery)}>
+              {delivery === 0 ? 'Free' : formatCardMoney(delivery)}
             </StatTile>
-            <StatTile icon={CircleDollarSign} label="Total" color="var(--accent-tone-7)">
-              {formatMoney(total)}
+            <StatTile icon={CircleDollarSign} label="Total" color="var(--accent-tone-7)" tooltip={formatFullCardMoney(total)}>
+              {formatCardMoney(total)}
             </StatTile>
           </div>
 

@@ -2,13 +2,16 @@ import { groupBy, monthlySeries } from '../../../ui/graphs/utils';
 import { alertState } from '../../../lib/appwrite/alert';
 import { isStaffRole } from '../../../lib/appwrite/user';
 import { OPEN_STATUSES, buildFinance } from '../finance/financeMath';
+import { STATUS_META } from '../orders/orderMeta';
 
 const num = (v) => Number(v) || 0;
 const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
 const DAY = 864e5;
 
-// Order status -> graph colour number (used by the donut and the badges)
-export const STATUS_TONE = { pending: 3, confirmed: 5, processing: 1, shipped: 6, delivered: 7, cancelled: 4, returned: 8 };
+// Keep dashboard charts and order badges on the same unique tone per status.
+export const STATUS_TONE = Object.fromEntries(
+  Object.entries(STATUS_META).map(([status, meta]) => [status, meta.tone])
+);
 
 export function buildOverview({ orders, products, users, alerts, reviews, carts, wishlists, ledger }) {
   const fin = buildFinance({ orders, products, carts, wishlists, ledger }, '30d');

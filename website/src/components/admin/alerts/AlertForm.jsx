@@ -4,6 +4,7 @@ import { BarChart3, CalendarClock, Eye, FileText, Layers, Lock, RotateCcw, X } f
 
 import { createAlert, resetAlertSeen, saveAlert } from '../../../store/slices/alertSlice';
 import { ALERT_LIMITS, ALERT_TYPES, alertState } from '../../../lib/appwrite/alert';
+import AppIcon, { resolveAppIconName } from '../../../ui/custom/AppIcon';
 import { tint, toneVar } from '../../../ui/graphs/utils';
 import DatePicker from '../../../ui/custom/input/DatePicker';
 import { StateBadge } from './AlertBadges';
@@ -37,9 +38,11 @@ function SectionHead({ icon: Icon, title, subtitle, tone }) {
   const color = toneVar(tone);
   return (
     <div className="flex items-center gap-3">
-      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg transition-transform duration-300 group-hover/sec:-rotate-6 group-hover/sec:scale-110" style={{ background: tint(color, 14), color }}>
-        <Icon size={18} />
-      </span>
+      <AppIcon
+        name={resolveAppIconName(Icon)}
+        tone={tone}
+        className="h-9 w-9 shrink-0 object-contain transition-transform duration-300 group-hover/sec:-rotate-6 group-hover/sec:scale-110"
+      />
       <div className="min-w-0">
         <h3 className="heading-sm" style={{ color }}>{title}</h3>
         {subtitle && <p className="text-xs text-muted">{subtitle}</p>}

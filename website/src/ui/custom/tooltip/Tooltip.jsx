@@ -37,7 +37,7 @@ export function TipBubble({ rect, tone = 'default', children }) {
       ref={ref}
       role="tooltip"
       style={{ left: pos?.left ?? 0, top: pos?.top ?? 0, visibility: pos ? 'visible' : 'hidden' }}
-      className={`pointer-events-none fixed z-[100] w-max max-w-64 animate-rise rounded-md px-2.5 py-1.5 text-xs font-medium leading-snug shadow-soft [animation-duration:160ms] ${TONES[tone] || TONES.default}`}
+      className={`pointer-events-none fixed z-[100] w-max max-w-72 whitespace-normal break-words animate-rise rounded-lg px-3 py-2 text-sm font-medium leading-snug shadow-soft [animation-duration:160ms] ${TONES[tone] || TONES.default}`}
     >
       {children}
       <span
@@ -52,9 +52,10 @@ export function TipBubble({ rect, tone = 'default', children }) {
 
 // <Tooltip label="Edit product"><button>…</button></Tooltip>
 // tone: default | accent | danger.  hideOnClick={false} keeps the label while the label itself changes on click.
-export default function Tooltip({ label, tone = 'default', hideOnClick = true, className = '', children }) {
+export default function Tooltip({ label, tone = 'default', hideOnClick = true, block = false, className = '', children }) {
   const ref = useRef(null);
   const [rect, setRect] = useState(null);
+  const Wrapper = block ? 'div' : 'span';
 
   const show = () => {
     if (label && ref.current) setRect(ref.current.getBoundingClientRect());
@@ -72,9 +73,9 @@ export default function Tooltip({ label, tone = 'default', hideOnClick = true, c
   }, [rect]);
 
   return (
-    <span
+    <Wrapper
       ref={ref}
-      className={`inline-flex ${className}`}
+      className={`${block ? 'block' : 'inline-flex'} ${className}`}
       onMouseEnter={show}
       onMouseLeave={hide}
       onFocus={show}
@@ -83,6 +84,6 @@ export default function Tooltip({ label, tone = 'default', hideOnClick = true, c
     >
       {children}
       <TipBubble rect={rect} tone={tone}>{label}</TipBubble>
-    </span>
+    </Wrapper>
   );
 }

@@ -540,6 +540,15 @@ export class OrderService {
         }
     }
 
+    async getOrdersSince(createdAt) {
+        try {
+            return await this._getAllRows([Query.greaterThanEqual('$createdAt', createdAt)]);
+        } catch (error) {
+            console.error(error.message);
+            return this._fail('Could not load order analytics.');
+        }
+    }
+
     async countOrders(filters = {}) {
         const { total } = await this.getOrdersPage({ ...filters, limit: 1 });
         return total;

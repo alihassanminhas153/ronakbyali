@@ -1,8 +1,9 @@
 import { useLayoutEffect, useRef, useState } from 'react';
 import { tint, toneVar } from '../../graphs/utils';
+import AppIcon from '../AppIcon';
 
 // Custom button group (replaces <select> / radio buttons).
-//   options: [{ value, label, icon?, tone? }]   tone = 1-8 theme accent shade
+//   options: [{ value, label, icon?, appIcon?, tone? }]   tone = 1-8 theme accent shade
 //   <Segmented options={...} value={v} onChange={setV} />
 export default function Segmented({ options, value, onChange, className = '', iconOnly = false, 'aria-label': ariaLabel }) {
   const refs = useRef({});
@@ -45,7 +46,11 @@ export default function Segmented({ options, value, onChange, className = '', ic
                 style={on ? { color: toneVar(o.tone ?? 1) } : undefined}
                 className={`relative z-10 flex min-h-9 items-center gap-1.5 rounded-md ${iconOnly ? 'justify-center px-3' : 'px-3'} text-sm font-medium transition-colors ${on ? '' : 'text-muted hover:text-text'}`}
               >
-                {Icon && <Icon size={15} />}
+                {o.appIcon ? (
+                  <AppIcon name={o.appIcon} tone={o.tone ?? 1} className="size-4 object-contain" />
+                ) : Icon ? (
+                  <Icon size={15} />
+                ) : null}
                 {!iconOnly && o.label}
               </button>
             );

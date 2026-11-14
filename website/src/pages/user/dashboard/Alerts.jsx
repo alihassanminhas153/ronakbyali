@@ -19,6 +19,8 @@ import {
   X,
   XCircle,
 } from 'lucide-react';
+import Tooltip from '../../../ui/custom/tooltip/Tooltip';
+import { formatCardNumber } from '../../../ui/graphs/CardMoney';
 
 import { useAppDispatch, useAppSelector } from '../../../store/slices/hooks';
 import { selectMe } from '../../../store/slices/userSlice';
@@ -108,15 +110,17 @@ function Notice({ type, text, onDismiss }) {
 
 function StatTile({ icon: Icon, label, color, children }) {
   return (
-    <div className="group flex min-w-0 flex-col gap-3 rounded-xl border border-border bg-surface p-4 shadow-soft transition-all duration-200 hover:-translate-y-0.5 hover:border-[color:var(--tile)]" style={{ '--tile': color }}>
-      <p className="min-w-0 truncate text-xs text-muted">{label}</p>
-      <div className="flex min-w-0 items-end gap-3">
+    <Tooltip label={children} block className="h-full w-full">
+    <div className="group flex h-full min-h-[8.5rem] w-full min-w-0 flex-col gap-2.5 rounded-xl border border-border bg-surface p-3 shadow-soft transition-all duration-200 hover:-translate-y-0.5 hover:border-[color:var(--tile)] hover:bg-surface-alt/40 sm:p-4" style={{ '--tile': color }}>
+      <p className="flex min-h-7 min-w-0 items-center truncate text-xs text-muted">{label}</p>
+      <div className="flex min-w-0 items-start gap-3">
         <span className="grid size-10 shrink-0 place-items-center rounded-lg transition-transform duration-300 group-hover:scale-110 sm:size-11" style={{ background: `color-mix(in srgb, ${color} 15%, transparent)`, color }}>
           <Icon size={20} aria-hidden="true" />
         </span>
         <p className="min-w-0 truncate font-display text-xl font-semibold text-text">{children}</p>
       </div>
     </div>
+    </Tooltip>
   );
 }
 
@@ -394,16 +398,16 @@ function AlertsView({ me }) {
       {/* Stats */}
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <StatTile icon={BellRing} label="Alerts for you" color="var(--accent-tone-1)">
-          <CountUp value={all.length} />
+          <CountUp value={all.length} format={formatCardNumber} />
         </StatTile>
         <StatTile icon={Megaphone} label="Announcements" color="var(--accent-tone-2)">
-          <CountUp value={bars.length} />
+          <CountUp value={bars.length} format={formatCardNumber} />
         </StatTile>
         <StatTile icon={Sparkles} label="Offers" color="var(--accent-tone-6)">
-          <CountUp value={offers} />
+          <CountUp value={offers} format={formatCardNumber} />
         </StatTile>
         <StatTile icon={AlertTriangle} label="Needs attention" color="var(--accent-tone-3)">
-          <CountUp value={urgent} />
+          <CountUp value={urgent} format={formatCardNumber} />
         </StatTile>
       </div>
 
@@ -460,7 +464,10 @@ function AlertsView({ me }) {
 
       <section className="rounded-xl border border-border bg-surface p-4 sm:p-5">
         <div className="mb-3 flex items-center justify-between gap-3">
-          <h2 className="heading-sm text-text">Alert activity</h2>
+          <h2 className="heading-sm flex items-center gap-2 text-text">
+            <AppIcon name="alert" tone={5} className="size-5 object-contain" />
+            Alert activity
+          </h2>
           <span className="text-xs text-muted">When your current alerts started</span>
         </div>
         <HeatmapCalendar data={heatData} label="alerts" />

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Lock, X } from 'lucide-react';
 import '../users/userScroll.css';
 
+import AppIcon from '../../../ui/custom/AppIcon';
 import { tint, toneVar } from '../../../ui/graphs/utils';
 
 // Pieces shared by the drawer forms. Same look as ProductForm / UserForm.
@@ -11,7 +12,7 @@ export const inputCls = (err) =>
     err ? 'border-error' : 'border-border hover:border-accent-tone-1/50'
   }`;
 
-export function SectionHead({ icon: Icon, title, subtitle, tone, lockLabel }) {
+export function SectionHead({ icon: Icon, appIcon, title, subtitle, tone, lockLabel }) {
   const color = toneVar(tone);
   return (
     <div className="flex items-center gap-3">
@@ -19,7 +20,7 @@ export function SectionHead({ icon: Icon, title, subtitle, tone, lockLabel }) {
         className="grid h-9 w-9 shrink-0 place-items-center rounded-lg transition-transform duration-300 group-hover/sec:-rotate-6 group-hover/sec:scale-110"
         style={{ background: tint(color, 14), color }}
       >
-        <Icon size={18} />
+        {appIcon ? <AppIcon name={appIcon} tone={tone} className="size-6 object-contain" /> : <Icon size={18} />}
       </span>
       <div className="min-w-0 flex-1">
         <h3 className="heading-sm" style={{ color }}>{title}</h3>
@@ -34,13 +35,13 @@ export function SectionHead({ icon: Icon, title, subtitle, tone, lockLabel }) {
   );
 }
 
-export function Section({ title, subtitle, icon, tone = 1, lockLabel, children, delay = 0 }) {
+export function Section({ title, subtitle, icon, appIcon, tone = 1, lockLabel, children, delay = 0 }) {
   return (
     <section
       style={{ animationDelay: `${delay}ms`, borderTopColor: toneVar(tone) }}
       className="group/sec animate-rise rounded-lg border border-border border-t-2 bg-surface-alt/40 p-4"
     >
-      <SectionHead icon={icon} title={title} subtitle={subtitle} tone={tone} lockLabel={lockLabel} />
+      <SectionHead icon={icon} appIcon={appIcon} title={title} subtitle={subtitle} tone={tone} lockLabel={lockLabel} />
       <div className="mt-4 grid gap-4 sm:grid-cols-2">{children}</div>
     </section>
   );

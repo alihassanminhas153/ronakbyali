@@ -1,6 +1,8 @@
 import CountUp from '../../../ui/custom/motion/CountUp';
+import AppIcon, { resolveAppIconName } from '../../../ui/custom/AppIcon';
 import Tooltip from '../../../ui/custom/tooltip/Tooltip';
 import HeatmapCalendar from '../../../ui/graphs/HeatmapCalendar';
+import { formatCardNumber } from '../../../ui/graphs/CardMoney';
 import { colorFor, tint, toneVar, useReveal } from '../../../ui/graphs/utils';
 import { Avatar, CityChip, RoleBadge } from './UserBadges';
 import { ROLE_COLOR, formatInt, formatMoney, fullDate, providerMeta, timeAgo } from './userFields';
@@ -8,21 +10,21 @@ import { ROLE_COLOR, formatInt, formatMoney, fullDate, providerMeta, timeAgo } f
 /* Self-contained chart pieces for the Users tabs. They only use theme variables, so they follow light / dark. */
 
 // Card with a coloured top edge and an icon tile, the same pattern as the product form sections.
-export function ChartPanel({ icon: Icon, title, subtitle, tone = 1, delay = 0, action, className = '', children }) {
+export function ChartPanel({ icon: Icon, appIcon, title, subtitle, tone = 1, delay = 0, action, className = '', children }) {
   const color = toneVar(tone);
+  const iconName = appIcon || resolveAppIconName(Icon);
   return (
     <section
-      style={{ animationDelay: `${delay}ms`, borderTopColor: color, '--chart-accent': color }}
-      className={`group/panel animate-rise min-w-0 rounded-lg border border-border border-t-2 bg-surface p-3 sm:p-4 ${className}`}
+      style={{ animationDelay: `${delay}ms`, '--chart-accent': color }}
+      className={`group/panel animate-rise min-w-0 rounded-lg border border-border bg-surface p-3 sm:p-4 ${className}`}
     >
       <header className="mb-3 flex min-w-0 flex-wrap items-start justify-between gap-2 sm:mb-4 sm:flex-nowrap sm:gap-3">
         <div className="flex min-w-0 items-center gap-2 sm:gap-3">
-          <span
-            className="grid size-9 shrink-0 place-items-center rounded-lg transition-transform duration-300 group-hover/panel:-rotate-6 group-hover/panel:scale-110"
-            style={{ background: tint(color, 14), color }}
-          >
-            <Icon size={18} aria-hidden="true" />
-          </span>
+          <AppIcon
+            name={iconName}
+            tone={tone}
+            className="size-9 shrink-0 object-contain transition-transform duration-300 group-hover/panel:-rotate-6 group-hover/panel:scale-110"
+          />
           <div className="min-w-0">
             <h3 className="heading-sm" style={{ color }}>{title}</h3>
             {subtitle && <p className="text-xs text-muted">{subtitle}</p>}
@@ -88,30 +90,31 @@ export function MethodTiles({ items, total, selected, onSelect }) {
         const active = selected === m.key;
         const pct = total ? Math.round((m.count / total) * 100) : 0;
         return (
-          <button
-            key={m.key}
-            type="button"
-            aria-pressed={active}
-            onClick={() => onSelect(active ? null : m.key)}
-            style={{ animationDelay: `${i * 60}ms`, borderColor: active ? meta.color : undefined, background: active ? tint(meta.color, 8) : undefined }}
-            className="group/tile animate-rise flex items-center gap-4 rounded-lg border border-border bg-surface p-4 text-left transition-all duration-200 hover:-translate-y-0.5 hover:bg-surface-alt/40 active:translate-y-0 active:scale-[0.99]"
-          >
-            <span
-              className="grid size-12 shrink-0 place-items-center rounded-xl transition-transform duration-300 group-hover/tile:-rotate-6 group-hover/tile:scale-110"
-              style={{ background: tint(meta.color, 14), color: meta.color }}
+          <Tooltip key={m.key} label={formatInt(m.count)} block className="h-full w-full min-w-0">
+            <button
+              type="button"
+              aria-pressed={active}
+              onClick={() => onSelect(active ? null : m.key)}
+              style={{ animationDelay: `${i * 60}ms`, borderColor: active ? meta.color : undefined, background: active ? tint(meta.color, 8) : undefined }}
+              className="group/tile flex h-full min-h-[9.5rem] w-full min-w-0 flex-col gap-2 rounded-lg border border-border bg-surface p-3 text-left shadow-soft transition-all duration-200 hover:-translate-y-0.5 hover:bg-surface-alt/40 active:translate-y-0 active:scale-[0.99] sm:p-4"
             >
-              <Icon size={22} aria-hidden="true" />
-            </span>
-            <span className="min-w-0 flex-1">
-              <span className="block text-sm font-medium text-text">{meta.label}</span>
-              <span className="block text-2xl font-semibold tabular-nums text-text">
-                <CountUp value={m.count} /> <span className="text-xs font-normal text-muted">{m.count === 1 ? 'user' : 'users'}</span>
+              <span className="block min-h-5 w-full truncate text-sm font-medium text-text">{meta.label}</span>
+              <span className="flex min-w-0 items-start gap-3">
+                <span
+                  className="grid size-12 shrink-0 place-items-center rounded-xl transition-transform duration-300 group-hover/tile:-rotate-6 group-hover/tile:scale-110"
+                  style={{ background: tint(meta.color, 14), color: meta.color }}
+                >
+                  <Icon size={22} aria-hidden="true" />
+                </span>
+                <span className="min-w-0 flex-1 truncate text-xl font-semibold tabular-nums text-text sm:text-2xl">
+                  <CountUp value={m.count} format={formatCardNumber} /> <span className="text-xs font-normal text-muted">{m.count === 1 ? 'user' : 'users'}</span>
+                </span>
               </span>
-              <span className="block truncate text-xs text-muted">
+              <span className="block w-full truncate text-xs text-muted">
                 {pct}% of users · last sign-in {m.last ? timeAgo(m.last) : 'never'}
               </span>
-            </span>
-          </button>
+            </button>
+          </Tooltip>
         );
       })}
     </div>
@@ -187,7 +190,7 @@ export function RoleDonut({ data, total }) {
         </svg>
         <div className="absolute inset-0 grid place-items-center text-center">
           <div>
-            <p className="text-3xl font-semibold tabular-nums text-text"><CountUp value={total} /></p>
+            <p className="text-3xl font-semibold tabular-nums text-text"><CountUp value={total} format={formatCardNumber} /></p>
             <p className="text-xs text-muted">users</p>
           </div>
         </div>

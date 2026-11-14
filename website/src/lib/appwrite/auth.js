@@ -1,6 +1,7 @@
 import envVars from '../../../env/var';
 import { Client, Account, ID, OAuthProvider } from 'appwrite';
 import userService from './user';
+import { AVATAR_PREF_KEY } from './accountExtras';
 
 export class AuthService {
     client = new Client();
@@ -109,6 +110,7 @@ export class AuthService {
             provider: OAuthProvider.Google,
             successUrl,
             failureUrl,
+            scopes: ['email', 'profile'],
         });
     }
 
@@ -131,9 +133,14 @@ export class AuthService {
         const user = await this.getCurrentUser();
         if (!user) return this._fail('Login failed. Please try again.');
 
+        const existing =
+            (await userService.getProfile({ userId: user.$id })) ||
+            (user.email ? await userService.getProfileByEmail({ email: user.email }) : false);
+        const avatarFile = provider === 'google' && !existing ? await this._getGoogleAvatarFile() : null;
         const profile = await userService.ensureProfile({
             user,
             defaults: { authProvider: provider },
+            avatarFile,
         });
         if (!profile) return this._fail('Could not load your profile.');
 
@@ -141,7 +148,37 @@ export class AuthService {
             await this.logout();
             return this._fail('This account has been blocked. Please contact support.');
         }
+        if (profile.isNew && profile.avatarFileId) {
+            await this.updatePref({ key: AVATAR_PREF_KEY, value: profile.avatarFileId });
+        }
         return profile;
+    }
+
+    async _getGoogleAvatarFile() {
+        try {
+            const session = await this.account.getSession({ sessionId: 'current' });
+            if (session.provider !== 'google' || !session.providerAccessToken) return null;
+
+            const profileResponse = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+                headers: { Authorization: `Bearer ${session.providerAccessToken}` },
+            });
+            if (!profileResponse.ok) throw new Error(`Google profile request failed (${profileResponse.status}).`);
+
+            const { picture } = await profileResponse.json();
+            if (!picture) return null;
+
+            const imageResponse = await fetch(picture);
+            if (!imageResponse.ok) throw new Error(`Google avatar download failed (${imageResponse.status}).`);
+            const image = await imageResponse.blob();
+            if (!image.type.startsWith('image/')) throw new Error('Google returned an unsupported avatar image.');
+            if (image.size > 5 * 1024 * 1024) throw new Error('Google avatar image exceeds 5 MB.');
+
+            const extension = image.type.split('/')[1]?.replace(/[^a-z0-9]/gi, '') || 'jpg';
+            return new File([image], `google-avatar.${extension}`, { type: image.type });
+        } catch (error) {
+            console.error(`Could not import Google profile photo: ${error.message}`);
+            return null;
+        }
     }
 
     _fail(message) {
@@ -185,12 +222,14 @@ export class AuthService {
         provider = OAuthProvider.Google,
         successUrl = window.location.origin,
         failureUrl = `${window.location.origin}/login`,
+        scopes,
     } = {}) {
         try {
             this.account.createOAuth2Session({
                 provider,
                 success: successUrl,
                 failure: failureUrl,
+                scopes,
             });
             return true;
         } catch (error) {

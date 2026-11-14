@@ -25,6 +25,8 @@ import {
   Home,
   X,
 } from 'lucide-react';
+import Tooltip from '../../../ui/custom/tooltip/Tooltip';
+import { formatCardNumber, formatCardMoney, formatFullCardMoney } from '../../../ui/graphs/CardMoney';
 
 import { useAppDispatch, useAppSelector } from '../../../store/slices/hooks';
 import { changeAvatar, getAvatarUrl } from '../../../store/slices/authSlice';
@@ -47,7 +49,6 @@ import {
   capitalize,
   formatDate,
   formatDateTime,
-  formatMoney,
 } from '../../../components/user/profile/profileMeta';
 
 // "just now", "25s ago", "4m ago" ... re-rendered every 10 seconds
@@ -93,26 +94,28 @@ function Notice({ type, text, onDismiss }) {
   );
 }
 
-function StatTile({ icon: Icon, label, color, children }) {
+function StatTile({ icon: Icon, label, color, children, tooltip }) {
   return (
-    <div className="group flex min-w-0 flex-col gap-3 rounded-xl border border-border bg-surface p-4 shadow-soft transition-all duration-200 hover:-translate-y-0.5 hover:border-[color:var(--tile)]" style={{ '--tile': color }}>
-      <p className="min-w-0 truncate text-xs text-muted">{label}</p>
-      <div className="flex min-w-0 items-end gap-3">
+    <Tooltip label={tooltip ?? children} block className="h-full w-full">
+    <div className="group flex h-full min-h-[8.5rem] w-full min-w-0 flex-col gap-2.5 rounded-xl border border-border bg-surface p-3 shadow-soft transition-all duration-200 hover:-translate-y-0.5 hover:border-[color:var(--tile)] hover:bg-surface-alt/40 sm:p-4" style={{ '--tile': color }}>
+      <p className="flex min-h-7 min-w-0 items-center truncate text-xs text-muted">{label}</p>
+      <div className="flex min-w-0 items-start gap-3">
         <span className="grid size-10 shrink-0 place-items-center rounded-lg transition-transform duration-300 group-hover:scale-110 sm:size-11" style={{ background: `color-mix(in srgb, ${color} 15%, transparent)`, color }}>
           <Icon size={20} aria-hidden="true" />
         </span>
         <p className="min-w-0 truncate font-display text-xl font-semibold text-text">{children}</p>
       </div>
     </div>
+    </Tooltip>
   );
 }
 
 function InfoCard({ icon: Icon, label, value, color, wide, onAdd, addLabel }) {
   const empty = !value || value === '—';
   return (
-    <div className={`group flex min-w-0 flex-col gap-3 rounded-xl border border-border bg-surface p-4 transition-all duration-200 hover:border-[color:var(--tile)] hover:bg-surface-alt ${wide ? 'sm:col-span-2' : ''}`} style={{ '--tile': color }}>
-      <p className="min-w-0 truncate text-xs font-medium text-muted">{label}</p>
-      <div className="flex min-w-0 items-end gap-3">
+    <div className={`group h-full w-full flex min-w-0 flex-col gap-2.5 rounded-xl border border-border bg-surface p-2.5 transition-all duration-200 hover:border-[color:var(--tile)] hover:bg-surface-alt sm:p-3 ${wide ? 'sm:col-span-2' : ''}`} style={{ '--tile': color }}>
+    <p className="flex min-h-7 min-w-0 items-center truncate text-xs font-medium text-muted">{label}</p>
+    <div className="flex min-w-0 items-start gap-3">
         <span className="grid size-10 shrink-0 place-items-center rounded-lg" style={{ background: `color-mix(in srgb, ${color} 15%, transparent)`, color }}>
           <Icon size={18} aria-hidden="true" />
         </span>
@@ -360,10 +363,10 @@ function ProfileView({ me }) {
       {/* Stats */}
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <StatTile icon={ShoppingBag} label="Orders placed" color="var(--accent-tone-1)">
-          <CountUp value={Number(me.ordersCount) || 0} />
+          <CountUp value={Number(me.ordersCount) || 0} format={formatCardNumber} />
         </StatTile>
-        <StatTile icon={Wallet} label="Total spent" color="var(--accent-tone-2)">
-          {formatMoney(me.totalSpent)}
+        <StatTile icon={Wallet} label="Total spent" color="var(--accent-tone-2)" tooltip={formatFullCardMoney(Number(me.totalSpent) || 0)}>
+          {formatCardMoney(Number(me.totalSpent) || 0)}
         </StatTile>
         <StatTile icon={ShieldCheck} label="Account type" color="var(--accent-tone-6)">
           {capitalize(me.role)}

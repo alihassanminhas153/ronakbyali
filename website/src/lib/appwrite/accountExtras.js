@@ -4,8 +4,7 @@ import { Account, Client } from 'appwrite';
 // Small helpers that talk to Appwrite Auth (not the users table).
 // Kept in their own file so auth.js stays untouched.
 //
-// ASSUMPTION: authSlice stores the avatar file id in the auth prefs under this
-// key. Change it if your auth.js uses a different one.
+// The signed-in account stores the same bucket file id as the users table.
 export const AVATAR_PREF_KEY = 'avatarFileId';
 
 const client = new Client()

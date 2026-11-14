@@ -8,13 +8,13 @@ import productService from '../../../lib/appwrite/product';
 import {
   BarChart, ChartCard, Donut, HeatmapCalendar, Histogram, StatTile, TrendGraph, colorFor, compact,
 } from '../../../ui/graphs';
+import { formatCardMoney } from '../../../ui/graphs/CardMoney';
 import { inputCls } from '../../../ui/custom/input/inputStyles';
 import { rs } from './financeSchema';
 
 const grid = 'grid gap-4 lg:grid-cols-2';
 const tiles = 'grid grid-cols-2 gap-3 lg:grid-cols-4';
 const PAGE_SIZE = 10;
-const rsFmt = (n) => rs(n);
 const rsShort = (n) => `Rs ${compact(n)}`;
 const pct = (n) => `${Math.round(n)}%`;
 const colored = (data) => data.map((d) => ({ ...d, color: colorFor(d.label) }));
@@ -39,16 +39,16 @@ function FinanceMetricRow({ label, children }) {
   }, [children, updateEdges]);
 
   return (
-    <div className="group/metric-row relative">
+    <div className="group/metric-row relative rounded-2xl border border-border bg-surface/50 p-3 sm:p-4">
       <div
         ref={viewport}
         onScroll={updateEdges}
-        className="-mx-3 overflow-x-auto no-scrollbar px-3 pb-2 sm:-mx-5 sm:px-5"
+        className="max-w-full overflow-x-auto overscroll-x-contain no-scrollbar pb-2"
         role="region"
         aria-label={label}
         tabIndex={0}
       >
-        <div className="grid min-w-[64rem] grid-cols-4 gap-3">{children}</div>
+        <div className="grid min-w-[52rem] grid-cols-4 gap-3 2xl:min-w-0">{children}</div>
       </div>
       {edges.left && (
         <button
@@ -56,7 +56,7 @@ function FinanceMetricRow({ label, children }) {
           aria-label={`Scroll ${label} left`}
           title="Scroll left"
           onClick={() => viewport.current?.scrollBy({ left: -viewport.current.clientWidth * 0.75, behavior: 'smooth' })}
-          className="absolute left-0 top-1/2 z-10 grid size-9 -translate-y-1/2 place-items-center rounded-full border border-border bg-surface/95 text-text shadow-soft transition-opacity sm:pointer-events-none sm:opacity-0 sm:group-hover/metric-row:pointer-events-auto sm:group-hover/metric-row:opacity-100 sm:group-focus-within/metric-row:pointer-events-auto sm:group-focus-within/metric-row:opacity-100"
+          className="absolute left-4 top-1/2 z-10 grid size-9 -translate-y-1/2 place-items-center rounded-full border border-border bg-surface/95 text-text shadow-soft transition-opacity sm:pointer-events-none sm:opacity-0 sm:group-hover/metric-row:pointer-events-auto sm:group-hover/metric-row:opacity-100 sm:group-focus-within/metric-row:pointer-events-auto sm:group-focus-within/metric-row:opacity-100"
         >
           <ChevronLeft size={17} aria-hidden="true" />
         </button>
@@ -67,7 +67,7 @@ function FinanceMetricRow({ label, children }) {
           aria-label={`Scroll ${label} right`}
           title="Scroll right"
           onClick={() => viewport.current?.scrollBy({ left: viewport.current.clientWidth * 0.75, behavior: 'smooth' })}
-          className="absolute right-0 top-1/2 z-10 grid size-9 -translate-y-1/2 place-items-center rounded-full border border-border bg-surface/95 text-text shadow-soft transition-opacity sm:pointer-events-none sm:opacity-0 sm:group-hover/metric-row:pointer-events-auto sm:group-hover/metric-row:opacity-100 sm:group-focus-within/metric-row:pointer-events-auto sm:group-focus-within/metric-row:opacity-100"
+          className="absolute right-4 top-1/2 z-10 grid size-9 -translate-y-1/2 place-items-center rounded-full border border-border bg-surface/95 text-text shadow-soft transition-opacity sm:pointer-events-none sm:opacity-0 sm:group-hover/metric-row:pointer-events-auto sm:group-hover/metric-row:opacity-100 sm:group-focus-within/metric-row:pointer-events-auto sm:group-focus-within/metric-row:opacity-100"
         >
           <ChevronRight size={17} aria-hidden="true" />
         </button>
@@ -90,31 +90,31 @@ export function OverviewTab({ m }) {
   return (
     <div className="space-y-4">
       <FinanceMetricRow label="Finance summary: revenue and profit">
-        <StatTile label="Revenue" value={now.revenue} format={rsFmt} appIcon="pkr" sensitive valueClassName="whitespace-nowrap text-lg sm:text-xl" tone={1} delay={0} />
-        <StatTile label="Gross profit" value={now.gross} format={rsFmt} appIcon="coins" sensitive valueClassName="whitespace-nowrap text-lg sm:text-xl" tone={2} delay={40} />
-        <StatTile label="Operating expenses" value={now.opex} format={rsFmt} appIcon="wallet" sensitive valueClassName="whitespace-nowrap text-lg sm:text-xl" tone={4} delay={80} />
+        <StatTile label="Revenue" value={now.revenue} format={formatCardMoney} appIcon="pkr" sensitive valueClassName="truncate text-base sm:text-lg" tone={1} delay={0} />
+        <StatTile label="Gross profit" value={now.gross} format={formatCardMoney} appIcon="coins" sensitive valueClassName="truncate text-base sm:text-lg" tone={2} delay={40} />
+        <StatTile label="Operating expenses" value={now.opex} format={formatCardMoney} appIcon="wallet" sensitive valueClassName="truncate text-base sm:text-lg" tone={4} delay={80} />
           <StatTile
             label={loss ? 'Net loss' : 'Net profit'}
             value={Math.abs(now.net)}
-            format={rsFmt}
+            format={formatCardMoney}
           appIcon={loss ? 'arrow_trend_down' : 'arrow_trend_up'}
           sensitive
-          valueClassName="whitespace-nowrap text-lg sm:text-xl"
+          valueClassName="truncate text-base sm:text-lg"
           tone={loss ? 4 : 7}
           delay={120}
         />
       </FinanceMetricRow>
       <FinanceMetricRow label="Finance summary: investment and cash">
-        <StatTile label="Total investment" value={all.invested} format={rsFmt} appIcon="coins" sensitive valueClassName="whitespace-nowrap text-lg sm:text-xl" tone={6} delay={160} />
-        <StatTile label="Withdrawn" value={now.withdrawn} format={rsFmt} appIcon="wallet" sensitive valueClassName="whitespace-nowrap text-lg sm:text-xl" tone={3} delay={200} />
+        <StatTile label="Total investment" value={all.invested} format={formatCardMoney} appIcon="coins" sensitive valueClassName="truncate text-base sm:text-lg" tone={6} delay={160} />
+        <StatTile label="Withdrawn" value={now.withdrawn} format={formatCardMoney} appIcon="wallet" sensitive valueClassName="truncate text-base sm:text-lg" tone={3} delay={200} />
         <StatTile label="Return on investment" value={m.roi == null ? '—' : m.roi} format={pct} appIcon="arrow_trend_up" tone={5} delay={240} />
-        <StatTile label="Cash in hand" value={m.cash} format={rsFmt} appIcon="wallet" sensitive valueClassName="whitespace-nowrap text-lg sm:text-xl" tone={m.cash < 0 ? 4 : 2} delay={280} />
+        <StatTile label="Cash in hand" value={m.cash} format={formatCardMoney} appIcon="wallet" sensitive valueClassName="truncate text-base sm:text-lg" tone={m.cash < 0 ? 4 : 2} delay={280} />
       </FinanceMetricRow>
       <FinanceMetricRow label="Finance summary: orders and other amounts">
-        <StatTile label="Orders on the way" value={m.pipelineValue} format={rsFmt} appIcon="clock" sensitive valueClassName="whitespace-nowrap text-lg sm:text-xl" tone={5} delay={320} />
-        <StatTile label="Lost to cancels & returns" value={m.lostValue} format={rsFmt} appIcon="alert" sensitive valueClassName="whitespace-nowrap text-lg sm:text-xl" tone={4} delay={360} />
-        <StatTile label="Other income" value={now.income} format={rsFmt} appIcon="coins" sensitive valueClassName="whitespace-nowrap text-lg sm:text-xl" tone={7} delay={400} />
-        <StatTile label="Stock bought" value={now.stockSpend} format={rsFmt} appIcon="single_box" sensitive valueClassName="whitespace-nowrap text-lg sm:text-xl" tone={3} delay={440} />
+        <StatTile label="Orders on the way" value={m.pipelineValue} format={formatCardMoney} appIcon="clock" sensitive valueClassName="truncate text-base sm:text-lg" tone={5} delay={320} />
+        <StatTile label="Lost to cancels & returns" value={m.lostValue} format={formatCardMoney} appIcon="alert" sensitive valueClassName="truncate text-base sm:text-lg" tone={4} delay={360} />
+        <StatTile label="Other income" value={now.income} format={formatCardMoney} appIcon="coins" sensitive valueClassName="truncate text-base sm:text-lg" tone={7} delay={400} />
+        <StatTile label="Stock bought" value={now.stockSpend} format={formatCardMoney} appIcon="single_box" sensitive valueClassName="truncate text-base sm:text-lg" tone={3} delay={440} />
       </FinanceMetricRow>
 
       <div className={grid}>
@@ -203,8 +203,8 @@ export function InventoryTab({ m, onRestock }) {
       <div className={tiles}>
         <StatTile label="Products in stock" value={inv.inStock.length} hint={`of ${total} products`} appIcon="boxes" tone={2} delay={0} />
         <StatTile label="Out of stock" value={inv.outOfStock.length} appIcon="single_box" tone={4} delay={40} />
-        <StatTile label="Stock cost" value={inv.stockCost} format={rsShort} hint="what you paid for it" appIcon="pkr" sensitive tone={3} delay={80} />
-        <StatTile label="Stock retail value" value={inv.stockRetail} format={rsShort} hint={`potential profit ${rsShort(inv.stockRetail - inv.stockCost)}`} appIcon="arrow_trend_up" sensitive tone={7} delay={120} />
+        <StatTile label="Stock cost" value={inv.stockCost} format={formatCardMoney} hint="what you paid for it" appIcon="pkr" sensitive tone={3} delay={80} />
+        <StatTile label="Stock retail value" value={inv.stockRetail} format={formatCardMoney} hint={`potential profit ${rsShort(inv.stockRetail - inv.stockCost)}`} appIcon="arrow_trend_up" sensitive tone={7} delay={120} />
       </div>
       <ChartCard title="Needs restocking" subtitle="Out of stock or 5 units or fewer" icon={TriangleAlert} tone={3}>
         <ProductList rows={needs} onRestock={onRestock} empty="Everything is well stocked." />
@@ -240,7 +240,7 @@ export function DemandTab({ m, onRestock }) {
     <div className="space-y-4">
       <div className={tiles}>
         <StatTile label="Carts with items" value={d.cartsWithItems} appIcon="cart" tone={1} delay={0} />
-        <StatTile label="Value waiting in carts" value={d.cartValue} format={rsShort} hint="at today's prices" appIcon="pkr" sensitive tone={7} delay={40} />
+        <StatTile label="Value waiting in carts" value={d.cartValue} format={formatCardMoney} hint="at today's prices" appIcon="pkr" sensitive tone={7} delay={40} />
         <StatTile label="Wishlisted items" value={d.wishTotal} appIcon="popular" tone={4} delay={80} />
         <StatTile label="Wanted but out of stock" value={d.wanted.length} hint="lost sales waiting" appIcon="alert" tone={3} delay={120} />
       </div>

@@ -6,13 +6,14 @@ import {
   saveName,
   clearAuthError,
   selectAuthStatus,
+  getAvatarUrl,
 } from '../../../store/slices/authSlice';
 
 const MAX_IMAGE_MB = 5;
 
 // Small first-time popup: profile photo (optional) + name, submitted with the arrow.
 //   profile.name       -> prefilled name (e.g. from Google)
-//   profile.avatarUrl  -> prefilled photo (e.g. from Google)
+//   profile.avatarFileId -> uploaded photo stored for the profile
 //   onDone(profile)    -> called with the saved profile; the parent decides where to go next
 export default function ProfileStep({ profile, onDone }) {
   const dispatch = useAppDispatch();
@@ -28,7 +29,8 @@ export default function ProfileStep({ profile, onDone }) {
   const [error, setError] = useState('');
 
   const busy = status === 'loading';
-  const imageSrc = localPreview || profile?.avatarUrl || '';
+  const avatarUrl = getAvatarUrl(profile?.avatarFileId);
+  const imageSrc = localPreview || avatarUrl || '';
   const showImage = imageSrc && imageSrc !== brokenUrl;
   const message = error;
 

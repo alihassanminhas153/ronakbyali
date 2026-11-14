@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useReveal, colorFor } from './utils';
 import { EmptyChart } from './ChartCard';
 import CountUp from '../custom/motion/CountUp';
+import FormattedValue from './FormattedValue';
 
 // data: [{ label, value, color? }]   centerLabel: small text under the total
 const R = 42;
@@ -47,7 +48,7 @@ export default function Donut({ data = [], centerLabel = 'total', format = (n) =
         </svg>
         <div className="pointer-events-none absolute inset-0 grid place-items-center text-center">
           <div>
-            <p className="heading text-2xl leading-none text-text"><CountUp value={shown ? shown.value : total} duration={600} format={(n) => format(Math.round(n))} /></p>
+            <p className="heading text-2xl leading-none text-text"><CountUp value={shown ? shown.value : total} duration={600} format={(n) => <FormattedValue value={format(Math.round(n))} />} /></p>
             <p className="mt-1 max-w-[6rem] truncate text-[11px] text-muted">{shown ? shown.label : centerLabel}</p>
           </div>
         </div>
@@ -63,7 +64,7 @@ export default function Donut({ data = [], centerLabel = 'total', format = (n) =
           >
             <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: s.color }} />
             <span className="min-w-0 flex-1 truncate" style={{ color: s.color }}>{s.label}</span>
-            <span className="min-w-0 max-w-[35%] truncate text-right text-muted tabular-nums" title={format(s.value)}>{format(s.value)}</span>
+            <span className="min-w-0 max-w-[35%] truncate text-right text-muted tabular-nums" title={format(s.value)}><FormattedValue value={format(s.value)} /></span>
             <span className="w-9 shrink-0 text-right text-muted tabular-nums">{s.pct}%</span>
           </li>
         ))}

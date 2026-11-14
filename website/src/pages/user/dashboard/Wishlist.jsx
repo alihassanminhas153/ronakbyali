@@ -20,6 +20,8 @@ import {
   Trash2,
   X,
 } from 'lucide-react';
+import Tooltip from '../../../ui/custom/tooltip/Tooltip';
+import { formatCardNumber } from '../../../ui/graphs/CardMoney';
 
 import { useAppDispatch, useAppSelector } from '../../../store/slices/hooks';
 import {
@@ -113,20 +115,22 @@ function Notice({ type, text, onDismiss }) {
   );
 }
 
-function StatTile({ icon: Icon, label, color, children }) {
+function StatTile({ icon: Icon, label, color, children, tooltip }) {
   return (
-    <div
-      className="group flex min-w-0 flex-col gap-3 rounded-xl border border-border bg-surface p-4 shadow-soft transition-all duration-200 hover:-translate-y-0.5 hover:border-[color:var(--tile)]"
-      style={{ '--tile': color }}
-    >
-      <p className="min-w-0 truncate text-xs text-muted">{label}</p>
-      <div className="flex min-w-0 items-end gap-3">
-        <span className="grid size-10 shrink-0 place-items-center rounded-lg transition-transform duration-300 group-hover:scale-110 sm:size-11" style={{ background: `color-mix(in srgb, ${color} 15%, transparent)`, color }}>
-          <Icon size={20} aria-hidden="true" />
-        </span>
-        <p className="min-w-0 truncate font-display text-xl font-semibold text-text">{children}</p>
+    <Tooltip label={tooltip ?? children} block className="h-full w-full">
+      <div
+        className="group flex h-full min-h-[8.5rem] w-full min-w-0 flex-col gap-2.5 rounded-xl border border-border bg-surface p-3 shadow-soft transition-all duration-200 hover:-translate-y-0.5 hover:border-[color:var(--tile)] hover:bg-surface-alt/40 sm:p-4"
+        style={{ '--tile': color }}
+      >
+        <p className="flex min-h-7 min-w-0 items-center truncate text-xs text-muted">{label}</p>
+        <div className="flex min-w-0 items-start gap-3">
+          <span className="grid size-10 shrink-0 place-items-center rounded-lg transition-transform duration-300 group-hover:scale-110 sm:size-11" style={{ background: `color-mix(in srgb, ${color} 15%, transparent)`, color }}>
+            <Icon size={20} aria-hidden="true" />
+          </span>
+          <p className="min-w-0 truncate font-display text-xl font-semibold text-text">{children}</p>
+        </div>
       </div>
-    </div>
+    </Tooltip>
   );
 }
 
@@ -434,16 +438,16 @@ export default function Wishlist() {
           {/* Stats */}
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <StatTile icon={Heart} label="Saved products" color={toneColor(entityColorStep('entity', 'wishlist'))}>
-              <CountUp value={items.length} />
+              <CountUp value={items.length} format={formatCardNumber} />
             </StatTile>
             <StatTile icon={Check} label="In stock" color={toneColor(entityColorStep('stockStatus', 'in'))}>
-              <CountUp value={stats.inStock} />
+              <CountUp value={stats.inStock} format={formatCardNumber} />
             </StatTile>
             <StatTile icon={Tag} label="On sale" color={toneColor(entityColorStep('productState', 'onSale'))}>
-              <CountUp value={stats.sale} />
+              <CountUp value={stats.sale} format={formatCardNumber} />
             </StatTile>
             <StatTile icon={ShoppingCart} label="Already in cart" color={toneColor(entityColorStep('entity', 'cart'))}>
-              <CountUp value={stats.inCart} />
+              <CountUp value={stats.inCart} format={formatCardNumber} />
             </StatTile>
           </div>
 

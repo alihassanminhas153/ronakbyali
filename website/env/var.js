@@ -1,5 +1,5 @@
 const vars = {
-    
+
     ronakByAliUrl: String(import.meta.env.RONAK_BY_ALI_URL),
 
     ronakByAliProjectId: String(import.meta.env.RONAK_BY_ALI_PROJECT_ID),
@@ -26,7 +26,10 @@ const vars = {
 
     ronakByAliReviews: String(import.meta.env.RONAK_BY_ALI_REVIEWS_TABLE_ID),
 
-    ronakByAliOrderTracker: String(import.meta.env.RONAK_BY_ALI_ORDERS_TRACKER_TABLE_ID)
+    ronakByAliOrderTracker: String(import.meta.env.RONAK_BY_ALI_ORDERS_TRACKER_TABLE_ID),
+
+    // Appwrite Function that sets user labels + role (Settings > Team access)
+    ronakByAliLabelsFunction: String(import.meta.env.RONAK_BY_ALI_LABELS_FUNCTION),
 }
 
 export default vars;

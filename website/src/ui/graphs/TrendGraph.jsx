@@ -1,6 +1,7 @@
 import { useId, useMemo, useState } from 'react';
 import { useReveal, compact } from './utils';
 import { EmptyChart } from './ChartCard';
+import FormattedValue from './FormattedValue';
 
 // data: [{ label, value }]   (oldest first). Values may be negative (profit / loss).
 const W = 600;
@@ -58,7 +59,9 @@ export default function TrendGraph({ data = [], format = (n) => compact(n), colo
         {ticks.map((t, i) => (
           <g key={i}>
             <line x1={PAD.left} x2={W - PAD.right} y1={t.y} y2={t.y} stroke="var(--border)" strokeDasharray="3 4" />
-            <text x={PAD.left - 8} y={t.y + 3} textAnchor="end" fontSize="10" fill="var(--text-muted)">{format(Math.round(t.v))}</text>
+            <text x={PAD.left - 8} y={t.y + 3} textAnchor="end" fontSize="10" fill="var(--text-muted)">
+              <FormattedValue value={format(Math.round(t.v))} svg />
+            </text>
           </g>
         ))}
         {geo.lo < 0 && <line x1={PAD.left} x2={W - PAD.right} y1={geo.base} y2={geo.base} stroke="var(--text-muted)" strokeOpacity="0.5" />}
@@ -106,7 +109,8 @@ export default function TrendGraph({ data = [], format = (n) => compact(n), colo
           className="pointer-events-none absolute -translate-x-1/2 rounded-md border border-border bg-surface px-2 py-1 text-xs shadow-soft"
           style={{ left: `${(active.x / W) * 100}%`, top: `${(Math.max(active.y - 40, 0) / H) * 100}%` }}
         >
-          <span className="text-muted">{active.label}</span> <b className="text-text">{format(active.value)}</b>
+          <span className="text-muted">{active.label}</span>{' '}
+          <b className="text-text"><FormattedValue value={format(active.value)} /></b>
         </div>
       )}
     </div>

@@ -1,12 +1,76 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router';
-import { Menu, X } from 'lucide-react';
+import { ArrowUpRight, Menu, X } from 'lucide-react';
 
+import { TYPE_META } from '../../admin/alerts/alertMeta';
+import { dismissAlert } from '../../../store/slices/alertSlice';
+import { useAppDispatch } from '../../../store/slices/hooks';
+import AppIcon, { resolveAppIconName } from '../../../ui/custom/AppIcon';
 import ThemeToggle from '../../../ui/custom/toggles/ThemeToggle';
+import { tint, toneVar } from '../../../ui/graphs/utils';
 import AlertBell from './AlertBell';
 import useHeaderData from './useHeaderData';
 
 const FOCUS = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-surface';
+
+function Announcement({ alert, onDismiss }) {
+  const meta = TYPE_META[alert.type] || TYPE_META.info;
+  const color = toneVar(meta.tone);
+  const Icon = meta.icon;
+  const link = alert.link?.trim();
+  const isExternal = /^https?:\/\//i.test(link || '');
+  const isInternal = Boolean(link?.startsWith('/'));
+  const close = () => onDismiss(alert.$id);
+
+  return (
+    <div
+      role="status"
+      className="border-b border-border px-4 py-2.5"
+      style={{ background: tint(color, 8) }}
+    >
+      <div className="mx-auto flex max-w-7xl items-center gap-3">
+        <AppIcon
+          name={resolveAppIconName(Icon, 'alert')}
+          tone={meta.tone}
+          className="size-5 shrink-0 object-contain"
+        />
+        <div className="min-w-0 flex-1">
+          <p className="break-words text-sm font-semibold text-text">{alert.title}</p>
+          <p className="whitespace-pre-line break-words text-xs text-muted">{alert.message}</p>
+        </div>
+        {link && (isExternal ? (
+          <a
+            href={link}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={close}
+            className="inline-flex shrink-0 items-center gap-1 text-xs font-semibold underline underline-offset-2"
+            style={{ color }}
+          >
+            Learn more <ArrowUpRight size={14} aria-hidden="true" />
+          </a>
+        ) : isInternal ? (
+          <Link
+            to={link}
+            onClick={close}
+            className="inline-flex shrink-0 items-center gap-1 text-xs font-semibold underline underline-offset-2"
+            style={{ color }}
+          >
+            Learn more <ArrowUpRight size={14} aria-hidden="true" />
+          </Link>
+        ) : null)}
+        <button
+          type="button"
+          onClick={close}
+          aria-label={`Hide “${alert.title}” until your next visit`}
+          className={`grid size-8 shrink-0 place-items-center rounded-full text-muted transition-colors hover:bg-surface/70 hover:text-text ${FOCUS}`}
+        >
+          <X size={16} aria-hidden="true" />
+        </button>
+      </div>
+    </div>
+  );
+}
 
 const initialsOf = (name = '') =>
   name
@@ -48,11 +112,12 @@ function PageLink({ page, onClick, currentPath }) {
 }
 
 export default function Header({ logo, pages = [] }) {
+  const dispatch = useAppDispatch();
   const { pathname } = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
   const menuButtonRef = useRef(null);
   const wasMenuOpen = useRef(false);
-  const { signedIn, name, avatar, accountPath, alertPath, ...alertData } = useHeaderData();
+  const { signedIn, name, avatar, accountPath, alertPath, cartPath, ...alertData } = useHeaderData();
 
   useEffect(() => {
     if (menuOpen) {
@@ -76,6 +141,17 @@ export default function Header({ logo, pages = [] }) {
 
   return (
     <>
+      {alertData.bars.length > 0 && (
+        <aside aria-label="Store announcements">
+          {alertData.bars.map((alert) => (
+            <Announcement
+              key={alert.$id}
+              alert={alert}
+              onDismiss={(alertId) => dispatch(dismissAlert({ alertId }))}
+            />
+          ))}
+        </aside>
+      )}
       <header className="sticky top-0 z-40 border-b border-border/80 bg-bg/95 shadow-sm backdrop-blur-md">
         <div className="mx-auto flex h-[4.25rem] w-full max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:h-[4.5rem] lg:px-8">
           <Link
@@ -99,6 +175,16 @@ export default function Header({ logo, pages = [] }) {
               </div>
               {signedIn ? (
                 <>
+                  {cartPath && (
+                    <Link
+                      to={cartPath}
+                      aria-label="Your cart"
+                      title="Your cart"
+                      className={`grid size-10 place-items-center rounded-full transition-colors duration-200 hover:bg-border/40 ${FOCUS}`}
+                    >
+                      <AppIcon name="cart" tone={3} className="size-5 object-contain" />
+                    </Link>
+                  )}
                   <AlertBell data={{ ...alertData, alertPath }} />
                   <Link
                     to={accountPath}

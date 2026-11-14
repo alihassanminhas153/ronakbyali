@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { Check, CreditCard, ListChecks, ReceiptText, StickyNote, Truck, UserRound } from 'lucide-react';
+import { Check, CreditCard } from 'lucide-react';
 
 import {
   ORDER_STATUS,
@@ -263,7 +263,7 @@ export default function OrderForm({ open, orderId, onClose }) {
         }
       >
         {/* 1. status + payment (orders table) */}
-        <Section title="Status and payment" subtitle="Pick one, then confirm" icon={ListChecks} tone={1}>
+        <Section title="Status and payment" subtitle="Pick one, then confirm" appIcon="donut_chart" tone={1}>
           <Field label="Order status" className="sm:col-span-2">
             <Choice options={STATUS_CHOICES} value={nextStatus} current={order.status} onChange={setNextStatus} />
             {statusDirty && (
@@ -292,7 +292,7 @@ export default function OrderForm({ open, orderId, onClose }) {
         </Section>
 
         {/* 2. tracking (tracking number in orders table, link + timeline in tracker table) */}
-        <Section title="Tracking" subtitle="This is what the customer sees" icon={Truck} tone={2} delay={60}>
+        <Section title="Tracking" subtitle="This is what the customer sees" appIcon="truck" tone={2} delay={60}>
           <Field label="Courier tracking number" optional>
             <input value={trackingId} onChange={(e) => setTrackingId(e.target.value)} maxLength={100} placeholder="e.g. 3012345678" className={inputCls()} />
           </Field>
@@ -338,7 +338,7 @@ export default function OrderForm({ open, orderId, onClose }) {
         <Section
           title="Customer and delivery"
           subtitle={lock === 'Read only' ? 'This order is closed' : lock ? 'Shipped: only the address can change' : 'Open until the order ships'}
-          icon={UserRound}
+          appIcon="customers"
           tone={3}
           lockLabel={lock}
           delay={120}
@@ -372,7 +372,7 @@ export default function OrderForm({ open, orderId, onClose }) {
         </Section>
 
         {/* 4. items (read only) */}
-        <Section title="Items and amounts" subtitle="Cannot be edited here" icon={ReceiptText} tone={5} lockLabel="Read only" delay={180}>
+        <Section title="Items and amounts" subtitle="Cannot be edited here" appIcon="single_box" tone={5} lockLabel="Read only" delay={180}>
           <ul className="divide-y divide-border rounded-md border border-border bg-surface sm:col-span-2">
             {items.map((i) => (
               <li key={orderItemKey(i)} className="flex items-center justify-between gap-3 px-3 py-2.5 text-sm">
@@ -398,7 +398,7 @@ export default function OrderForm({ open, orderId, onClose }) {
         </Section>
 
         {/* 5. internal notes */}
-        <Section title="Admin notes" subtitle="Only staff can see these" icon={StickyNote} tone={8} delay={240}>
+        <Section title="Admin notes" subtitle="Only staff can see these" appIcon="disclaimer" tone={8} delay={240}>
           <div className="space-y-3 sm:col-span-2">
             <textarea
               value={adminNotes}

@@ -1,5 +1,6 @@
 import { useReveal, colorFor, compact } from './utils';
 import { EmptyChart } from './ChartCard';
+import FormattedValue from './FormattedValue';
 
 // data: [{ label, value, color?, hint? }]
 // orientation: 'horizontal' (ranked list, default) | 'vertical' (columns)
@@ -25,7 +26,7 @@ export default function BarChart({
           return (
             <div key={d.label + i} className="group flex h-full min-w-0 flex-1 flex-col justify-end" title={`${d.label}: ${d.value}`}>
               <span className="mb-1 text-center text-[10px] text-muted opacity-0 transition-opacity group-hover:opacity-100">
-                {format(d.value)}
+                <FormattedValue value={format(d.value)} />
               </span>
               <div
                 className="w-full rounded-t-[4px] transition-[height,opacity] duration-700 ease-out group-hover:opacity-80"
@@ -52,7 +53,7 @@ export default function BarChart({
             <div className="mb-1 flex min-w-0 items-baseline justify-between gap-2 text-[11px] sm:gap-3 sm:text-xs">
               <span className="truncate text-text">{d.label}</span>
               <span className="min-w-0 shrink text-right text-muted tabular-nums">
-                {format(d.value)}
+                <FormattedValue value={format(d.value)} />
                 {d.hint && <span className="ml-1 text-[10px]">{d.hint}</span>}
               </span>
             </div>

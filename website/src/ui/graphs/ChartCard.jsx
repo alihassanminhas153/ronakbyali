@@ -1,10 +1,11 @@
-import { tint, toneVar } from './utils';
-import AppIcon from '../custom/AppIcon';
+import { toneVar } from './utils';
+import AppIcon, { resolveAppIconName } from '../custom/AppIcon';
 
 // Shared frame for every chart.
-//   tone: 1-8 (picks a theme accent shade) or any CSS colour.   icon: a lucide icon component
+//   tone: 1-8 (picks a theme accent shade) or any CSS colour.
 export default function ChartCard({ title, subtitle, icon: Icon, appIcon, tone = 1, action, children, className = '', delay = 0 }) {
   const color = toneVar(tone);
+  const iconName = appIcon || resolveAppIconName(Icon);
   return (
     <section
       style={{ animationDelay: `${delay}ms`, '--card-tone': color, '--chart-accent': color }}
@@ -12,20 +13,11 @@ export default function ChartCard({ title, subtitle, icon: Icon, appIcon, tone =
     >
       <header className="mb-3 flex min-w-0 flex-wrap items-start justify-between gap-2 sm:mb-4 sm:flex-nowrap sm:gap-3">
         <div className="flex min-w-0 items-center gap-2 sm:gap-3">
-          {appIcon ? (
-            <AppIcon
-              name={appIcon}
-              tone={typeof tone === 'number' ? tone : 1}
-              className="h-9 w-9 shrink-0 object-contain transition-transform duration-300 group-hover/card:-rotate-6 group-hover/card:scale-110"
-            />
-          ) : Icon ? (
-            <span
-              className="grid h-9 w-9 shrink-0 place-items-center rounded-lg transition-transform duration-300 group-hover/card:-rotate-6 group-hover/card:scale-110"
-              style={{ background: tint(color, 14), color }}
-            >
-              <Icon size={18} aria-hidden="true" />
-            </span>
-          ) : null}
+          <AppIcon
+            name={iconName}
+            tone={typeof tone === 'number' ? tone : 1}
+            className="h-9 w-9 shrink-0 object-contain transition-transform duration-300 group-hover/card:-rotate-6 group-hover/card:scale-110"
+          />
           <div className="min-w-0">
             <h3 className="heading-sm truncate" style={{ color }}>{title}</h3>
             {subtitle && <p className="mt-0.5 truncate text-xs text-muted">{subtitle}</p>}

@@ -8,10 +8,11 @@ import SearchSelect from '../../../ui/custom/input/SearchSelect';
 import DatePicker from '../../../ui/custom/input/DatePicker';
 import { Field } from '../../../ui/custom/input/FormField';
 import { inputCls } from '../../../ui/custom/input/inputStyles';
+import AppIcon, { resolveAppIconName } from '../../../ui/custom/AppIcon';
 import { tint, toneVar } from '../../../ui/graphs/utils';
 import { STOCK_CATEGORY, TYPE_META, TYPE_ORDER, toDateKey, toForm, toPayload, validate } from './financeSchema';
 
-const TYPE_OPTIONS = TYPE_ORDER.map((t) => ({ value: t, label: TYPE_META[t].label, icon: TYPE_META[t].icon, tone: TYPE_META[t].tone }));
+const TYPE_OPTIONS = TYPE_ORDER.map((t) => ({ value: t, label: TYPE_META[t].label, appIcon: resolveAppIconName(TYPE_META[t].icon), tone: TYPE_META[t].tone }));
 
 // props: open, entry (null = add), defaultType, entries[] (to suggest categories), onClose, onSaved
 export default function LedgerForm({ open, entry, defaultType = 'expense', entries = [], onClose, onSaved }) {
@@ -76,14 +77,14 @@ export default function LedgerForm({ open, entry, defaultType = 'expense', entri
         <span className="mb-1.5 block text-xs font-medium text-text">What is this?</span>
         <Segmented options={TYPE_OPTIONS} value={form.type} onChange={(t) => setForm((f) => ({ ...f, type: t, category: '' }))} aria-label="Entry type" />
         <p key={form.type} className="animate-rise mt-3 flex gap-2 rounded-md px-3 py-2.5 text-xs" style={{ background: tint(color, 10), color }}>
-          <Info size={14} className="mt-0.5 shrink-0" />
+          <AppIcon name={resolveAppIconName(Info)} tone={meta.tone} className="mt-0.5 size-4 shrink-0 object-contain" />
           <span>{meta.hint}</span>
         </p>
       </section>
 
       <section style={{ animationDelay: '60ms', borderTopColor: color }} className="animate-rise rounded-lg border border-border border-t-2 bg-surface-alt/40 p-4">
         <div className="flex items-center gap-3">
-          <span className="grid h-9 w-9 place-items-center rounded-lg" style={{ background: tint(color, 14), color }}><FileText size={18} /></span>
+          <AppIcon name={resolveAppIconName(FileText)} tone={meta.tone} className="h-9 w-9 shrink-0 object-contain" />
           <h3 className="heading-sm" style={{ color }}>Details</h3>
         </div>
         <div className="mt-4 grid gap-4 sm:grid-cols-2">
@@ -105,7 +106,7 @@ export default function LedgerForm({ open, entry, defaultType = 'expense', entri
         </div>
         {form.type === 'expense' && form.category === STOCK_CATEGORY && (
           <p className="animate-rise mt-3 flex gap-2 text-xs text-muted">
-            <Wallet size={14} className="mt-0.5 shrink-0" />
+            <AppIcon name={resolveAppIconName(Wallet)} tone={meta.tone} className="mt-0.5 size-4 shrink-0 object-contain" />
             Stock purchases lower cash in hand but are not subtracted from profit, because the cost is taken from each product's cost price when it sells.
           </p>
         )}
