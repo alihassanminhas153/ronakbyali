@@ -152,9 +152,17 @@ function ProductCard({
     <article
       className="group/card relative flex h-full min-w-0 flex-col overflow-hidden rounded-2xl border border-border bg-surface shadow-soft transition-all duration-300 ease-out hover:-translate-y-1 hover:border-accent/50 hover:shadow-lg focus-within:border-accent/50"
     >
+      <Link
+        to={link}
+        aria-label={`View ${product.name}`}
+        className="absolute inset-0 z-10 rounded-2xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-[-3px]"
+      >
+        <span className="sr-only">View {product.name}</span>
+      </Link>
+
       {/* ---------- image ---------- */}
       <div className="relative">
-        <Link to={link} aria-label={`View ${product.name}`} className="block overflow-hidden bg-surface-alt/60">
+        <div className="block overflow-hidden bg-surface-alt/60">
           <div className="grid h-[160px] place-items-center p-2 sm:h-[190px]">
             {image && !imgFailed ? (
               <img
@@ -175,7 +183,7 @@ function ProductCard({
             aria-hidden="true"
             className="pointer-events-none absolute inset-y-0 -left-1/2 w-1/3 -skew-x-12 bg-gradient-to-r from-transparent via-bg/30 to-transparent opacity-0 transition-all duration-700 group-hover/card:left-[130%] group-hover/card:opacity-100"
           />
-        </Link>
+        </div>
 
         {/* offer tag */}
         {onOffer && !outOfStock && (
@@ -207,7 +215,7 @@ function ProductCard({
       )}
 
       <h3 className="break-words text-base font-semibold leading-tight text-text transition-colors group-hover/card:text-accent sm:text-lg [overflow-wrap:anywhere]">
-        <Link to={link} className="focus:outline-none">{product.name}</Link>
+        {product.name}
       </h3>
 
       {/* Product metadata and pricing share a row to keep cards compact. */}
@@ -262,7 +270,7 @@ function ProductCard({
           )}
         </div>
 
-      <div className="mt-1.5 flex items-center gap-1.5 sm:mt-2">
+      <div className="relative z-20 mt-1.5 flex items-center gap-1.5 sm:mt-2">
         {onAddToCart && (
           <button
             type="button"

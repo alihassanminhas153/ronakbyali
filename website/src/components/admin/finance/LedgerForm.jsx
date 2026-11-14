@@ -82,7 +82,7 @@ export default function LedgerForm({ open, entry, defaultType = 'expense', entri
         </p>
       </section>
 
-      <section style={{ animationDelay: '60ms', borderTopColor: color }} className="animate-rise rounded-lg border border-border border-t-2 bg-surface-alt/40 p-4">
+      <section style={{ animationDelay: '60ms' }} className="animate-rise rounded-lg border border-border bg-surface-alt/40 p-4">
         <div className="flex items-center gap-3">
           <AppIcon name={resolveAppIconName(FileText)} tone={meta.tone} className="h-9 w-9 shrink-0 object-contain" />
           <h3 className="heading-sm" style={{ color }}>Details</h3>

@@ -4,6 +4,8 @@ import { ArrowUpRight, BadgePercent, Globe, Palette, ShieldCheck } from "lucide-
 
 // Adjust this path to where Home.jsx lives (this assumes src/pages/shared/Home.jsx)
 import ProductsMarquee from "../../../components/home/ProductsMarquee";
+import ImageTextScroll from "../../../components/home/ImageTextScroll";
+import OrderPath from "../../../components/home/OrderPath";
 
 /* ==========================================================================
    HOME: hero section
@@ -30,7 +32,7 @@ const HEADING_PHRASES = [
   ["Safe", "Delivery"],
   ["Your", "Style"],
 ];
-const HEADING_SWAP_MS = 3200; // how long each phrase stays
+const HEADING_SWAP_MS = 5000; // how long each phrase stays
 
 // Typewriter pill: each phrase has its own icon. The last one is the link text.
 const PHRASES = [
@@ -352,6 +354,12 @@ export default function Home() {
 
       {/* Products, right after the hero */}
       <ProductsMarquee />
+
+      {/* Image-filled words that change as you scroll (pinned) */}
+      <ImageTextScroll />
+
+      {/* Order journey: a path that draws itself as you scroll */}
+      <OrderPath />
     </>
   );
 }

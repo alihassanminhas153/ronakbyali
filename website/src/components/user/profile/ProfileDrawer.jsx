@@ -64,8 +64,8 @@ function Section({ title, subtitle, icon, tone = 1, children, delay = 0, section
   return (
     <section
       ref={sectionRef}
-      style={{ animationDelay: `${delay}ms`, borderTopColor: toneVar(tone) }}
-      className="group/sec animate-rise rounded-lg border border-border border-t-2 bg-surface-alt/40 p-4"
+      style={{ animationDelay: `${delay}ms` }}
+      className="group/sec animate-rise rounded-lg border border-border bg-surface-alt/40 p-4"
     >
       <SectionHead icon={icon} title={title} subtitle={subtitle} tone={tone} />
       <div className="mt-4 grid gap-4 sm:grid-cols-2">{children}</div>
@@ -343,8 +343,8 @@ export default function ProfileDrawer({ open, me, section = 'details', canChange
         <div className="flex-1 space-y-4 overflow-y-auto px-4 py-4 sm:px-6">
           {/* Photo: first section, first input */}
           <section
-            style={{ animationDelay: '0ms', borderTopColor: 'var(--accent-tone-6)' }}
-            className="group/sec animate-rise rounded-lg border border-border border-t-2 bg-surface-alt/40 p-4"
+            style={{ animationDelay: '0ms' }}
+            className="group/sec animate-rise rounded-lg border border-border bg-surface-alt/40 p-4"
           >
             <SectionHead icon={Camera} tone={6} title="Profile photo" subtitle={`JPG, PNG or WebP, up to ${MAX_IMAGE_MB} MB. Saved when you press Save changes.`} />
 

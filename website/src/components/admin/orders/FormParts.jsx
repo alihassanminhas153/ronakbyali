@@ -38,8 +38,8 @@ export function SectionHead({ icon: Icon, appIcon, title, subtitle, tone, lockLa
 export function Section({ title, subtitle, icon, appIcon, tone = 1, lockLabel, children, delay = 0 }) {
   return (
     <section
-      style={{ animationDelay: `${delay}ms`, borderTopColor: toneVar(tone) }}
-      className="group/sec animate-rise rounded-lg border border-border border-t-2 bg-surface-alt/40 p-4"
+      style={{ animationDelay: `${delay}ms` }}
+      className="group/sec animate-rise rounded-lg border border-border bg-surface-alt/40 p-4"
     >
       <SectionHead icon={icon} appIcon={appIcon} title={title} subtitle={subtitle} tone={tone} lockLabel={lockLabel} />
       <div className="mt-4 grid gap-4 sm:grid-cols-2">{children}</div>

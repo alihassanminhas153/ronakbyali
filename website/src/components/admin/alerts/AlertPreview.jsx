@@ -14,7 +14,7 @@ export default function AlertPreview({ alert }) {
 
   if (alert.popup) {
     return (
-      <div className="mx-auto w-full max-w-xs rounded-lg border border-border bg-surface p-5 text-center shadow-soft" style={{ borderTop: `3px solid ${color}` }}>
+      <div className="mx-auto w-full max-w-xs rounded-lg border border-border bg-surface p-5 text-center shadow-soft">
         <span className="mx-auto grid h-12 w-12 place-items-center rounded-full" style={{ background: tint(color, 14), color }}>
           <AppIcon name={resolveAppIconName(Icon, 'alert')} tone={meta.tone} className="size-7 object-contain" />
         </span>
@@ -29,7 +29,7 @@ export default function AlertPreview({ alert }) {
   }
 
   return (
-    <div className="flex items-start gap-3 rounded-md border border-border px-3 py-2.5" style={{ background: tint(color, 10), borderLeft: `3px solid ${color}` }}>
+    <div className="flex items-start gap-3 rounded-md border border-border px-3 py-2.5" style={{ background: tint(color, 10) }}>
       <AppIcon name={resolveAppIconName(Icon, 'alert')} tone={meta.tone} className="mt-0.5 size-5 shrink-0 object-contain" />
       <div className="min-w-0 flex-1">
         <p className="break-words text-sm font-semibold text-text">{title}</p>

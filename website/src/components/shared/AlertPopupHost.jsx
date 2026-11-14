@@ -113,7 +113,6 @@ export default function AlertPopupHost() {
         aria-labelledby="visitor-alert-title"
         tabIndex={-1}
         className="relative w-full max-w-md animate-rise rounded-xl border border-border bg-surface p-5 shadow-2xl outline-none sm:p-6"
-        style={{ borderTop: `3px solid ${color}` }}
       >
         <button
           type="button"

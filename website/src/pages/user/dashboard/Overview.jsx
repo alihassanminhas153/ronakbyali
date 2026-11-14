@@ -490,7 +490,7 @@ function OverviewView({ me }) {
 
       {/* Account */}
       <div className={grid}>
-        <section className="rounded-xl border border-border border-t-2 bg-surface p-4 sm:p-5" style={{ borderTopColor: 'var(--accent-tone-7)' }}>
+        <section className="rounded-xl border border-border bg-surface p-4 sm:p-5">
           <div className="flex items-center gap-4">
             <CompletionRing percent={percent} />
             <div className="min-w-0">

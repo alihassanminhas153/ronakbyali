@@ -3,7 +3,7 @@ import { BadgeCheck, Check, Reply, Trash2, X } from 'lucide-react';
 
 import reviewService from '../../../lib/appwrite/review';
 import { Stars, StatusBadge } from './Parts';
-import { STATUS_META, prettyDate } from './helpers';
+import { prettyDate } from './helpers';
 
 const ACTION =
   'group inline-flex h-9 items-center gap-1.5 rounded-lg border border-border bg-surface px-3 text-sm font-medium text-text transition-all duration-200 hover:-translate-y-px hover:border-[var(--op)] hover:text-[var(--op)] active:translate-y-0 active:scale-95 disabled:pointer-events-none disabled:opacity-50';
@@ -20,7 +20,6 @@ export default function ReviewCard({ review, busy, index = 0, onApprove, onRejec
   const images = useMemo(() => reviewService.getImageUrls(review), [review]);
   const avatar = useMemo(() => reviewService.getImageUrl(review.reviewerAvatarId), [review.reviewerAvatarId]);
   const name = review.reviewerName || review.username || 'Customer';
-  const tone = STATUS_META[review.status]?.tone ?? 3;
 
   const openReply = () => {
     setText(review.adminReply || '');
@@ -36,8 +35,8 @@ export default function ReviewCard({ review, busy, index = 0, onApprove, onRejec
 
   return (
     <article
-      style={{ borderLeftColor: `var(--accent-tone-${tone})`, animationDelay: `${Math.min(index, 8) * 40}ms` }}
-      className="animate-rise rounded-2xl border border-l-4 border-border bg-surface p-4 shadow-soft sm:p-5"
+      style={{ animationDelay: `${Math.min(index, 8) * 40}ms` }}
+      className="animate-rise rounded-2xl border border-border bg-surface p-4 shadow-soft sm:p-5"
     >
       {/* who + status */}
       <div className="flex items-start gap-3">

@@ -54,8 +54,8 @@ function SectionHead({ icon: Icon, title, subtitle, tone }) {
 function Section({ title, subtitle, icon, tone = 1, children, delay = 0 }) {
   return (
     <section
-      style={{ animationDelay: `${delay}ms`, borderTopColor: toneVar(tone) }}
-      className="group/sec animate-rise rounded-lg border border-border border-t-2 bg-surface-alt/40 p-4"
+      style={{ animationDelay: `${delay}ms` }}
+      className="group/sec animate-rise rounded-lg border border-border bg-surface-alt/40 p-4"
     >
       <SectionHead icon={icon} title={title} subtitle={subtitle} tone={tone} />
       <div className="mt-4 grid gap-4 sm:grid-cols-2">{children}</div>
@@ -317,7 +317,7 @@ export default function AlertForm({ open, alert, onClose, onSaved }) {
             </Section>
           </fieldset>
 
-          <section style={{ animationDelay: '180ms', borderTopColor: 'var(--accent-tone-6)' }} className="group/sec animate-rise rounded-lg border border-border border-t-2 bg-surface-alt/40 p-4">
+          <section style={{ animationDelay: '180ms' }} className="group/sec animate-rise rounded-lg border border-border bg-surface-alt/40 p-4">
             <SectionHead icon={Eye} tone={6} title="Preview" subtitle={form.popup ? 'As a popup' : 'As an announcement bar'} />
             <div className="mt-4"><AlertPreview alert={form} /></div>
           </section>

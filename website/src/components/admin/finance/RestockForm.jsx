@@ -86,7 +86,7 @@ export default function RestockForm({ open, products = [], preset = null, onClos
         </>
       }
     >
-      <section style={{ borderTopColor: 'var(--accent-tone-2)' }} className="animate-rise rounded-lg border border-border border-t-2 bg-surface-alt/40 p-4">
+      <section className="animate-rise rounded-lg border border-border bg-surface-alt/40 p-4">
         <div className="grid gap-4 sm:grid-cols-2">
           <Field as="div" label="Product" error={errors.product} className="sm:col-span-2">
             <SearchSelect aria-label="Product" options={products.map((p) => p.name)} value={name} onChange={pickProduct} creatable={false} placeholder="Search a product" searchPlaceholder="Search products…" error={Boolean(errors.product)} />
