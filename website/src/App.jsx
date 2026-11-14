@@ -149,12 +149,16 @@ export default function App() {
           <Route path="contact" element={<Contact />} />
           <Route path="privacy" element={<Privacy />} />
           <Route path="faqs" element={<FAQs />} />
-          {/* One product: /:category/:group/:productId (productId is the slug).
-              The short form /:productId is resolved by SlugRoute below, next to /:username. */}
-          <Route path=":category/:group/:productId" element={<Product />} />
           {/* Unknown /team/... URLs must not be mistaken for a product link. */}
           <Route path="team/:username/*" element={<CatchAllRoute />} />
           <Route path="*" element={<CatchAllRoute />} />        {/* unknown URL */}
+        </Route>
+
+        {/* Product details are the only public pages that show offer bars/popups. */}
+        <Route element={<PlainLayout pages={SITE_PAGES} showOffers />}>
+          {/* One product: /:category/:group/:productId (productId is the slug).
+              The short form /:productId is resolved by SlugRoute below. */}
+          <Route path=":category/:group/:productId" element={<Product />} />
         </Route>
 
         {/* ---------- Accounts ---------- */}

@@ -20,7 +20,7 @@ export const alertText = (alert) => alert.message ?? alert.body ?? alert.descrip
 
 const userName = (user) => user?.name ?? user?.fullName ?? user?.email ?? '';
 
-export default function useHeaderData() {
+export default function useHeaderData({ showOffers = false } = {}) {
   const dispatch = useAppDispatch();
   const authProfile = useAppSelector(selectProfile);
   const user = useAppSelector(selectMe);
@@ -40,22 +40,23 @@ export default function useHeaderData() {
   const accountPath = username ? dashboardHome(username, isStaff) : PATHS.signin;
   const avatar = user?.avatarFileId ? userService.getAvatarUrl({ fileId: user.avatarFileId }) : '';
 
-  // Loads the active alerts for this user (staff get an empty list from the slice).
-  // Runs again whenever the user changes (sign-in / sign-out).
+  // Offer bars are fetched only by product pages; personal notifications remain available
+  // wherever the shared header is rendered.
   const refresh = useCallback(() => {
-    dispatch(fetchAlertBars());
+    if (showOffers) dispatch(fetchAlertBars());
     if (userId) {
       dispatch(fetchAlertNotifications());
     }
-  }, [dispatch, userId]);
+  }, [dispatch, showOffers, userId]);
 
   useEffect(() => {
     refresh();
   }, [refresh]);
 
   useEffect(() => {
+    if (!showOffers) return;
     bars.forEach((alert) => dispatch(trackAlertImpression({ alert })));
-  }, [bars, dispatch]);
+  }, [bars, dispatch, showOffers]);
 
   const alerts = useMemo(
     () =>

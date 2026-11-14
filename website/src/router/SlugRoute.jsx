@@ -65,7 +65,7 @@ export default function SlugRoute() {
   if (!lookup.found) return <Navigate to={fallback} replace />;
 
   return (
-    <PlainLayout>
+    <PlainLayout showOffers>
       <Product />
     </PlainLayout>
   );

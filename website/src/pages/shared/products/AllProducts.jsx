@@ -247,7 +247,7 @@ export default function AllProducts({ pages = [] }) {
 
   return (
     <div className="min-h-dvh bg-bg text-text">
-      <Header pages={pages} />
+      <Header pages={pages} showOffers />
       <main className="mx-auto w-full max-w-7xl px-2 py-6 sm:px-6 lg:px-8">
         <div
           className={`space-y-6 transition-opacity duration-300 motion-reduce:transition-none ${

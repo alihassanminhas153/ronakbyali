@@ -111,13 +111,13 @@ function PageLink({ page, onClick, currentPath }) {
   );
 }
 
-export default function Header({ logo, pages = [] }) {
+export default function Header({ logo, pages = [], showOffers = false }) {
   const dispatch = useAppDispatch();
   const { pathname } = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
   const menuButtonRef = useRef(null);
   const wasMenuOpen = useRef(false);
-  const { signedIn, name, avatar, accountPath, alertPath, cartPath, ...alertData } = useHeaderData();
+  const { signedIn, name, avatar, accountPath, alertPath, cartPath, ...alertData } = useHeaderData({ showOffers });
 
   useEffect(() => {
     if (menuOpen) {
@@ -141,7 +141,7 @@ export default function Header({ logo, pages = [] }) {
 
   return (
     <>
-      {alertData.bars.length > 0 && (
+      {showOffers && alertData.bars.length > 0 && (
         <aside aria-label="Store announcements">
           {alertData.bars.map((alert) => (
             <Announcement

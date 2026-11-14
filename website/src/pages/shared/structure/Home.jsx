@@ -1,15 +1,18 @@
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Link } from "react-router";
-import { ArrowUpRight } from "lucide-react";
+import { ArrowUpRight, BadgePercent, Globe, Palette, ShieldCheck } from "lucide-react";
+
+// Adjust this path to where Home.jsx lives (this assumes src/pages/shared/Home.jsx)
+import ProductsMarquee from "../../../components/home/ProductsMarquee";
 
 /* ==========================================================================
    HOME: hero section
    The section is exactly the viewport height minus your layout's header.
    Layers (back to front):
-     1. big animated heading (letter by letter)
+     1. big two-word heading, ONE row, top of the hero, swaps words all at once
      2. hero image, transparent, anchored to the bottom, rises in after loading
         (so the heading shows through behind it)
-     3. small typewriter pill with a moving glow border
+     3. small typewriter pill with icons and a moving glow border
    A loader covers the page first. Colours come only from index.css variables,
    so light and dark both work.
    ========================================================================== */
@@ -19,38 +22,41 @@ const BRAND = "Ronak By Ali";
 const PRODUCTS_PATH = "/products";
 const PRODUCTS_LABEL = "ronakbyali.com/products";
 
-// The link text is one of the typed phrases (the last one)
-const PHRASES = ["Get Discounts", "Your Custom Designs", "Safe order delivery", PRODUCTS_LABEL];
+// Big heading: exactly two words each. The first word uses the text colour, the second the accent.
+// The font size is fitted so the WIDEST phrase fills one row, so keep phrases similar in length.
+const HEADING_PHRASES = [
+  ["Custom", "Designs"],
+  ["Best", "Discounts"],
+  ["Safe", "Delivery"],
+  ["Your", "Style"],
+];
+const HEADING_SWAP_MS = 3200; // how long each phrase stays
+
+// Typewriter pill: each phrase has its own icon. The last one is the link text.
+const PHRASES = [
+  { text: "Get Discounts", icon: BadgePercent },
+  { text: "Your Custom Designs", icon: Palette },
+  { text: "Safe order delivery", icon: ShieldCheck },
+  { text: PRODUCTS_LABEL, icon: Globe, isLink: true },
+];
+const PHRASE_TEXTS = PHRASES.map((p) => p.text);
 
 // File: website/public/images/webp/transparent/hero.webp (Vite serves /public from the root)
 const HERO_IMAGE = "/images/webp/transparent/hero.webp";
 const HERO_ALT = "Ronak By Ali featured product";
 
-// Heading, one array item per line. accent lines use the accent colour + underline
-const HEADING_LINES = [
-  { words: ["Your", "style,"], accent: false },
-  { words: ["your", "way."], accent: true },
-];
-
 // Loader never shows for less than this, so it does not just flash
 const MIN_LOADER_MS = 1600;
 
 /* ---- Sizes: tweak here ---- */
-// Heading: min, fluid (by width / by height), max. Raise or lower the numbers to resize.
-const HEADING_SIZE = "text-[clamp(3.5rem,min(19vw,21dvh),13rem)]";
-// Typewriter pill text
+const HEADING_WIDTH_FILL = 0.96; // 1 = edge to edge; the widest phrase fills this share of the row
+const HEADING_MAX_HEIGHT = 0.6; // heading may never be taller than this share of the hero
 const PILL_TEXT_SIZE = "text-base sm:text-lg";
 
 /* The layout injects the header. Set --header-h on your layout wrapper
    (e.g. style={{ "--header-h": "4rem" }}) so the hero is exactly 100dvh minus it.
    If the header floats over the page instead, set it to 0px. */
 const HERO_HEIGHT = "h-[calc(100dvh-var(--header-h,4.5rem))] min-h-[26rem]";
-
-/* ---- Letter timing (ms) ---- */
-const LETTER_START = 400; // wait for the image to start rising first
-const LETTER_STEP = 80; // gap between letters
-const TOTAL_LETTERS = HEADING_LINES.flatMap((l) => l.words).join("").length;
-const HEADING_DONE = LETTER_START + TOTAL_LETTERS * LETTER_STEP;
 
 const prefersReducedMotion = () =>
   typeof window !== "undefined" &&
@@ -87,6 +93,40 @@ function useTypewriter(phrases, active) {
   // Reduced motion: no typing, just show the first phrase
   if (prefersReducedMotion()) return { text: phrases[0], index: 0 };
   return { text, index };
+}
+
+/* ---------- Fit text: sizes the heading so its widest phrase fits ONE row ---------- */
+function useFitText(sectionRef, wrapRef, innerRef) {
+  useLayoutEffect(() => {
+    const wrap = wrapRef.current;
+    const inner = innerRef.current;
+    if (!wrap || !inner) return;
+
+    // A child's layout effect runs before its parent's ref is attached,
+    // so sectionRef.current can still be null here. Fall back to the DOM.
+    const getSection = () => sectionRef.current ?? wrap.closest("section");
+
+    const fit = () => {
+      const sec = getSection();
+      if (!sec) return;
+
+      inner.style.fontSize = "100px"; // measure at a known size, then scale
+      const width100 = inner.scrollWidth;
+      if (!width100) return;
+
+      const byWidth = (wrap.clientWidth * HEADING_WIDTH_FILL * 100) / width100;
+      const byHeight = sec.clientHeight * HEADING_MAX_HEIGHT;
+      inner.style.fontSize = `${Math.min(byWidth, byHeight)}px`;
+    };
+
+    fit();
+    const ro = new ResizeObserver(fit);
+    ro.observe(wrap);
+    const sec = getSection();
+    if (sec) ro.observe(sec);
+    document.fonts?.ready.then(fit); // re-measure once the tall font has loaded
+    return () => ro.disconnect();
+  }, [sectionRef, wrapRef, innerRef]);
 }
 
 /* ---------- Loader ---------- */
@@ -131,75 +171,78 @@ function Loader({ visible }) {
   );
 }
 
-/* ---------- Animated heading (tall font: font-display = Barlow Condensed) ----------
-   Letters appear one by one: each fades up from below, un-blurs and scales in.
-   Then the accent underline draws itself. Pure transitions, no extra CSS. */
-function Heading({ ready }) {
-  let n = 0; // running letter counter, drives the stagger
+/* ---------- Big heading: two words, one row, swaps all at once ----------
+   All phrases sit stacked in the same spot. The current one slides up into view
+   while the previous one slides up and out, together, inside a mask. */
+const SWAP_EASE = "duration-[900ms] ease-[cubic-bezier(0.2,0.8,0.2,1)]";
+
+function Heading({ ready, sectionRef }) {
+  const [current, setCurrent] = useState(0);
+  const wrapRef = useRef(null);
+  const innerRef = useRef(null);
+  useFitText(sectionRef, wrapRef, innerRef);
+
+  // Swap to the next phrase on a timer (not at all with reduced motion)
+  useEffect(() => {
+    if (!ready || prefersReducedMotion()) return;
+    const id = setInterval(() => setCurrent((c) => (c + 1) % HEADING_PHRASES.length), HEADING_SWAP_MS);
+    return () => clearInterval(id);
+  }, [ready]);
+
+  const previous = (current - 1 + HEADING_PHRASES.length) % HEADING_PHRASES.length;
 
   return (
-    <h1
-      id="hero-title"
-      aria-label={HEADING_LINES.map((l) => l.words.join(" ")).join(" ")}
-      className={`font-display ${HEADING_SIZE} leading-[0.92] font-bold tracking-[0.01em] text-text uppercase`}
-    >
-      {HEADING_LINES.map((line, li) => (
+    <div ref={wrapRef} className="w-full">
+      <h1
+        id="hero-title"
+        aria-label={HEADING_PHRASES.map((p) => p.join(" ")).join(", ")}
+        className="overflow-hidden text-center"
+      >
         <span
-          key={li}
+          ref={innerRef}
           aria-hidden="true"
-          className={`relative block ${line.accent ? "mx-auto w-fit text-accent" : ""}`}
+          style={{ fontSize: "12vw" }}
+          className="inline-grid py-[0.04em] font-display leading-[0.9] font-bold tracking-[0.01em] whitespace-nowrap uppercase"
         >
-          {line.words.map((word, wi) => (
-            <span key={wi}>
-              {wi > 0 && " "}
-              <span className="inline-block whitespace-nowrap">
-                {word.split("").map((ch, ci) => {
-                  const delay = LETTER_START + n++ * LETTER_STEP;
-                  return (
-                    <span
-                      key={ci}
-                      className={`inline-block transition duration-700 ease-[cubic-bezier(0.2,0.8,0.2,1)] will-change-transform ${
-                        ready
-                          ? "translate-y-0 scale-100 opacity-100 blur-0"
-                          : "translate-y-8 scale-75 opacity-0 blur-md"
-                      }`}
-                      style={{ transitionDelay: ready ? `${delay}ms` : "0ms" }}
-                    >
-                      {ch}
-                    </span>
-                  );
-                })}
-              </span>
-            </span>
-          ))}
+          {HEADING_PHRASES.map(([first, second], k) => {
+            const state = !ready ? "below" : k === current ? "active" : k === previous ? "above" : "below";
+            const motion = {
+              active: `translate-y-0 opacity-100 transition ${SWAP_EASE}`,
+              above: `-translate-y-full opacity-0 transition ${SWAP_EASE}`,
+              below: "translate-y-full opacity-0 transition-none", // parked out of sight, no animation
+            }[state];
 
-          {line.accent && (
-            <span
-              className={`absolute inset-x-0 bottom-0 h-[0.06em] origin-left rounded-full bg-accent transition-transform duration-[900ms] ease-out ${
-                ready ? "scale-x-100" : "scale-x-0"
-              }`}
-              style={{ transitionDelay: ready ? `${HEADING_DONE + 100}ms` : "0ms" }}
-            />
-          )}
+            return (
+              <span
+                key={first + second}
+                className={`col-start-1 row-start-1 justify-self-center ${motion}`}
+                style={{ transitionDelay: state === "active" ? "250ms" : "0ms" }}
+              >
+                <span className="text-text">{first}</span> <span className="text-accent">{second}</span>
+              </span>
+            );
+          })}
         </span>
-      ))}
-    </h1>
+      </h1>
+    </div>
   );
 }
 
-/* ---------- Typewriter "input": ONE pill, ONE link, with a moving glow ----------
+/* ---------- Typewriter "input": ONE pill, ONE link, icons, moving glow ----------
    A conic-gradient wedge spins behind the pill. It is drawn twice:
    sharp as a thin border, and blurred as the glow around it. */
 const SPINNER =
   "absolute top-1/2 left-1/2 aspect-square w-[220%] -translate-x-1/2 -translate-y-1/2 animate-spin [animation-duration:3.6s] bg-[conic-gradient(from_0deg,transparent_0%,transparent_55%,var(--accent)_82%,var(--accent-hover)_100%)]";
 
-function TypewriterField({ text, isLinkPhrase, ready }) {
+function TypewriterField({ text, index, ready }) {
+  const { icon: Icon, isLink } = PHRASES[index];
+
   return (
     <div
-      className={`w-[min(100%,24rem)] transition duration-700 ease-[cubic-bezier(0.2,0.7,0.2,1)] sm:w-[28rem] ${
+      className={`w-[min(100%,25rem)] transition duration-700 ease-[cubic-bezier(0.2,0.7,0.2,1)] sm:w-[30rem] ${
         ready ? "scale-100 opacity-100 blur-0" : "scale-90 opacity-0 blur-sm"
       }`}
-      style={{ transitionDelay: ready ? `${HEADING_DONE + 200}ms` : "0ms" }}
+      style={{ transitionDelay: ready ? "700ms" : "0ms" }}
     >
       <div className="relative rounded-full p-[1.5px]">
         {/* Glow: blurred copy that spills outside the pill */}
@@ -214,24 +257,37 @@ function TypewriterField({ text, isLinkPhrase, ready }) {
         <Link
           to={PRODUCTS_PATH}
           aria-label={`Browse products at ${PRODUCTS_LABEL}`}
-          className="group relative flex h-12 w-full items-center gap-2 rounded-full bg-surface py-1 pr-1 pl-5 text-text transition focus-visible:ring-4 focus-visible:ring-accent/20 sm:h-14 sm:pl-6"
+          className="group relative flex h-14 w-full items-center gap-3 rounded-full bg-surface py-1 pr-1 pl-1.5 text-text transition focus-visible:ring-4 focus-visible:ring-accent/20 sm:h-16"
         >
           {/* Screen readers get the full list instead of letter-by-letter noise */}
-          <span className="sr-only">{PHRASES.join(", ")}</span>
+          <span className="sr-only">{PHRASES.map((p) => p.text).join(", ")}</span>
 
-          <span aria-hidden="true" className={`flex min-w-0 flex-1 items-center text-left ${PILL_TEXT_SIZE}`}>
-            <span className={`truncate transition-colors duration-300 ${isLinkPhrase ? "font-medium text-accent" : ""}`}>
+          {/* Icon chip: swaps with each phrase */}
+          <span
+            aria-hidden="true"
+            className="inline-flex size-11 shrink-0 items-center justify-center rounded-full bg-accent-soft text-accent sm:size-12"
+          >
+            <Icon key={index} size={22} strokeWidth={1.8} className="animate-rise" />
+          </span>
+
+          {/* Typed text */}
+          <span aria-hidden="true" className={`flex min-w-0 flex-1 items-center text-left font-heading ${PILL_TEXT_SIZE}`}>
+            <span
+              className={`truncate font-medium tracking-tight transition-colors duration-300 ${
+                isLink ? "text-accent underline decoration-accent/40 decoration-2 underline-offset-4" : "text-text"
+              }`}
+            >
               {text}
             </span>
-            <span className="ml-0.5 h-5 w-0.5 shrink-0 animate-caret rounded-full bg-accent" />
+            <span className="ml-1 h-5 w-[3px] shrink-0 animate-caret rounded-full bg-accent shadow-[0_0_10px_var(--accent)] sm:h-6" />
           </span>
 
           {/* Arrow with a soft pulsing ring */}
-          <span className="relative inline-flex size-10 shrink-0 sm:size-12">
+          <span className="relative inline-flex size-12 shrink-0 sm:size-14">
             <span aria-hidden="true" className="absolute inset-0 animate-ring rounded-full bg-accent/50" />
             <span className="relative inline-flex size-full items-center justify-center rounded-full bg-btn text-btn-ink transition group-hover:bg-btn-hover group-active:scale-95">
               <ArrowUpRight
-                size={20}
+                size={22}
                 strokeWidth={2}
                 aria-hidden="true"
                 className="transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
@@ -246,6 +302,7 @@ function TypewriterField({ text, isLinkPhrase, ready }) {
 
 /* ---------- Page ---------- */
 export default function Home() {
+  const sectionRef = useRef(null);
   const [minTimePassed, setMinTimePassed] = useState(false);
   const [imageDone, setImageDone] = useState(false); // loaded or failed, either way do not hang the loader
 
@@ -255,25 +312,25 @@ export default function Home() {
   }, []);
 
   const ready = minTimePassed && imageDone;
-  const { text, index } = useTypewriter(PHRASES, ready);
-  const isLinkPhrase = PHRASES[index] === PRODUCTS_LABEL;
+  const { text, index } = useTypewriter(PHRASE_TEXTS, ready);
 
   return (
     <>
       <Loader visible={!ready} />
 
       <section
+        ref={sectionRef}
         aria-labelledby="hero-title"
         className={`relative isolate w-full overflow-hidden bg-[radial-gradient(70rem_36rem_at_50%_90%,var(--accent-soft),transparent_70%)] ${HERO_HEIGHT}`}
       >
-        {/* Top group. It has no z-index of its own, so the heading (z-0) sits
-            BEHIND the image (z-10) while the pill (z-20) stays in front. */}
-        <div className="relative flex flex-col items-center gap-4 px-4 pt-4 text-center sm:gap-6 sm:px-10 sm:pt-8 lg:pt-10">
-          <div className="relative z-0">
-            <Heading ready={ready} />
+        {/* Top group, pinned to the top. It has no z-index of its own, so the
+            heading (z-0) sits BEHIND the image (z-10) while the pill (z-20) stays in front. */}
+        <div className="relative flex flex-col items-center gap-3 px-3 pt-2 sm:gap-5 sm:px-6 sm:pt-4">
+          <div className="relative z-0 w-full">
+            <Heading ready={ready} sectionRef={sectionRef} />
           </div>
-          <div className="relative z-20">
-            <TypewriterField text={text} isLinkPhrase={isLinkPhrase} ready={ready} />
+          <div className="relative z-20 flex w-full justify-center">
+            <TypewriterField text={text} index={index} ready={ready} />
           </div>
         </div>
 
@@ -292,6 +349,9 @@ export default function Home() {
           />
         </div>
       </section>
+
+      {/* Products, right after the hero */}
+      <ProductsMarquee />
     </>
   );
 }
