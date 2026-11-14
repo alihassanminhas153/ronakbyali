@@ -24,8 +24,8 @@ const MIN_GAP_MS = 2_000; // focus + visibilitychange often fire together
 //    No redirect and no exceptions, so there is nothing to loop and the gate also
 //    wins over GuestRoute / ProtectedRoute.
 //  - signed in, profile still loading -> a neutral full-screen loader is drawn OVER
-//    the routes (they stay mounted, so e.g. AuthCallback keeps its state) and no real
-//    page is ever visible before the block state is known.
+//    protected routes (they stay mounted, so e.g. AuthCallback keeps its state).
+//    The public home page remains visible while its block check runs in the background.
 //  - a failed load/refresh is ignored: the last known state is kept, so a network
 //    error never blocks or unblocks anybody.
 export default function BlockedGate() {
@@ -84,7 +84,9 @@ export default function BlockedGate() {
 
   if (loggedIn && blocked) return <Blocked />;
 
-  const resolving = loggedIn && (meStatus === 'idle' || meStatus === 'loading');
+  // The storefront home is public, so let it render while the account block check runs.
+  const isPublicHome = pathname === '/';
+  const resolving = loggedIn && !isPublicHome && (meStatus === 'idle' || meStatus === 'loading');
 
   return (
     <>

@@ -44,6 +44,8 @@ export default function AccessTab() {
     );
   }, [users, query]);
 
+  const staffCount = users.filter((u) => ['admin', 'support', 'manager'].includes(u.role)).length;
+
   const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const current = Math.min(page, pageCount);
   const rows = filtered.slice((current - 1) * PAGE_SIZE, current * PAGE_SIZE);
@@ -58,8 +60,23 @@ export default function AccessTab() {
   };
 
   return (
-    <div className="space-y-3">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+    <div className="space-y-4">
+      <div className="grid gap-3 sm:grid-cols-3">
+        <div className="rounded-2xl border border-border bg-surface p-4 shadow-soft">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">Total users</p>
+          <p className="mt-2 text-2xl font-semibold text-text">{users.length}</p>
+        </div>
+        <div className="rounded-2xl border border-border bg-surface p-4 shadow-soft">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">Staff</p>
+          <p className="mt-2 text-2xl font-semibold text-text">{staffCount}</p>
+        </div>
+        <div className="rounded-2xl border border-border bg-surface p-4 shadow-soft">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">Visible</p>
+          <p className="mt-2 text-2xl font-semibold text-text">{filtered.length}</p>
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-3 rounded-2xl border border-border bg-surface p-3 shadow-soft sm:flex-row sm:items-center">
         <SearchInput size="sm" delay={200} value={query} onSearch={setQuery} placeholder="Search name, email, role or label" label="Search users" className="flex-1" />
         <div className="flex items-center justify-between gap-3">
           <span className="text-xs text-muted">{filtered.length} {filtered.length === 1 ? 'user' : 'users'}</span>
@@ -67,7 +84,7 @@ export default function AccessTab() {
             type="button"
             onClick={() => dispatch(fetchUsers())}
             disabled={busy}
-            className="inline-flex h-10 items-center gap-2 rounded-md border border-border bg-surface px-3 text-sm font-medium text-text transition-colors hover:border-accent hover:text-accent disabled:opacity-60"
+            className="inline-flex h-10 items-center gap-2 rounded-md border border-border bg-surface-alt px-3 text-sm font-medium text-text transition-colors hover:border-accent hover:text-accent disabled:opacity-60"
           >
             <RefreshCw size={15} className={busy ? 'animate-spin' : ''} aria-hidden="true" />
             Refresh
@@ -77,7 +94,7 @@ export default function AccessTab() {
 
       {error && <Banner kind="error" onDismiss={() => dispatch(clearUserError())}>{error}</Banner>}
 
-      <div className="overflow-hidden rounded-lg border border-border bg-surface">
+      <div className="overflow-hidden rounded-2xl border border-border bg-surface shadow-soft">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[20rem] border-collapse text-sm">
             <thead>

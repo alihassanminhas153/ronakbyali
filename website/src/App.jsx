@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Routes, Route, useLocation } from "react-router";
 import { useDispatch, useSelector } from "react-redux";
 
@@ -19,7 +19,6 @@ import CatchAllRoute from "./router/CatchAllRoute";
 import RedirectRoute from "./router/RedirectRoute";
 import { PATHS, PRODUCT_LIST_ALIASES } from "./router/path";
 import ToastViewport from "./ui/custom/toast/ToastViewport";
-import AlertPopupHost from "./components/shared/AlertPopupHost";
 
 // shared pages
 import Home from "./pages/shared/structure/Home";
@@ -34,6 +33,7 @@ import UserProfile from "./pages/user/dashboard/Profile";
 import UserOrders from "./pages/user/dashboard/Orders";
 import UserCart from "./pages/user/dashboard/Cart";
 import UserCheckout from "./pages/user/dashboard/CheckoutPage";
+import ConfirmOrder from "./pages/user/dashboard/ConfirmOrder";
 import UserWishlist from "./pages/user/dashboard/Wishlist";
 import UserReviews from "./pages/user/dashboard/Reviews";
 import UserAlerts from "./pages/user/dashboard/Alerts";
@@ -75,11 +75,24 @@ export default function App() {
   const dispatch = useDispatch();
   const profileId = useSelector((s) => s.auth.profile?.$id);
   const { pathname } = useLocation();
+  const [isNavigating, setIsNavigating] = useState(false);
 
   useEffect(() => {
     const route = pathname.replace(/\/+$/, "") || "/";
     const pageTitle = STATIC_PAGE_TITLES[route];
     if (pageTitle) document.title = `${pageTitle} | Ronak By Ali`;
+  }, [pathname]);
+
+  useEffect(() => {
+    const route = pathname.replace(/\/+$/, "") || "/";
+    if (["/", "/welcome-back", "/create-account", "/auth/callback"].includes(route)) {
+      setIsNavigating(false);
+      return undefined;
+    }
+
+    setIsNavigating(true);
+    const id = window.setTimeout(() => setIsNavigating(false), 220);
+    return () => window.clearTimeout(id);
   }, [pathname]);
 
   // Restore the profile before route guards decide where to send the visitor.
@@ -99,8 +112,15 @@ export default function App() {
 
   return (
     <>
+    {isNavigating && (
+      <div className="fixed inset-0 z-[90] flex items-center justify-center bg-bg/65 backdrop-blur-sm">
+        <div className="flex items-center gap-3 rounded-full border border-border bg-surface/95 px-4 py-2.5 shadow-soft">
+          <span className="h-4 w-4 animate-spin rounded-full border-2 border-accent border-t-transparent" aria-hidden="true" />
+          <span className="text-sm font-medium text-text">Loading page…</span>
+        </div>
+      </div>
+    )}
     <ToastViewport />
-    <AlertPopupHost />
     <Routes>
       {/* Pathless layout route ABOVE every other route: a blocked user sees only the
           Blocked page, whatever URL they type. */}
@@ -176,6 +196,7 @@ export default function App() {
               <Route path="orders" element={<UserOrders />} />
               <Route path="cart" element={<UserCart />} />
               <Route path="checkout" element={<UserCheckout />} />
+              <Route path="confirm-order" element={<ConfirmOrder />} />
               <Route path="wishlist" element={<UserWishlist />} />
               <Route path="reviews" element={<UserReviews />} />
               <Route path="alerts" element={<UserAlerts />} />

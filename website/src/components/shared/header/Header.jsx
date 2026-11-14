@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router';
-import { ArrowUpRight, Menu, X } from 'lucide-react';
+import { ArrowUpRight, Menu, ShoppingCart, X } from 'lucide-react';
 
 import { TYPE_META } from '../../admin/alerts/alertMeta';
 import { dismissAlert } from '../../../store/slices/alertSlice';
@@ -182,7 +182,7 @@ export default function Header({ logo, pages = [] }) {
                       title="Your cart"
                       className={`grid size-10 place-items-center rounded-full transition-colors duration-200 hover:bg-border/40 ${FOCUS}`}
                     >
-                      <AppIcon name="cart" tone={3} className="size-5 object-contain" />
+                      <ShoppingCart size={20} strokeWidth={1.8} aria-hidden="true" />
                     </Link>
                   )}
                   <AlertBell data={{ ...alertData, alertPath }} />

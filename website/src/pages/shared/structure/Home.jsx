@@ -1,195 +1,297 @@
-import { useCallback, useId, useState } from "react";
-import { Check, Copy, Globe, MessageCircle, Phone } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Link } from "react-router";
+import { ArrowUpRight } from "lucide-react";
 
-const OWNER = "Ali Hassan Minhas";
-const PHONE_DISPLAY = "+92 321 8854601";
-const PHONE_RAW = "+923218854601";
-const WHATSAPP_URL = "https://wa.me/923218854601";
-const SITE_URL = "https://ronakbyali.com";
+/* ==========================================================================
+   HOME: hero section
+   The section is exactly the viewport height minus your layout's header.
+   Layers (back to front):
+     1. big animated heading (letter by letter)
+     2. hero image, transparent, anchored to the bottom, rises in after loading
+        (so the heading shows through behind it)
+     3. small typewriter pill with a moving glow border
+   A loader covers the page first. Colours come only from index.css variables,
+   so light and dark both work.
+   ========================================================================== */
 
-const focusRing =
-  "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sage-deep";
+/* ---- Content: edit freely ---- */
+const BRAND = "Ronak By Ali";
+const PRODUCTS_PATH = "/products";
+const PRODUCTS_LABEL = "ronakbyali.com/products";
 
-// Short screens: hide the optional extras so everything still fits without scrolling
-const shortScreen = "[@media(max-height:720px)]:hidden";
-const veryShortScreen = "[@media(max-height:600px)]:hidden";
-const landscapeShort = "[@media(max-height:560px)_and_(orientation:landscape)]";
+// The link text is one of the typed phrases (the last one)
+const PHRASES = ["Get Discounts", "Your Custom Designs", "Safe order delivery", PRODUCTS_LABEL];
 
-async function copyText(text) {
-  try {
-    await navigator.clipboard.writeText(text);
-    return true;
-  } catch {
-    try {
-      const el = document.createElement("textarea");
-      el.value = text;
-      el.setAttribute("readonly", "");
-      el.style.cssText = "position:fixed;opacity:0";
-      document.body.appendChild(el);
-      el.select();
-      const ok = document.execCommand("copy");
-      document.body.removeChild(el);
-      return ok;
-    } catch {
-      return false;
+// File: website/public/images/webp/transparent/hero.webp (Vite serves /public from the root)
+const HERO_IMAGE = "/images/webp/transparent/hero.webp";
+const HERO_ALT = "Ronak By Ali featured product";
+
+// Heading, one array item per line. accent lines use the accent colour + underline
+const HEADING_LINES = [
+  { words: ["Your", "style,"], accent: false },
+  { words: ["your", "way."], accent: true },
+];
+
+// Loader never shows for less than this, so it does not just flash
+const MIN_LOADER_MS = 1600;
+
+/* ---- Sizes: tweak here ---- */
+// Heading: min, fluid (by width / by height), max. Raise or lower the numbers to resize.
+const HEADING_SIZE = "text-[clamp(3.5rem,min(19vw,21dvh),13rem)]";
+// Typewriter pill text
+const PILL_TEXT_SIZE = "text-base sm:text-lg";
+
+/* The layout injects the header. Set --header-h on your layout wrapper
+   (e.g. style={{ "--header-h": "4rem" }}) so the hero is exactly 100dvh minus it.
+   If the header floats over the page instead, set it to 0px. */
+const HERO_HEIGHT = "h-[calc(100dvh-var(--header-h,4.5rem))] min-h-[26rem]";
+
+/* ---- Letter timing (ms) ---- */
+const LETTER_START = 400; // wait for the image to start rising first
+const LETTER_STEP = 80; // gap between letters
+const TOTAL_LETTERS = HEADING_LINES.flatMap((l) => l.words).join("").length;
+const HEADING_DONE = LETTER_START + TOTAL_LETTERS * LETTER_STEP;
+
+const prefersReducedMotion = () =>
+  typeof window !== "undefined" &&
+  window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+
+/* ---------- Typewriter: types, holds, deletes, moves to the next phrase ---------- */
+function useTypewriter(phrases, active) {
+  const [index, setIndex] = useState(0);
+  const [text, setText] = useState("");
+  const [deleting, setDeleting] = useState(false);
+
+  useEffect(() => {
+    if (!active || prefersReducedMotion()) return;
+
+    const full = phrases[index];
+    let timer;
+
+    if (!deleting && text === full) {
+      timer = setTimeout(() => setDeleting(true), 1600); // hold the finished phrase
+    } else if (deleting && text === "") {
+      timer = setTimeout(() => {
+        setDeleting(false);
+        setIndex((i) => (i + 1) % phrases.length);
+      }, 300);
+    } else {
+      timer = setTimeout(
+        () => setText(full.slice(0, text.length + (deleting ? -1 : 1))),
+        deleting ? 35 : 75
+      );
     }
-  }
+    return () => clearTimeout(timer);
+  }, [active, deleting, index, phrases, text]);
+
+  // Reduced motion: no typing, just show the first phrase
+  if (prefersReducedMotion()) return { text: phrases[0], index: 0 };
+  return { text, index };
 }
 
-function CopyField({ icon: Icon, label, value, copyValue }) {
-  const id = useId();
-  const [copied, setCopied] = useState(false);
+/* ---------- Loader ---------- */
+function Loader({ visible }) {
+  const [filling, setFilling] = useState(false);
+  const [mounted, setMounted] = useState(true);
 
-  const handleCopy = useCallback(async () => {
-    if (await copyText(copyValue ?? value)) {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1800);
-    }
-  }, [copyValue, value]);
+  // Start the progress bar on the next frame so its transition actually runs
+  useEffect(() => {
+    const id = requestAnimationFrame(() => setFilling(true));
+    return () => cancelAnimationFrame(id);
+  }, []);
+
+  // Remove from the DOM once the fade-out has finished
+  useEffect(() => {
+    if (visible) return;
+    const id = setTimeout(() => setMounted(false), 700);
+    return () => clearTimeout(id);
+  }, [visible]);
+
+  if (!mounted) return null;
 
   return (
-    <div className="flex min-w-0 flex-col gap-1">
-      <label htmlFor={id} className="text-[0.75rem] text-muted">
-        {label}
-      </label>
-      <div className="flex items-center gap-2 rounded-full border border-line bg-field py-1 pr-1 pl-3 transition focus-within:border-sage focus-within:ring-4 focus-within:ring-sage/20">
-        <Icon size={17} strokeWidth={1.6} className="shrink-0 text-sage-deep" aria-hidden="true" />
-        <input
-          id={id}
-          type="text"
-          value={value}
-          readOnly
-          onFocus={(e) => e.target.select()}
-          className="min-w-0 flex-1 truncate bg-transparent py-1 text-[0.9rem] text-ink outline-none"
+    <div
+      role="status"
+      aria-live="polite"
+      aria-label="Loading"
+      className={`fixed inset-0 z-50 flex flex-col items-center justify-center gap-5 bg-bg transition-opacity duration-700 ${
+        visible ? "opacity-100" : "pointer-events-none opacity-0"
+      }`}
+    >
+      <span className="font-display text-5xl font-bold tracking-[0.02em] text-text uppercase sm:text-6xl">
+        {BRAND}
+      </span>
+      <div className="h-0.5 w-40 overflow-hidden rounded-full bg-border sm:w-52">
+        <div
+          className="h-full rounded-full bg-accent transition-[width] ease-out"
+          style={{ width: filling ? "100%" : "0%", transitionDuration: `${MIN_LOADER_MS}ms` }}
         />
-        <button
-          type="button"
-          onClick={handleCopy}
-          aria-label={copied ? `${label} copied` : `Copy ${label}`}
-          className={`inline-flex shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-full p-2.5 text-sm font-medium transition active:scale-95 sm:px-3 ${focusRing} ${
-            copied
-              ? "bg-sage-deep text-page"
-              : "bg-sage-wash text-sage-deep hover:brightness-95 dark:hover:brightness-125"
-          }`}
-        >
-          {copied ? <Check size={16} strokeWidth={2} /> : <Copy size={16} strokeWidth={1.8} />}
-          <span className="hidden w-[3.2rem] text-left sm:inline">{copied ? "Copied" : "Copy"}</span>
-        </button>
       </div>
     </div>
   );
 }
 
-export default function Home() {
-  // Changing the key remounts the letters, replaying the fall + jelly animation
-  const [round, setRound] = useState(0);
+/* ---------- Animated heading (tall font: font-display = Barlow Condensed) ----------
+   Letters appear one by one: each fades up from below, un-blurs and scales in.
+   Then the accent underline draws itself. Pure transitions, no extra CSS. */
+function Heading({ ready }) {
+  let n = 0; // running letter counter, drives the stagger
 
   return (
-    <div className="flex h-dvh w-screen flex-col overflow-hidden bg-[radial-gradient(60rem_30rem_at_50%_8%,var(--glow),transparent_70%)] bg-page text-ink">
-      {/* <header className="flex shrink-0 items-center justify-between px-4 py-3 sm:px-10 sm:py-5">
-        <span className="font-serif text-2xl font-semibold tracking-[0.01em] sm:text-[1.75rem]">
-          Ronak By Ali
-        </span>
-        <div className="flex items-center gap-2">
-          <a
-            href={WHATSAPP_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            aria-label="Chat on WhatsApp"
-            className={`inline-flex h-10 items-center gap-2 rounded-full border border-line bg-surface px-[0.6875rem] text-sm font-medium text-sage-deep transition-colors hover:border-sage hover:bg-sage-wash sm:px-4 ${focusRing}`}
-          >
-            <MessageCircle size={18} strokeWidth={1.6} />
-            <span className="hidden sm:inline">WhatsApp</span>
-          </a>
-          <ThemeToggle />
-        </div>
-      </header> */}
-
-      {/* Main: fills the remaining viewport height, content is spread evenly */}
-      <main
-        className={`flex min-h-0 flex-1 flex-col items-center justify-evenly gap-2 px-4 sm:px-10 ${landscapeShort}:flex-row ${landscapeShort}:gap-10`}
-      >
-        {/* Hero */}
-        <section className="flex min-h-0 w-full flex-col items-center text-center" aria-labelledby="soon">
-          <p
-            className="animate-fade font-serif text-[clamp(1.25rem,3.6vh,2.25rem)] font-medium tracking-[0.04em] text-muted italic"
-            style={{ animationDelay: "0.1s" }}
-          >
-            Coming
-          </p>
-
-          <h1
-            id="soon"
-            key={round}
-            aria-label="Soon"
-            title="Tap to replay"
-            onClick={() => setRound((r) => r + 1)}
-            className={`flex cursor-pointer font-display text-[min(33vw,28vh,22rem)] leading-[0.95] font-bold tracking-[0.03em] text-sage [-webkit-text-stroke:0.03em_currentColor] select-none [-webkit-tap-highlight-color:transparent] ${landscapeShort}:text-[min(24vw,42vh)]`}
-          >
-            {"SOON".split("").map((ch, i) => (
-              <span
-                key={i}
-                aria-hidden="true"
-                className="inline-block origin-bottom animate-jelly-drop will-change-transform motion-reduce:animate-fade"
-                style={{ animationDelay: `${0.35 + i * 0.14}s` }}
-              >
-                {ch}
-              </span>
-            ))}
-          </h1>
-
-          {/* Ground */}
-          <div key={`g${round}`} className="relative mt-0.5 h-4 w-[min(86vw,46rem)]" aria-hidden="true">
-            <span
-              className="absolute inset-x-0 top-0 h-0.5 animate-fade rounded-full bg-linear-to-r from-transparent via-sage to-transparent opacity-60"
-              style={{ animationDelay: "0.2s" }}
-            />
-            <span
-              className="absolute inset-x-[12%] top-1.5 h-2.5 animate-ground-pulse rounded-full bg-sage-deep/30 blur-sm motion-reduce:animate-fade"
-              style={{ animationDelay: "0.35s" }}
-            />
-          </div>
-
-          <p
-            className={`mt-2 max-w-md animate-fade text-[0.95rem] leading-relaxed text-muted ${shortScreen}`}
-            style={{ animationDelay: "2.2s" }}
-          >
-            Something beautiful is being crafted. We’ll be here shortly.
-          </p>
-        </section>
-
-        {/* Contact card */}
-        <section
-          aria-label="Contact"
-          className={`flex w-full max-w-xl shrink-0 animate-fade flex-col gap-3 rounded-3xl border border-line bg-surface p-4 shadow-[0_18px_40px_-28px_var(--card-shadow)] sm:p-5 ${landscapeShort}:max-w-sm`}
-          style={{ animationDelay: "2.4s" }}
+    <h1
+      id="hero-title"
+      aria-label={HEADING_LINES.map((l) => l.words.join(" ")).join(" ")}
+      className={`font-display ${HEADING_SIZE} leading-[0.92] font-bold tracking-[0.01em] text-text uppercase`}
+    >
+      {HEADING_LINES.map((line, li) => (
+        <span
+          key={li}
+          aria-hidden="true"
+          className={`relative block ${line.accent ? "mx-auto w-fit text-accent" : ""}`}
         >
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex min-w-0 flex-col">
-              <span className="text-[0.75rem] text-muted">Owner</span>
-              <span className="truncate font-serif text-[1.45rem] leading-tight font-semibold">{OWNER}</span>
-            </div>
-            <a
-              href={WHATSAPP_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={`inline-flex shrink-0 items-center gap-2 rounded-full bg-btn px-4 py-2.5 text-sm font-medium text-btn-ink transition hover:bg-btn-hover active:scale-[0.97] ${focusRing}`}
-            >
-              <MessageCircle size={16} strokeWidth={1.8} />
-              Message
-            </a>
-          </div>
+          {line.words.map((word, wi) => (
+            <span key={wi}>
+              {wi > 0 && " "}
+              <span className="inline-block whitespace-nowrap">
+                {word.split("").map((ch, ci) => {
+                  const delay = LETTER_START + n++ * LETTER_STEP;
+                  return (
+                    <span
+                      key={ci}
+                      className={`inline-block transition duration-700 ease-[cubic-bezier(0.2,0.8,0.2,1)] will-change-transform ${
+                        ready
+                          ? "translate-y-0 scale-100 opacity-100 blur-0"
+                          : "translate-y-8 scale-75 opacity-0 blur-md"
+                      }`}
+                      style={{ transitionDelay: ready ? `${delay}ms` : "0ms" }}
+                    >
+                      {ch}
+                    </span>
+                  );
+                })}
+              </span>
+            </span>
+          ))}
 
-          <div className="grid gap-3 sm:grid-cols-2 [@media(max-height:560px)_and_(orientation:landscape)]:grid-cols-1">
-            <CopyField icon={Phone} label="WhatsApp number" value={PHONE_DISPLAY} copyValue={PHONE_RAW} />
-            <CopyField icon={Globe} label="Website" value="ronakbyali.com" copyValue={SITE_URL} />
-          </div>
-        </section>
-      </main>
+          {line.accent && (
+            <span
+              className={`absolute inset-x-0 bottom-0 h-[0.06em] origin-left rounded-full bg-accent transition-transform duration-[900ms] ease-out ${
+                ready ? "scale-x-100" : "scale-x-0"
+              }`}
+              style={{ transitionDelay: ready ? `${HEADING_DONE + 100}ms` : "0ms" }}
+            />
+          )}
+        </span>
+      ))}
+    </h1>
+  );
+}
 
-      <footer className={`shrink-0 p-3 text-center text-[0.75rem] text-muted ${veryShortScreen}`}>
-        © {new Date().getFullYear()} Ronak By Ali
-      </footer>
+/* ---------- Typewriter "input": ONE pill, ONE link, with a moving glow ----------
+   A conic-gradient wedge spins behind the pill. It is drawn twice:
+   sharp as a thin border, and blurred as the glow around it. */
+const SPINNER =
+  "absolute top-1/2 left-1/2 aspect-square w-[220%] -translate-x-1/2 -translate-y-1/2 animate-spin [animation-duration:3.6s] bg-[conic-gradient(from_0deg,transparent_0%,transparent_55%,var(--accent)_82%,var(--accent-hover)_100%)]";
+
+function TypewriterField({ text, isLinkPhrase, ready }) {
+  return (
+    <div
+      className={`w-[min(100%,24rem)] transition duration-700 ease-[cubic-bezier(0.2,0.7,0.2,1)] sm:w-[28rem] ${
+        ready ? "scale-100 opacity-100 blur-0" : "scale-90 opacity-0 blur-sm"
+      }`}
+      style={{ transitionDelay: ready ? `${HEADING_DONE + 200}ms` : "0ms" }}
+    >
+      <div className="relative rounded-full p-[1.5px]">
+        {/* Glow: blurred copy that spills outside the pill */}
+        <span aria-hidden="true" className="absolute -inset-1 overflow-hidden rounded-full opacity-70 blur-md">
+          <span className={SPINNER} />
+        </span>
+        {/* Sharp moving border */}
+        <span aria-hidden="true" className="absolute inset-0 overflow-hidden rounded-full">
+          <span className={SPINNER} />
+        </span>
+
+        <Link
+          to={PRODUCTS_PATH}
+          aria-label={`Browse products at ${PRODUCTS_LABEL}`}
+          className="group relative flex h-12 w-full items-center gap-2 rounded-full bg-surface py-1 pr-1 pl-5 text-text transition focus-visible:ring-4 focus-visible:ring-accent/20 sm:h-14 sm:pl-6"
+        >
+          {/* Screen readers get the full list instead of letter-by-letter noise */}
+          <span className="sr-only">{PHRASES.join(", ")}</span>
+
+          <span aria-hidden="true" className={`flex min-w-0 flex-1 items-center text-left ${PILL_TEXT_SIZE}`}>
+            <span className={`truncate transition-colors duration-300 ${isLinkPhrase ? "font-medium text-accent" : ""}`}>
+              {text}
+            </span>
+            <span className="ml-0.5 h-5 w-0.5 shrink-0 animate-caret rounded-full bg-accent" />
+          </span>
+
+          {/* Arrow with a soft pulsing ring */}
+          <span className="relative inline-flex size-10 shrink-0 sm:size-12">
+            <span aria-hidden="true" className="absolute inset-0 animate-ring rounded-full bg-accent/50" />
+            <span className="relative inline-flex size-full items-center justify-center rounded-full bg-btn text-btn-ink transition group-hover:bg-btn-hover group-active:scale-95">
+              <ArrowUpRight
+                size={20}
+                strokeWidth={2}
+                aria-hidden="true"
+                className="transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
+              />
+            </span>
+          </span>
+        </Link>
+      </div>
     </div>
+  );
+}
+
+/* ---------- Page ---------- */
+export default function Home() {
+  const [minTimePassed, setMinTimePassed] = useState(false);
+  const [imageDone, setImageDone] = useState(false); // loaded or failed, either way do not hang the loader
+
+  useEffect(() => {
+    const id = setTimeout(() => setMinTimePassed(true), MIN_LOADER_MS);
+    return () => clearTimeout(id);
+  }, []);
+
+  const ready = minTimePassed && imageDone;
+  const { text, index } = useTypewriter(PHRASES, ready);
+  const isLinkPhrase = PHRASES[index] === PRODUCTS_LABEL;
+
+  return (
+    <>
+      <Loader visible={!ready} />
+
+      <section
+        aria-labelledby="hero-title"
+        className={`relative isolate w-full overflow-hidden bg-[radial-gradient(70rem_36rem_at_50%_90%,var(--accent-soft),transparent_70%)] ${HERO_HEIGHT}`}
+      >
+        {/* Top group. It has no z-index of its own, so the heading (z-0) sits
+            BEHIND the image (z-10) while the pill (z-20) stays in front. */}
+        <div className="relative flex flex-col items-center gap-4 px-4 pt-4 text-center sm:gap-6 sm:px-10 sm:pt-8 lg:pt-10">
+          <div className="relative z-0">
+            <Heading ready={ready} />
+          </div>
+          <div className="relative z-20">
+            <TypewriterField text={text} isLinkPhrase={isLinkPhrase} ready={ready} />
+          </div>
+        </div>
+
+        {/* Image: transparent, bottom-anchored, rises in after loading.
+            object-contain scales it to the biggest size that fits, on every screen. */}
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex h-[80%] justify-center px-2 sm:h-[86%] lg:h-[92%]">
+          <img
+            src={HERO_IMAGE}
+            alt={HERO_ALT}
+            onLoad={() => setImageDone(true)}
+            onError={() => setImageDone(true)}
+            className={`h-full w-full object-contain object-bottom drop-shadow-[0_24px_30px_var(--card-shadow)] transition-transform duration-[1500ms] ease-[cubic-bezier(0.2,0.7,0.2,1)] will-change-transform ${
+              ready ? "translate-y-0" : "translate-y-full"
+            }`}
+            style={{ transitionDelay: ready ? "100ms" : "0ms" }}
+          />
+        </div>
+      </section>
+    </>
   );
 }

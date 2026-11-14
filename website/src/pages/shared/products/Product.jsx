@@ -28,6 +28,7 @@ import {
 } from "../../../store/slices/productsSlice";
 import { PATHS } from "../../../router/path";
 import { LOGIN_REQUIRED } from "../../../store/slices/utils";
+import AlertPopupHost from "../../../components/shared/AlertPopupHost";
 import {
   addToCart,
   selectCartLines,
@@ -114,17 +115,20 @@ export default function Product({ slug: slugProp }) {
   }
 
   return (
-    <main className="mx-auto w-full max-w-6xl bg-bg px-4 pb-20 pt-6 text-text sm:px-6 lg:px-8">
-      <Breadcrumb product={product} />
+    <>
+      <AlertPopupHost />
+      <main className="mx-auto w-full max-w-6xl bg-bg px-4 pb-20 pt-6 text-text sm:px-6 lg:px-8">
+        <Breadcrumb product={product} />
 
-      <div className="mt-6 grid gap-8 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] lg:gap-14">
-        <Gallery key={product.$id} product={product} />
-        <Details key={product.$id} product={product} />
-      </div>
+        <div className="mt-6 grid gap-8 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] lg:gap-14">
+          <Gallery key={product.$id} product={product} />
+          <Details key={product.$id} product={product} />
+        </div>
 
-      <Reviews product={product} />
-      {related.length > 0 && <Related items={related} />}
-    </main>
+        <Reviews product={product} />
+        {related.length > 0 && <Related items={related} />}
+      </main>
+    </>
   );
 }
 

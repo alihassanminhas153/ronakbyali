@@ -19,7 +19,7 @@ export function buildOverview({ orders, products, users, alerts, reviews, carts,
 
   /* orders */
   const count = (s) => orders.filter((o) => o.status === s).length;
-  const recentOrders = [...orders].sort((a, b) => new Date(b.$createdAt) - new Date(a.$createdAt)).slice(0, 5);
+  const recentOrders = [...orders].sort((a, b) => new Date(b.$createdAt) - new Date(a.$createdAt)).slice(0, 4);
   const orderStats = {
     total: orders.length,
     pending: count('pending'),

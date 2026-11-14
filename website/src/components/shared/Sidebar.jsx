@@ -2,9 +2,11 @@ import { useState } from 'react';
 import { Link, NavLink } from 'react-router';
 import {
   Bell,
+  BadgeCheck,
   Heart,
   LayoutDashboard,
   Package,
+  Palette,
   Settings,
   ShoppingBag,
   ShoppingCart,
@@ -22,12 +24,14 @@ import { PATHS } from '../../router/path';
 import { getAvatarUrl } from '../../store/slices/authSlice';
 import Fold, { IconCell } from './SidebarFold';
 import SidebarLogout from './SidebarLogout';
+import ThemeToggle from '../../ui/custom/toggles/ThemeToggle';
 
 // ---------- links (all URLs come from router/path.js) ----------
 const userLinks = (u) => [
   { to: PATHS.user.overview(u), label: 'Overview', icon: LayoutDashboard, end: true },
   { to: PATHS.user.profile(u), label: 'Profile', icon: UserRound },
   { to: PATHS.user.orders(u), label: 'Orders', icon: Package },
+  { to: PATHS.user.confirmOrder(u), label: 'Confirm order', icon: BadgeCheck },
   { to: PATHS.user.cart(u), label: 'Cart', icon: ShoppingCart },
   { to: PATHS.user.wishlist(u), label: 'Wishlist', icon: Heart },
   { to: PATHS.user.reviews(u), label: 'Reviews', icon: Star },
@@ -230,10 +234,21 @@ export default function Sidebar({ area = 'user', collapsed = false, onNavigate, 
         </ul>
       </nav>
 
-      {/* shop + sign out */}
+      {/* shop + appearance + sign out */}
       <div className="sticky bottom-0 z-10 shrink-0 border-t border-border bg-surface p-3">
         <ul className="flex flex-col gap-1">
           <Item to={PATHS.products} icon={Store} label="Browse shop" collapsed={collapsed} onNavigate={onNavigate} />
+          <li>
+            <div className="flex items-center justify-between gap-2 rounded-md border border-border bg-surface-alt/60 px-2.5 py-1.5">
+              <span className={`flex min-w-0 items-center gap-2 text-sm ${collapsed ? 'justify-center' : 'text-text'}`}>
+                <span className="grid size-7 place-items-center rounded-md bg-bg text-accent">
+                  <Palette size={15} strokeWidth={1.8} aria-hidden="true" />
+                </span>
+                {!collapsed && <span className="truncate">Appearance</span>}
+              </span>
+              <ThemeToggle />
+            </div>
+          </li>
           <li>
             <SidebarLogout collapsed={collapsed} />
           </li>

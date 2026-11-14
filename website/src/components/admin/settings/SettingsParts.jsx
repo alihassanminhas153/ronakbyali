@@ -8,14 +8,14 @@ import { initials } from './settingsMeta';
 
 /* ---------- icons: the .ico files in public/images/icons/app_icons, one colour family ---------- */
 
-export const Ico = ({ name, className = 'size-6' }) => (
-  <AppIcon name={name} entity="user" hueRotate={false} className={`${className} shrink-0 object-contain`} />
+export const Ico = ({ name, className = 'size-6', tone = 1, entity, hueRotate = true }) => (
+  <AppIcon name={name} tone={tone} entity={entity} hueRotate={hueRotate} className={`${className} shrink-0 object-contain`} />
 );
 
 // <Tabs> wants a component for `icon`. Create these once at module level:
 //   const ProfileIcon = tabIcon('user');
-export const tabIcon = (name) => {
-  const TabIcon = ({ className = '' }) => <Ico name={name} className={`size-5 ${className}`} />;
+export const tabIcon = (name, tone = 1) => {
+  const TabIcon = ({ className = '' }) => <Ico name={name} tone={tone} className={`size-6 ${className}`} />;
   return TabIcon;
 };
 

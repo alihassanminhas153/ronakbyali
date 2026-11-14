@@ -37,7 +37,10 @@ export default function Signin() {
   const [googleBusy, setGoogleBusy] = useState(false);
   const shownLocationError = useRef('');
 
-  const from = location.state?.from?.pathname;
+  const fromLocation = location.state?.from;
+  const from = fromLocation?.pathname
+    ? `${fromLocation.pathname}${fromLocation.search || ''}${fromLocation.hash || ''}`
+    : undefined;
   const busy = status === 'loading' || googleBusy;
 
   useEffect(() => {

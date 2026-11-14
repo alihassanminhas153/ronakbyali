@@ -36,14 +36,20 @@ export default function DevicesTab() {
   };
 
   return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between gap-3">
-        <p className="text-sm text-muted">Devices where your account is signed in.</p>
-        <ActionButton variant="secondary" size="sm" onClick={() => setConfirmAll(true)}>Log out everywhere</ActionButton>
+    <div className="space-y-4">
+      <div className="rounded-2xl border border-border bg-gradient-to-br from-accent-soft via-surface to-surface-alt p-4 shadow-soft">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">Security</p>
+            <h3 className="mt-1 text-lg font-semibold text-text">Active sessions</h3>
+          </div>
+          <ActionButton variant="secondary" size="sm" onClick={() => setConfirmAll(true)}>Log out everywhere</ActionButton>
+        </div>
+        <p className="mt-2 text-sm text-muted">Devices where your account is currently signed in.</p>
       </div>
       {error && <Banner kind="error" onDismiss={() => setError('')}>{error}</Banner>}
 
-      <div className="overflow-hidden rounded-lg border border-border bg-surface">
+      <div className="overflow-hidden rounded-2xl border border-border bg-surface shadow-soft">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[20rem] border-collapse text-sm">
             <thead>

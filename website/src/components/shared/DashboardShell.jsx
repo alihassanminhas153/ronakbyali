@@ -11,6 +11,7 @@ const PAGE_TITLES = {
   cart: 'Cart',
   'cart-and-wishlist': 'Carts & wishlists',
   checkout: 'Checkout',
+  'confirm-order': 'Confirm order',
   finance: 'Finance',
   orders: 'Orders',
   products: 'Products',

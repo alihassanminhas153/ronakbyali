@@ -29,6 +29,9 @@ const vars = {
     ronakByAliOrderTracker: String(import.meta.env.RONAK_BY_ALI_ORDERS_TRACKER_TABLE_ID),
 
     // Appwrite Function that sets user labels + role (Settings > Team access)
+    // ALSO the notifier one
+    ronakByAliNotifierFunction: String(import.meta.env.RONAK_BY_ALI_NOTIFIER_FUNCTION),
+
     ronakByAliLabelsFunction: String(import.meta.env.RONAK_BY_ALI_LABELS_FUNCTION),
 }
 

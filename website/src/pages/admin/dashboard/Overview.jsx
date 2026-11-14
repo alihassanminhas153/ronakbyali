@@ -199,7 +199,10 @@ export default function Overview() {
               empty="No orders yet."
             />
             <div>
-              <p className="mb-1 text-xs font-medium text-muted">Latest orders</p>
+              <div className="mb-2 flex items-center justify-between gap-3">
+                <p className="text-xs font-medium text-muted">Recent orders</p>
+                <Link to={link('orders')} className="text-xs font-medium text-accent hover:underline">See all ({orderStats.total})</Link>
+              </div>
               {orderStats.recent.length === 0 ? (
                 <div className="grid h-24 place-items-center rounded-md border border-dashed border-border text-xs text-muted">No orders yet.</div>
               ) : (
@@ -217,6 +220,14 @@ export default function Overview() {
                     </li>
                   ))}
                 </ul>
+              )}
+              {orderStats.total > orderStats.recent.length && (
+                <div className="mt-3 flex items-center justify-between gap-3 rounded-md border border-border bg-surface-alt/60 px-3 py-2">
+                  <span className="text-xs text-muted">{orderStats.pending} pending</span>
+                  <Link to={link('orders')} className="inline-flex items-center gap-1 text-xs font-medium text-accent hover:underline">
+                    View all orders <ArrowRight size={12} />
+                  </Link>
+                </div>
               )}
             </div>
           </div>

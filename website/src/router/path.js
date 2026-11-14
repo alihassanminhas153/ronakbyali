@@ -42,6 +42,7 @@ export const PATHS = {
     orders: (u) => `${at(u)}/orders`,
     cart: (u) => `${at(u)}/cart`,
     checkout: (u) => `${at(u)}/checkout`,
+    confirmOrder: (u) => `${at(u)}/confirm-order`,
     wishlist: (u) => `${at(u)}/wishlist`,
     reviews: (u) => `${at(u)}/reviews`,
     alerts: (u) => `${at(u)}/alerts`,
