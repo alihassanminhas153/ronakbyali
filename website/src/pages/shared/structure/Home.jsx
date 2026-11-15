@@ -32,7 +32,7 @@ const HEADING_PHRASES = [
   ["Safe", "Delivery"],
   ["Your", "Style"],
 ];
-const HEADING_SWAP_MS = 3200; // how long each heading phrase stays
+const HEADING_SWAP_MS = 4500; // how long each heading phrase stays
 
 // Hero images: put them in website/src/assets/hero/ and name each file after its product
 // in kebab-case, e.g. cotton-summer-kurta.webp  ->  label "Cotton Summer Kurta".
@@ -60,8 +60,8 @@ const HERO_IMAGES = Object.entries(heroModules)
   .map(([path, url]) => ({ url, name: toProductName(path) }));
 
 const PRODUCTS_PATH = "/products"; // where the label sends you
-const SLIDE_MS = 3500; // how long each image stays
-const SLIDE_ANIM_MS = 1100; // how long a slide animation takes
+const SLIDE_MS = 5000; // how long each image stays
+const SLIDE_ANIM_MS = 1200; // how long a slide animation takes
 
 // Loader never shows for less than this, so it does not just flash
 const MIN_LOADER_MS = 1600;
@@ -236,42 +236,45 @@ function Heading({ ready, sectionRef }) {
 }
 
 /* ---------- One hero slide ----------
-   A slide is mounted fresh every time it is shown:
-     - the very first one starts BELOW the hero and rises up
-     - every later one starts off to the RIGHT and slides in
-   When it is replaced it slides fully out to the LEFT, then it is removed. */
-const SLIDE_EASE = "cubic-bezier(0.2,0.7,0.2,1)";
+   Every image stays mounted for the whole life of the page and only moves with a GPU
+   transform. That is what keeps the slider smooth: nothing is decoded or laid out while
+   it animates, and there is no filter or blur on the moving layers.
+   A slide is always in one of four states:
+     below   : waiting under the hero (only the very first image, before the loader ends)
+     parked  : waiting off to the right
+     active  : on screen
+     leaving : sliding out to the left (then it is parked again, instantly, off screen) */
+const EASE_SLIDE = "cubic-bezier(0.65, 0, 0.35, 1)"; // ease in and out: soft start, smooth middle, soft landing
+const EASE_RISE = "cubic-bezier(0.22, 1, 0.36, 1)"; // the first image: fast start, long gentle landing
 
-function Slide({ src, alt, first, leaving }) {
-  const [shown, setShown] = useState(false);
+const SLIDE_POSITION = {
+  below: "translate3d(0,100%,0)",
+  parked: "translate3d(100%,0,0)",
+  active: "translate3d(0,0,0)",
+  leaving: "translate3d(-100%,0,0)",
+};
 
-  // Let the start position paint once, then animate to the resting position
-  useEffect(() => {
-    const id = setTimeout(() => setShown(true), 40);
-    return () => clearTimeout(id);
-  }, []);
-
-  const transform = leaving
-    ? "translate3d(-100%,0,0)"
-    : shown
-      ? "translate3d(0,0,0)"
-      : first
-        ? "translate3d(0,100%,0)"
-        : "translate3d(100%,0,0)";
+function Slide({ src, alt, status, rising }) {
+  const moving = status === "active" || status === "leaving";
 
   return (
     <div
-      className="absolute inset-0 px-2 will-change-transform"
+      aria-hidden={status !== "active"}
+      className="absolute inset-0 px-2"
       style={{
-        transform,
-        transition: `transform ${first && !leaving ? 1500 : SLIDE_ANIM_MS}ms ${SLIDE_EASE}`,
-        transitionDelay: first && !leaving ? "100ms" : "0ms",
+        transform: SLIDE_POSITION[status],
+        // moving slides animate; parked / waiting slides jump instantly (they are off screen)
+        transition: moving ? `transform ${rising ? 1500 : SLIDE_ANIM_MS}ms ${rising ? EASE_RISE : EASE_SLIDE}` : "none",
+        willChange: moving ? "transform" : "auto",
+        contain: "layout paint",
       }}
     >
       <img
         src={src}
         alt={alt}
-        className="h-full w-full object-contain object-bottom drop-shadow-[0_24px_30px_var(--card-shadow)]"
+        decoding="async"
+        draggable={false}
+        className="h-full w-full object-contain object-bottom select-none"
       />
     </div>
   );
@@ -280,12 +283,12 @@ function Slide({ src, alt, first, leaving }) {
 /* ---------- Page ---------- */
 export default function Home() {
   const sectionRef = useRef(null);
-  const serial = useRef(0);
   const { images, firstDone } = useHeroImages();
 
   const [minTimePassed, setMinTimePassed] = useState(false);
   const [current, setCurrent] = useState(0); // which image is showing
-  const [slides, setSlides] = useState([]); // mounted slides: the current one, plus the one sliding out
+  const [intro, setIntro] = useState(true); // true until the first slide change (the first image rises, later ones slide)
+  const [statuses, setStatuses] = useState(() => HERO_IMAGES.map((_, i) => (i === 0 ? "below" : "parked")));
 
   useEffect(() => {
     const id = setTimeout(() => setMinTimePassed(true), MIN_LOADER_MS);
@@ -294,22 +297,27 @@ export default function Home() {
 
   const ready = minTimePassed && firstDone;
 
-  // First image: mount it once the loader is done (it rises from the bottom)
+  // First image: once the loader is done it rises from the bottom
   useEffect(() => {
-    if (ready && images.length > 0 && slides.length === 0) {
-      setSlides([{ key: 0, index: 0, first: true, leaving: false }]);
-    }
-  }, [ready, images.length, slides.length]);
+    if (!ready) return;
+    setStatuses((prev) => prev.map((st, i) => (i === 0 && st === "below" ? "active" : st)));
+  }, [ready]);
 
-  // Show another image: the old slide leaves, a new one slides in
-  const goTo = useCallback((next) => {
-    setCurrent(next);
-    setSlides((prev) => [
-      ...prev.map((s) => ({ ...s, leaving: true })),
-      { key: ++serial.current, index: next, first: false, leaving: false },
-    ]);
-    setTimeout(() => setSlides((prev) => prev.filter((s) => !s.leaving)), SLIDE_ANIM_MS + 200);
-  }, []);
+  // Show another image: the current one leaves to the left, the next one slides in from the right
+  const goTo = useCallback(
+    (next) => {
+      const from = current;
+      setIntro(false);
+      setCurrent(next);
+      setStatuses((prev) => prev.map((st, i) => (i === next ? "active" : st === "active" ? "leaving" : st)));
+
+      // Once it has fully left, park it off to the right (only if it is still leaving)
+      setTimeout(() => {
+        setStatuses((prev) => prev.map((st, i) => (i === from && st === "leaving" ? "parked" : st)));
+      }, SLIDE_ANIM_MS + 150);
+    },
+    [current],
+  );
 
   // Auto-advance, forever. The timer restarts whenever the image changes (so a dot click resets it).
   useEffect(() => {
@@ -335,14 +343,13 @@ export default function Home() {
         {/* Images: transparent, bottom-anchored. object-contain scales each one to the
             biggest size that fits, on every screen. Sliding is clipped by the section. */}
         <div className={`pointer-events-none absolute inset-x-0 bottom-0 z-10 ${IMAGE_HEIGHT}`}>
-          {slides.map((slide) => (
-            <Slide
-              key={slide.key}
-              src={images[slide.index].url}
-              alt={images[slide.index].name}
-              first={slide.first}
-              leaving={slide.leaving}
-            />
+          {/* Soft ground shadow. It is static, so the moving images carry no shadow filter. */}
+          <div
+            aria-hidden="true"
+            className="absolute inset-x-[22%] bottom-0 h-8 rounded-[50%] bg-[radial-gradient(closest-side,var(--card-shadow),transparent)] opacity-70"
+          />
+          {images.map((image, i) => (
+            <Slide key={image.url} src={image.url} alt={image.name} status={statuses[i]} rising={intro && i === 0} />
           ))}
         </div>
 
@@ -351,7 +358,7 @@ export default function Home() {
           <Link
             to={PRODUCTS_PATH}
             aria-label={`${images[current]?.name}: browse all products`}
-            className={`group absolute bottom-16 left-3 z-20 flex max-w-[72vw] items-center gap-2 rounded-full border border-border bg-surface/80 py-1.5 pr-1.5 pl-3 text-text shadow-soft backdrop-blur transition duration-700 hover:border-accent focus-visible:ring-4 focus-visible:ring-accent/20 sm:bottom-5 sm:left-6 sm:max-w-[min(22rem,30vw)] ${
+            className={`group absolute bottom-16 left-3 z-20 flex max-w-[72vw] items-center gap-2 rounded-full border border-border bg-surface/90 py-1.5 pr-1.5 pl-3 text-text shadow-soft transition duration-700 hover:border-accent focus-visible:ring-4 focus-visible:ring-accent/20 sm:bottom-5 sm:left-6 sm:max-w-[min(22rem,30vw)] ${
               ready ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0"
             }`}
             style={{ transitionDelay: ready ? "900ms" : "0ms" }}
@@ -388,16 +395,16 @@ export default function Home() {
             <div
               role="group"
               aria-label="Hero images"
-              className="flex items-center gap-2 rounded-full border border-border bg-surface/70 px-3 py-2 backdrop-blur"
+              className="flex items-center gap-2 rounded-full border border-border bg-surface/90 px-3 py-2"
             >
-              {images.map((_, i) => (
+              {images.map((image, i) => (
                 <button
-                  key={i}
+                  key={image.url}
                   type="button"
                   onClick={() => i !== current && goTo(i)}
-                  aria-label={`Show image ${i + 1} of ${images.length}`}
+                  aria-label={`Show ${image.name} (${i + 1} of ${images.length})`}
                   aria-current={i === current ? "true" : undefined}
-                  title={`Image ${i + 1}`}
+                  title={image.name}
                   className={`h-2.5 cursor-pointer rounded-full transition-all duration-500 ${
                     i === current ? "w-7 bg-accent" : "w-2.5 bg-border hover:bg-muted"
                   }`}

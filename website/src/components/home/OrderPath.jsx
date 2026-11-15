@@ -3,22 +3,23 @@
 // USAGE
 //   <OrderPath />
 //
-// A hand-shaped, winding road that draws itself as you scroll past it, showing how an
-// order travels:
+// A winding road with smooth, perfectly circular corners that draws itself as you scroll
+// past it, showing how an order travels:
 //   Ordering > Product processing > Packaging > Safe keeping > Dispatching > Delivery > Review
-// The first and last stops are the terminals. The stops in between light up (and their
-// cards come to life) at the moment the drawn line reaches them.
+// Each stop shows only its icon and its heading. The first and last stops are the terminals;
+// the stops in between light up at the moment the drawn line reaches them.
 //
-// The road is deliberately irregular: uneven bends, different leg lengths and one curl.
-// It is drawn in layers: a soft wide track, a dotted centre line, then the progress line
-// in a theme gradient with a glow and a pulsing tip.
+// The road is a polyline of straight runs (different lengths, directions and angles, so it
+// is irregular) whose every corner is rounded with a true circular arc. It is drawn in layers:
+// a soft wide track, a dotted centre line, then the progress line in a theme gradient with a
+// glow and a pulsing tip.
 //
 // It never pins or hijacks the scroll: the section is a normal block. Scroll updates write
 // straight to the SVG (no React re-render per frame), so scrolling stays smooth. React only
 // re-renders when a stop becomes complete.
 //
-// Phones get their own narrow road with all cards on the right.
-// Colours come only from theme variables, so light and dark both work.
+// Phones get their own narrow road. Colours come only from theme variables, so light and
+// dark both work.
 
 import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
 import { Cog, Package, Send, ShieldCheck, ShoppingBag, Star, Truck } from 'lucide-react';
@@ -36,81 +37,127 @@ const STAGES = [
 ];
 
 /* ---------- Path geometry ----------
-   Each layout is a list of waypoints the curve passes through, plus the index of the
-   waypoint that is a stop. The waypoints are placed by hand and are deliberately uneven
-   (the run of tight points in the middle is the curl). The curve is a smooth spline through
-   them, cut into one piece per stop-to-stop leg so each leg can be drawn separately. */
-const f = (n) => Math.round(n * 10) / 10;
+   A layout is a list of corner points V and a corner radius R. Between the points the road
+   runs straight; at every point it turns along a circular arc of radius R (smaller only when
+   a run is too short to fit it). The builder also records every straight run, so a stop can be
+   placed exactly on the road: { seg: which run, t: 0..1 along it, side: where its heading goes }. */
+const f = (n) => Math.round(n * 100) / 100;
 
-// SVG path text from pts[from] to pts[to] (Catmull-Rom converted to cubic curves)
-function pathD(pts, from, to) {
-  let d = `M${f(pts[from].x)} ${f(pts[from].y)}`;
-  for (let i = from; i < to; i += 1) {
-    const p1 = pts[i];
-    const p0 = pts[i - 1] ?? p1;
-    const p2 = pts[i + 1];
-    const p3 = pts[i + 2] ?? p2;
-    d += ` C${f(p1.x + (p2.x - p0.x) / 6)} ${f(p1.y + (p2.y - p0.y) / 6)} ${f(p2.x - (p3.x - p1.x) / 6)} ${f(
-      p2.y - (p3.y - p1.y) / 6,
-    )} ${f(p2.x)} ${f(p2.y)}`;
+function roundedPath(V, R) {
+  const pieces = []; // straight runs: where each starts/ends and how far along the road it starts
+  let d = `M${f(V[0][0])} ${f(V[0][1])}`;
+  let cur = V[0];
+  let cum = 0;
+
+  for (let i = 1; i < V.length; i += 1) {
+    const v = V[i];
+
+    if (i === V.length - 1) {
+      const len = Math.hypot(v[0] - cur[0], v[1] - cur[1]);
+      pieces.push({ ax: cur[0], ay: cur[1], bx: v[0], by: v[1], start: cum, len });
+      d += ` L${f(v[0])} ${f(v[1])}`;
+      cum += len;
+      break;
+    }
+
+    const [px, py] = V[i - 1];
+    const [nx, ny] = V[i + 1];
+    const d1x = v[0] - px;
+    const d1y = v[1] - py;
+    const d2x = nx - v[0];
+    const d2y = ny - v[1];
+    const l1 = Math.hypot(d1x, d1y);
+    const l2 = Math.hypot(d2x, d2y);
+    const u1x = d1x / l1;
+    const u1y = d1y / l1;
+    const u2x = d2x / l2;
+    const u2y = d2y / l2;
+    const phi = Math.acos(Math.min(1, Math.max(-1, u1x * u2x + u1y * u2y))); // how sharply the road turns
+
+    // Distance from the corner point where the arc starts and ends (kept to half a run at most)
+    let t = R * Math.tan(phi / 2);
+    t = Math.min(t, Math.min(l1, l2) / 2);
+    const r = t / Math.tan(phi / 2);
+
+    const ax = v[0] - u1x * t;
+    const ay = v[1] - u1y * t;
+    const bx = v[0] + u2x * t;
+    const by = v[1] + u2y * t;
+
+    const len = Math.hypot(ax - cur[0], ay - cur[1]);
+    pieces.push({ ax: cur[0], ay: cur[1], bx: ax, by: ay, start: cum, len });
+    cum += len;
+
+    const clockwise = u1x * u2y - u1y * u2x > 0;
+    d += ` L${f(ax)} ${f(ay)} A${f(r)} ${f(r)} 0 0 ${clockwise ? 1 : 0} ${f(bx)} ${f(by)}`;
+    cum += r * phi; // arc length
+    cur = [bx, by];
   }
-  return d;
+
+  return { d, pieces, total: cum };
 }
 
 function makeLayout(cfg) {
-  const pts = cfg.wp.map(([x, y]) => ({ x, y }));
-  return {
-    ...cfg,
-    ghostD: pathD(pts, 0, pts.length - 1),
-    segDs: cfg.nodeIdx.slice(0, -1).map((from, k) => pathD(pts, from, cfg.nodeIdx[k + 1])),
-    points: cfg.nodeIdx.map((i) => pts[i]),
-  };
+  const { d, pieces, total } = roundedPath(cfg.V, cfg.R);
+  const stops = cfg.stops.map(({ seg, t, side }) => {
+    const p = pieces[seg];
+    return { x: p.ax + (p.bx - p.ax) * t, y: p.ay + (p.by - p.ay) * t, at: p.start + p.len * t, side };
+  });
+  return { ...cfg, d, total, stops };
 }
 
-// Wide screens (md and up): cards sit on the outer side of each stop
+// Wide screens (md and up)
 const WIDE = makeLayout({
   key: 'wide',
   w: 1000,
-  h: 1650,
+  h: 1720,
+  R: 80,
   stroke: 10,
   headR: 12,
-  wp: [
-    [250, 90], [430, 55], [600, 115], [690, 230], [730, 310],
-    [765, 400], [660, 470], [470, 465], [345, 515], [270, 590],
-    [443, 699], [470, 732], [484, 769], [484, 804], [473, 829], [456, 842], [440, 841], [431, 827], [435, 806], [453, 785], [484, 769], [524, 765], [565, 774],
-    [740, 880],
-    [785, 985], [630, 1015], [470, 1000], [350, 1060], [290, 1150],
-    [235, 1240], [380, 1272], [560, 1250], [655, 1300], [700, 1390],
-    [690, 1480], [545, 1510], [430, 1545],
+  V: [
+    [150, 100], [650, 100], [880, 330], [880, 560], [420, 560], [180, 800],
+    [180, 1040], [640, 1040], [860, 1260], [860, 1480], [500, 1480], [320, 1600],
   ],
-  nodeIdx: [0, 4, 9, 23, 28, 33, 36],
-  sides: ['left', 'right', 'left', 'right', 'left', 'right', 'left'],
-  offset: 3.25, // rem between a stop and its card
+  stops: [
+    { seg: 0, t: 0, side: 'bottom' },
+    { seg: 2, t: 0.5, side: 'left' },
+    { seg: 4, t: 0.5, side: 'right' },
+    { seg: 6, t: 0.5, side: 'bottom' },
+    { seg: 8, t: 0.5, side: 'left' },
+    { seg: 9, t: 0.5, side: 'bottom' },
+    { seg: 10, t: 1, side: 'bottom' },
+  ],
+  offset: 2.5, // rem between a stop and its heading
+  termOffset: 3.25,
   chip: 'size-12',
   term: 'size-16',
   icon: 22,
   termIcon: 28,
 });
 
-// Phones: a narrow road near the left, every card on the right
+// Phones: a narrow road near the left, every heading on the right
 const NARROW = makeLayout({
   key: 'narrow',
   w: 400,
-  h: 1450,
+  h: 1600,
+  R: 34,
   stroke: 7,
   headR: 9,
-  wp: [
-    [80, 70], [125, 100], [155, 175], [150, 260],
-    [140, 330], [105, 360], [75, 400], [70, 470],
-    [99, 556], [111, 572], [127, 582], [143, 585], [156, 582], [164, 575], [165, 566], [159, 560], [148, 559], [136, 564], [125, 576], [118, 594], [118, 614],
-    [145, 700],
-    [160, 770], [115, 820], [75, 860], [65, 930],
-    [75, 1000], [135, 1030], [155, 1090], [150, 1150],
-    [135, 1220], [110, 1260], [100, 1370],
+  V: [
+    [70, 60], [70, 230], [160, 320], [160, 520], [70, 610],
+    [70, 800], [170, 900], [170, 1100], [60, 1200], [60, 1500],
   ],
-  nodeIdx: [0, 3, 7, 21, 25, 29, 32],
-  sides: Array(7).fill('right'),
-  offset: 2.25,
+  stops: [
+    { seg: 0, t: 0, side: 'right' },
+    { seg: 2, t: 0.3, side: 'right' },
+    { seg: 4, t: 0.5, side: 'right' },
+    { seg: 6, t: 0.5, side: 'right' },
+    { seg: 7, t: 0.5, side: 'right' },
+    { seg: 8, t: 0.4, side: 'right' },
+    { seg: 8, t: 1, side: 'right' },
+  ],
+  offset: 2,
+  termOffset: 2.5,
   chip: 'size-10',
   term: 'size-12',
   icon: 18,
@@ -118,7 +165,6 @@ const NARROW = makeLayout({
 });
 
 const clamp = (v) => Math.min(1, Math.max(0, v));
-const two = (n) => String(n).padStart(2, '0');
 
 function useMedia(query) {
   const [matches, setMatches] = useState(() => typeof window !== 'undefined' && window.matchMedia(query).matches);
@@ -132,67 +178,70 @@ function useMedia(query) {
   return matches;
 }
 
+// Where a stop's heading sits, as inline style + classes
+function headingPlacement(stop, L, terminal) {
+  const xPct = (stop.x / L.w) * 100;
+  const yPct = (stop.y / L.h) * 100;
+  const off = terminal ? L.termOffset : L.offset;
+
+  switch (stop.side) {
+    case 'left':
+      return {
+        cls: '-translate-y-1/2 text-right',
+        style: { top: `${yPct}%`, right: `calc(${100 - xPct}% + ${off}rem)`, maxWidth: `calc(${xPct}% - ${off}rem - 0.5rem)` },
+      };
+    case 'right':
+      return {
+        cls: '-translate-y-1/2 text-left',
+        style: { top: `${yPct}%`, left: `calc(${xPct}% + ${off}rem)`, maxWidth: `calc(${100 - xPct}% - ${off}rem - 0.5rem)` },
+      };
+    case 'top':
+      return { cls: '-translate-x-1/2 text-center', style: { left: `${xPct}%`, bottom: `calc(${100 - yPct}% + ${off}rem)`, maxWidth: '45%' } };
+    default: // bottom
+      return { cls: '-translate-x-1/2 text-center', style: { left: `${xPct}%`, top: `calc(${yPct}% + ${off}rem)`, maxWidth: '45%' } };
+  }
+}
+
 export default function OrderPath() {
   const wide = useMedia('(min-width: 768px)');
   const L = wide ? WIDE : NARROW;
   const gradId = `road-${useId().replace(/:/g, '')}`;
 
   const boxRef = useRef(null);
-  const segRefs = useRef([]);
+  const pathRef = useRef(null);
   const headRef = useRef(null);
   const pulseRef = useRef(null);
-  const barRef = useRef(null);
-  const lengthsRef = useRef([]);
+  const lengthRef = useRef(0);
   const progressRef = useRef(0);
   const [doneCount, setDoneCount] = useState(1); // stops completed so far (the start terminal counts from the beginning)
 
   // Draws the line for the current progress. Writes straight to the DOM, no re-render.
   const apply = () => {
-    if (barRef.current) barRef.current.style.width = `${progressRef.current * 100}%`;
+    const path = pathRef.current;
+    const total = lengthRef.current;
+    if (!path || !total) return;
 
-    const lens = lengthsRef.current;
-    if (!lens.length) return;
-
-    const total = lens.reduce((a, b) => a + b, 0);
     const drawn = progressRef.current * total;
-    let acc = 0;
-    let count = 1;
-    let tipIdx = 0;
-    let tipAt = 0;
+    path.style.strokeDashoffset = String(total - drawn);
 
-    lens.forEach((len, i) => {
-      const d = Math.min(Math.max(drawn - acc, 0), len);
-      const el = segRefs.current[i];
-      if (el) el.style.strokeDashoffset = String(len - d);
-      if (len > 0 && d >= len - 0.5) count += 1;
-      if (drawn >= acc || i === 0) {
-        tipIdx = i;
-        tipAt = d;
-      }
-      acc += len;
+    const tip = path.getPointAtLength(drawn);
+    [headRef.current, pulseRef.current].forEach((c) => {
+      if (!c) return;
+      c.setAttribute('cx', tip.x);
+      c.setAttribute('cy', tip.y);
     });
 
-    const tipPath = segRefs.current[tipIdx];
-    if (tipPath) {
-      const pt = tipPath.getPointAtLength(tipAt);
-      [headRef.current, pulseRef.current].forEach((c) => {
-        if (!c) return;
-        c.setAttribute('cx', pt.x);
-        c.setAttribute('cy', pt.y);
-      });
-    }
-    setDoneCount(count); // no-op when unchanged
+    // A stop is complete once the line has reached it
+    setDoneCount(L.stops.filter((s) => s.at <= drawn + 0.5).length); // no-op when unchanged
   };
 
-  // Measure every leg and hide the line, whenever the layout (wide or narrow) is shown
+  // Measure the road and hide the line, whenever the layout (wide or narrow) is shown
   useLayoutEffect(() => {
-    const els = segRefs.current.slice(0, L.segDs.length);
-    lengthsRef.current = els.map((el) => (el ? el.getTotalLength() : 0));
-    els.forEach((el, i) => {
-      if (!el) return;
-      el.style.strokeDasharray = String(lengthsRef.current[i]);
-      el.style.strokeDashoffset = String(lengthsRef.current[i]);
-    });
+    const path = pathRef.current;
+    if (!path) return;
+    lengthRef.current = path.getTotalLength();
+    path.style.strokeDasharray = String(lengthRef.current);
+    path.style.strokeDashoffset = String(lengthRef.current);
     apply();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [L]);
@@ -205,8 +254,6 @@ export default function OrderPath() {
     progressRef.current = clamp((vh * 0.7 - rect.top) / (rect.height * 0.85));
     apply();
   });
-
-  const reached = Math.min(doneCount, STAGES.length);
 
   return (
     <section
@@ -221,22 +268,6 @@ export default function OrderPath() {
         >
           From order to <span className="text-accent">your door</span>
         </h2>
-        <p className="mx-auto mt-3 max-w-md text-sm text-muted sm:text-base">
-          Follow your order through every step, from the moment you place it to the moment you review it.
-        </p>
-
-        {/* Live progress readout */}
-        <div aria-hidden="true" className="mx-auto mt-5 w-full max-w-xs">
-          <div className="flex items-center justify-between gap-3 text-xs font-medium tracking-wide text-muted">
-            <span className="font-heading text-text tabular-nums">
-              {two(reached)} <span className="text-muted">/ {two(STAGES.length)}</span>
-            </span>
-            <span className="truncate text-accent uppercase">{STAGES[reached - 1].title}</span>
-          </div>
-          <div className="mt-2 h-1 overflow-hidden rounded-full bg-border">
-            <div ref={barRef} className="h-full rounded-full bg-accent" style={{ width: '0%' }} />
-          </div>
-        </div>
       </header>
 
       {/* Screen readers get the steps as a plain list */}
@@ -248,7 +279,7 @@ export default function OrderPath() {
         ))}
       </ol>
 
-      {/* The box keeps the SVG's shape, so stops and cards placed in % stay on the road */}
+      {/* The box keeps the SVG's shape, so stops and headings placed in % stay on the road */}
       <div
         ref={boxRef}
         aria-hidden="true"
@@ -265,7 +296,7 @@ export default function OrderPath() {
 
           {/* 1. Soft wide track: the road itself */}
           <path
-            d={L.ghostD}
+            d={L.d}
             stroke="var(--accent)"
             strokeOpacity="0.1"
             strokeWidth={L.stroke * 2.6}
@@ -274,7 +305,7 @@ export default function OrderPath() {
           />
           {/* 2. Dotted centre line: the road ahead */}
           <path
-            d={L.ghostD}
+            d={L.d}
             stroke="var(--accent)"
             strokeOpacity="0.55"
             strokeWidth={L.stroke * 0.3}
@@ -283,28 +314,24 @@ export default function OrderPath() {
             strokeDasharray={`1 ${L.stroke * 1.4}`}
           />
 
-          {/* 3. Progress line: one piece per leg (dash offsets are set from the scroll) */}
+          {/* 3. Progress line (its dash offset is set from the scroll) */}
           <g style={{ filter: 'drop-shadow(0 0 6px var(--accent))' }}>
-            {L.segDs.map((d, i) => (
-              <path
-                key={`${L.key}-${i}`}
-                ref={(el) => {
-                  segRefs.current[i] = el;
-                }}
-                d={d}
-                stroke={`url(#${gradId})`}
-                strokeWidth={L.stroke}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            ))}
+            <path
+              key={L.key}
+              ref={pathRef}
+              d={L.d}
+              stroke={`url(#${gradId})`}
+              strokeWidth={L.stroke}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
           </g>
 
           {/* 4. Tip of the line, with a soft pulse */}
           <circle
             ref={pulseRef}
-            cx={L.points[0].x}
-            cy={L.points[0].y}
+            cx={L.stops[0].x}
+            cy={L.stops[0].y}
             r={L.headR}
             fill="var(--accent)"
             className="animate-ring"
@@ -312,8 +339,8 @@ export default function OrderPath() {
           />
           <circle
             ref={headRef}
-            cx={L.points[0].x}
-            cy={L.points[0].y}
+            cx={L.stops[0].x}
+            cy={L.stops[0].y}
             r={L.headR}
             fill="var(--accent)"
             stroke="var(--bg)"
@@ -321,20 +348,16 @@ export default function OrderPath() {
           />
         </svg>
 
-        {/* Stops and cards */}
+        {/* Stops and their headings */}
         {STAGES.map((stage, i) => {
-          const { x, y } = L.points[i];
-          const xPct = (x / L.w) * 100;
-          const yPct = (y / L.h) * 100;
+          const stop = L.stops[i];
+          const xPct = (stop.x / L.w) * 100;
+          const yPct = (stop.y / L.h) * 100;
           const terminal = i === 0 || i === STAGES.length - 1;
           const isDone = i < doneCount;
           const isCurrent = i === doneCount;
-          const left = L.sides[i] === 'left';
           const Icon = stage.icon;
-
-          const cardStyle = left
-            ? { top: `${yPct}%`, right: `calc(${100 - xPct}% + ${L.offset}rem)`, width: `calc(${xPct}% - ${L.offset}rem - 0.5rem)` }
-            : { top: `${yPct}%`, left: `calc(${xPct}% + ${L.offset}rem)`, width: `calc(${100 - xPct}% - ${L.offset}rem - 0.5rem)` };
+          const place = headingPlacement(stop, L, terminal);
 
           return (
             <div key={stage.title}>
@@ -351,38 +374,17 @@ export default function OrderPath() {
               >
                 {isCurrent && <span className="absolute inset-0 animate-ring rounded-full bg-accent/40" />}
                 <Icon size={terminal ? L.termIcon : L.icon} strokeWidth={1.8} className="relative" />
-                <span
-                  className={`absolute -top-1 -right-1 grid size-5 place-items-center rounded-full border border-bg text-[0.6rem] font-bold tabular-nums transition-colors duration-500 ${
-                    isDone ? 'bg-text text-bg' : 'bg-border text-muted'
-                  }`}
-                >
-                  {i + 1}
-                </span>
               </span>
 
-              {/* Card */}
-              <div
-                className={`absolute -translate-y-1/2 rounded-2xl border bg-surface/90 p-3 backdrop-blur transition-all duration-500 md:p-4 ${
-                  left ? 'text-right' : 'text-left'
-                } ${
-                  isDone
-                    ? 'border-accent/40 opacity-100 shadow-soft'
-                    : 'border-border opacity-60'
+              {/* Heading only */}
+              <span
+                className={`absolute block font-display text-[1.35rem] leading-[0.95] font-bold tracking-[0.01em] uppercase transition-colors duration-500 md:text-[clamp(1.5rem,2.8vw,2.4rem)] ${place.cls} ${
+                  isDone ? 'text-text' : 'text-muted'
                 }`}
-                style={cardStyle}
+                style={place.style}
               >
-                <span className="block text-[0.65rem] font-semibold tracking-[0.2em] text-accent uppercase md:text-xs">
-                  {terminal ? (i === 0 ? 'Start' : 'Finish') : `Step ${two(i + 1)}`}
-                </span>
-                <span
-                  className={`mt-0.5 block font-display text-[1.35rem] leading-[0.95] font-bold tracking-[0.01em] uppercase transition-colors duration-500 md:text-[clamp(1.5rem,2.8vw,2.4rem)] ${
-                    isDone ? 'text-text' : 'text-muted'
-                  }`}
-                >
-                  {stage.title}
-                </span>
-                <span className="mt-1.5 block text-xs leading-snug text-muted md:text-sm">{stage.note}</span>
-              </div>
+                {stage.title}
+              </span>
             </div>
           );
         })}
