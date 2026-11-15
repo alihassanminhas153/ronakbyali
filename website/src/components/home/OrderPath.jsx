@@ -1,20 +1,28 @@
-// src/components/home/OrderPath.jsx   (Home page, after ImageTextScroll)
+// src/components/home/OrderPath.jsx   (Home page, after the products marquee)
 //
 // USAGE
 //   <OrderPath />
 //
-// A winding path that DRAWS ITSELF as you scroll, showing how an order travels:
+// A hand-shaped, winding road that draws itself as you scroll past it, showing how an
+// order travels:
 //   Ordering > Product processing > Packaging > Safe keeping > Dispatching > Delivery > Review
-// The first and last stops are the terminals. The stops in between light up
-// (and show their note) at the moment the drawn path reaches them.
+// The first and last stops are the terminals. The stops in between light up (and their
+// cards come to life) at the moment the drawn line reaches them.
 //
-// Responsive: wide screens get a big zig-zag with labels on the outer sides,
-// phones get a gentle vertical wave with every label on the right.
+// The road is deliberately irregular: uneven bends, different leg lengths and one curl.
+// It is drawn in layers: a soft wide track, a dotted centre line, then the progress line
+// in a theme gradient with a glow and a pulsing tip.
+//
+// It never pins or hijacks the scroll: the section is a normal block. Scroll updates write
+// straight to the SVG (no React re-render per frame), so scrolling stays smooth. React only
+// re-renders when a stop becomes complete.
+//
+// Phones get their own narrow road with all cards on the right.
 // Colours come only from theme variables, so light and dark both work.
 
-import { useLayoutEffect, useEffect, useRef, useState } from 'react';
+import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
 import { Cog, Package, Send, ShieldCheck, ShoppingBag, Star, Truck } from 'lucide-react';
-import useScrollValue from './useScrollValue';
+import { useScrollFrame } from './useScrollValue';
 
 /* ---- Content: edit freely (first = start terminal, last = end terminal) ---- */
 const STAGES = [
@@ -28,26 +36,10 @@ const STAGES = [
 ];
 
 /* ---------- Path geometry ----------
-   Every stop sits exactly on the path. The curve is a smooth spline through the stops
-   (each stop gets a vertical tangent, which makes the S-curves). The path is cut into
-   one piece per stop-to-stop leg, so each leg can be drawn on its own. */
-function buildPath(nodes, pre) {
-  const pts = [];
-  const nodeIdx = [];
-  nodes.forEach(([x, y], k) => {
-    if (k > 0) {
-      const [px, py] = nodes[k - 1];
-      pts.push({ x: (px + x) / 2, y: (py + y) / 2 }); // crossing point between two stops
-    }
-    const inner = k > 0 && k < nodes.length - 1;
-    if (inner) pts.push({ x, y: y - pre });
-    nodeIdx.push(pts.length);
-    pts.push({ x, y });
-    if (inner) pts.push({ x, y: y + pre });
-  });
-  return { pts, nodeIdx };
-}
-
+   Each layout is a list of waypoints the curve passes through, plus the index of the
+   waypoint that is a stop. The waypoints are placed by hand and are deliberately uneven
+   (the run of tight points in the middle is the curl). The curve is a smooth spline through
+   them, cut into one piece per stop-to-stop leg so each leg can be drawn separately. */
 const f = (n) => Math.round(n * 10) / 10;
 
 // SVG path text from pts[from] to pts[to] (Catmull-Rom converted to cubic curves)
@@ -66,50 +58,67 @@ function pathD(pts, from, to) {
 }
 
 function makeLayout(cfg) {
-  const { pts, nodeIdx } = buildPath(cfg.nodes, cfg.pre);
+  const pts = cfg.wp.map(([x, y]) => ({ x, y }));
   return {
     ...cfg,
     ghostD: pathD(pts, 0, pts.length - 1),
-    segDs: nodeIdx.slice(0, -1).map((from, k) => pathD(pts, from, nodeIdx[k + 1])),
-    points: nodeIdx.map((i) => pts[i]),
+    segDs: cfg.nodeIdx.slice(0, -1).map((from, k) => pathD(pts, from, cfg.nodeIdx[k + 1])),
+    points: cfg.nodeIdx.map((i) => pts[i]),
   };
 }
 
-// Wide screens (md and up): big zig-zag, labels on the OUTER side of each stop
+// Wide screens (md and up): cards sit on the outer side of each stop
 const WIDE = makeLayout({
   key: 'wide',
   w: 1000,
-  h: 2000,
-  stroke: 14,
-  headR: 15,
-  pre: 90,
-  nodes: [[230, 110], [770, 410], [230, 710], [770, 1010], [230, 1310], [770, 1610], [500, 1900]],
-  offset: 3.75, // rem between a stop and its label
-  chip: 'size-14',
-  term: 'size-20',
-  icon: 26,
-  termIcon: 32,
-  side: (x, w) => (x < w / 2 ? 'left' : 'right'),
+  h: 1650,
+  stroke: 10,
+  headR: 12,
+  wp: [
+    [250, 90], [430, 55], [600, 115], [690, 230], [730, 310],
+    [765, 400], [660, 470], [470, 465], [345, 515], [270, 590],
+    [443, 699], [470, 732], [484, 769], [484, 804], [473, 829], [456, 842], [440, 841], [431, 827], [435, 806], [453, 785], [484, 769], [524, 765], [565, 774],
+    [740, 880],
+    [785, 985], [630, 1015], [470, 1000], [350, 1060], [290, 1150],
+    [235, 1240], [380, 1272], [560, 1250], [655, 1300], [700, 1390],
+    [690, 1480], [545, 1510], [430, 1545],
+  ],
+  nodeIdx: [0, 4, 9, 23, 28, 33, 36],
+  sides: ['left', 'right', 'left', 'right', 'left', 'right', 'left'],
+  offset: 3.25, // rem between a stop and its card
+  chip: 'size-12',
+  term: 'size-16',
+  icon: 22,
+  termIcon: 28,
 });
 
-// Phones: gentle wave near the left, every label on the right
+// Phones: a narrow road near the left, every card on the right
 const NARROW = makeLayout({
   key: 'narrow',
   w: 400,
-  h: 2150,
-  stroke: 9,
-  headR: 11,
-  pre: 80,
-  nodes: [[75, 90], [135, 420], [75, 750], [135, 1080], [75, 1410], [135, 1740], [105, 2060]],
-  offset: 2.5,
-  chip: 'size-11',
-  term: 'size-14',
-  icon: 20,
-  termIcon: 26,
-  side: () => 'right',
+  h: 1450,
+  stroke: 7,
+  headR: 9,
+  wp: [
+    [80, 70], [125, 100], [155, 175], [150, 260],
+    [140, 330], [105, 360], [75, 400], [70, 470],
+    [99, 556], [111, 572], [127, 582], [143, 585], [156, 582], [164, 575], [165, 566], [159, 560], [148, 559], [136, 564], [125, 576], [118, 594], [118, 614],
+    [145, 700],
+    [160, 770], [115, 820], [75, 860], [65, 930],
+    [75, 1000], [135, 1030], [155, 1090], [150, 1150],
+    [135, 1220], [110, 1260], [100, 1370],
+  ],
+  nodeIdx: [0, 3, 7, 21, 25, 29, 32],
+  sides: Array(7).fill('right'),
+  offset: 2.25,
+  chip: 'size-10',
+  term: 'size-12',
+  icon: 18,
+  termIcon: 22,
 });
 
 const clamp = (v) => Math.min(1, Math.max(0, v));
+const two = (n) => String(n).padStart(2, '0');
 
 function useMedia(query) {
   const [matches, setMatches] = useState(() => typeof window !== 'undefined' && window.matchMedia(query).matches);
@@ -126,75 +135,108 @@ function useMedia(query) {
 export default function OrderPath() {
   const wide = useMedia('(min-width: 768px)');
   const L = wide ? WIDE : NARROW;
+  const gradId = `road-${useId().replace(/:/g, '')}`;
 
   const boxRef = useRef(null);
   const segRefs = useRef([]);
   const headRef = useRef(null);
-  const [lengths, setLengths] = useState([]);
+  const pulseRef = useRef(null);
+  const barRef = useRef(null);
+  const lengthsRef = useRef([]);
+  const progressRef = useRef(0);
+  const [doneCount, setDoneCount] = useState(1); // stops completed so far (the start terminal counts from the beginning)
 
-  // 0..1: how much of the path is drawn. 0 when the path's top is 65% down the screen,
-  // 1 when the path's last stop has come up into view.
-  const { p } = useScrollValue(
-    (vh) => {
-      const box = boxRef.current;
-      if (!box) return null;
-      const rect = box.getBoundingClientRect();
-      return { p: clamp((vh * 0.65 - rect.top) / (rect.height * 0.9)) };
-    },
-    { p: 0 },
-  );
+  // Draws the line for the current progress. Writes straight to the DOM, no re-render.
+  const apply = () => {
+    if (barRef.current) barRef.current.style.width = `${progressRef.current * 100}%`;
 
-  // Measure every leg once the layout is on screen (and again when it switches)
+    const lens = lengthsRef.current;
+    if (!lens.length) return;
+
+    const total = lens.reduce((a, b) => a + b, 0);
+    const drawn = progressRef.current * total;
+    let acc = 0;
+    let count = 1;
+    let tipIdx = 0;
+    let tipAt = 0;
+
+    lens.forEach((len, i) => {
+      const d = Math.min(Math.max(drawn - acc, 0), len);
+      const el = segRefs.current[i];
+      if (el) el.style.strokeDashoffset = String(len - d);
+      if (len > 0 && d >= len - 0.5) count += 1;
+      if (drawn >= acc || i === 0) {
+        tipIdx = i;
+        tipAt = d;
+      }
+      acc += len;
+    });
+
+    const tipPath = segRefs.current[tipIdx];
+    if (tipPath) {
+      const pt = tipPath.getPointAtLength(tipAt);
+      [headRef.current, pulseRef.current].forEach((c) => {
+        if (!c) return;
+        c.setAttribute('cx', pt.x);
+        c.setAttribute('cy', pt.y);
+      });
+    }
+    setDoneCount(count); // no-op when unchanged
+  };
+
+  // Measure every leg and hide the line, whenever the layout (wide or narrow) is shown
   useLayoutEffect(() => {
-    setLengths(segRefs.current.slice(0, L.segDs.length).map((el) => (el ? el.getTotalLength() : 0)));
+    const els = segRefs.current.slice(0, L.segDs.length);
+    lengthsRef.current = els.map((el) => (el ? el.getTotalLength() : 0));
+    els.forEach((el, i) => {
+      if (!el) return;
+      el.style.strokeDasharray = String(lengthsRef.current[i]);
+      el.style.strokeDashoffset = String(lengthsRef.current[i]);
+    });
+    apply();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [L]);
 
-  const total = lengths.reduce((a, b) => a + b, 0);
-  const drawn = p * total;
-
-  // How much of each leg is drawn, and which stops are complete
-  let acc = 0;
-  const segDrawn = lengths.map((len) => {
-    const d = Math.min(Math.max(drawn - acc, 0), len);
-    acc += len;
-    return d;
+  // 0 when the road's top is 70% down the screen, 1 when its last stop has come into view
+  useScrollFrame((vh) => {
+    const box = boxRef.current;
+    if (!box) return;
+    const rect = box.getBoundingClientRect();
+    progressRef.current = clamp((vh * 0.7 - rect.top) / (rect.height * 0.85));
+    apply();
   });
-  const done = STAGES.map((_, i) => i === 0 || (lengths[i - 1] > 0 && segDrawn[i - 1] >= lengths[i - 1] - 0.5));
-  const current = done.indexOf(false); // the stop the path is heading to (-1 when finished)
 
-  // Move the glowing tip to the end of the drawn line (direct DOM update, no re-render)
-  useLayoutEffect(() => {
-    const head = headRef.current;
-    if (!head || !total) return;
-    let start = 0;
-    let j = 0;
-    while (j < lengths.length - 1 && drawn > start + lengths[j]) {
-      start += lengths[j];
-      j += 1;
-    }
-    const path = segRefs.current[j];
-    if (!path) return;
-    const pt = path.getPointAtLength(Math.min(Math.max(drawn - start, 0), lengths[j]));
-    head.setAttribute('cx', pt.x);
-    head.setAttribute('cy', pt.y);
-  }, [drawn, lengths, total, L]);
+  const reached = Math.min(doneCount, STAGES.length);
 
   return (
     <section
       aria-labelledby="journey-title"
-      className="relative overflow-x-clip border-t border-border bg-bg px-4 py-14 sm:px-6 sm:py-20"
+      className="relative overflow-x-clip border-t border-border bg-bg px-4 py-12 sm:px-6 sm:py-16"
     >
-      <header className="mx-auto max-w-3xl text-center">
+      <header className="mx-auto max-w-2xl text-center">
         <p className="text-sm font-medium tracking-[0.2em] text-accent uppercase">The journey</p>
         <h2
           id="journey-title"
-          className="font-display text-[clamp(2.5rem,7vw,5rem)] leading-[0.95] font-bold tracking-[0.01em] text-text uppercase"
+          className="font-display text-[clamp(2.25rem,6vw,4rem)] leading-[0.95] font-bold tracking-[0.01em] text-text uppercase"
         >
           From order to <span className="text-accent">your door</span>
         </h2>
-        <p className="mx-auto mt-3 max-w-xl text-muted">
-          Scroll to follow your order through every step, from the moment you place it to the moment you review it.
+        <p className="mx-auto mt-3 max-w-md text-sm text-muted sm:text-base">
+          Follow your order through every step, from the moment you place it to the moment you review it.
         </p>
+
+        {/* Live progress readout */}
+        <div aria-hidden="true" className="mx-auto mt-5 w-full max-w-xs">
+          <div className="flex items-center justify-between gap-3 text-xs font-medium tracking-wide text-muted">
+            <span className="font-heading text-text tabular-nums">
+              {two(reached)} <span className="text-muted">/ {two(STAGES.length)}</span>
+            </span>
+            <span className="truncate text-accent uppercase">{STAGES[reached - 1].title}</span>
+          </div>
+          <div className="mt-2 h-1 overflow-hidden rounded-full bg-border">
+            <div ref={barRef} className="h-full rounded-full bg-accent" style={{ width: '0%' }} />
+          </div>
+        </div>
       </header>
 
       {/* Screen readers get the steps as a plain list */}
@@ -206,45 +248,68 @@ export default function OrderPath() {
         ))}
       </ol>
 
-      {/* The path. Its box keeps the SVG's shape, so stops and labels placed in % stay on the line. */}
+      {/* The box keeps the SVG's shape, so stops and cards placed in % stay on the road */}
       <div
         ref={boxRef}
         aria-hidden="true"
-        className="relative mx-auto mt-10 w-full max-w-5xl"
+        className="relative mx-auto mt-8 w-full max-w-4xl"
         style={{ aspectRatio: `${L.w} / ${L.h}` }}
       >
         <svg viewBox={`0 0 ${L.w} ${L.h}`} className="absolute inset-0 h-full w-full overflow-visible" fill="none">
-          {/* Faint full path, like the unvisited part of the road */}
+          <defs>
+            <linearGradient id={gradId} gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2={L.h}>
+              <stop offset="0" style={{ stopColor: 'var(--accent)' }} />
+              <stop offset="1" style={{ stopColor: 'var(--accent-hover)' }} />
+            </linearGradient>
+          </defs>
+
+          {/* 1. Soft wide track: the road itself */}
           <path
             d={L.ghostD}
             stroke="var(--accent)"
-            strokeOpacity="0.18"
-            strokeWidth={L.stroke}
+            strokeOpacity="0.1"
+            strokeWidth={L.stroke * 2.6}
             strokeLinecap="round"
             strokeLinejoin="round"
           />
+          {/* 2. Dotted centre line: the road ahead */}
+          <path
+            d={L.ghostD}
+            stroke="var(--accent)"
+            strokeOpacity="0.55"
+            strokeWidth={L.stroke * 0.3}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeDasharray={`1 ${L.stroke * 1.4}`}
+          />
 
-          {/* The drawn path: one piece per leg, revealed with the scroll */}
-          {L.segDs.map((d, i) => {
-            const len = lengths[i] || 1;
-            return (
+          {/* 3. Progress line: one piece per leg (dash offsets are set from the scroll) */}
+          <g style={{ filter: 'drop-shadow(0 0 6px var(--accent))' }}>
+            {L.segDs.map((d, i) => (
               <path
                 key={`${L.key}-${i}`}
                 ref={(el) => {
                   segRefs.current[i] = el;
                 }}
                 d={d}
-                stroke="var(--accent)"
+                stroke={`url(#${gradId})`}
                 strokeWidth={L.stroke}
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                strokeDasharray={len}
-                strokeDashoffset={lengths[i] ? len - (segDrawn[i] || 0) : len}
               />
-            );
-          })}
+            ))}
+          </g>
 
-          {/* Glowing tip of the line */}
+          {/* 4. Tip of the line, with a soft pulse */}
+          <circle
+            ref={pulseRef}
+            cx={L.points[0].x}
+            cy={L.points[0].y}
+            r={L.headR}
+            fill="var(--accent)"
+            className="animate-ring"
+            style={{ transformBox: 'fill-box', transformOrigin: 'center' }}
+          />
           <circle
             ref={headRef}
             cx={L.points[0].x}
@@ -252,22 +317,22 @@ export default function OrderPath() {
             r={L.headR}
             fill="var(--accent)"
             stroke="var(--bg)"
-            strokeWidth={L.stroke / 3}
+            strokeWidth={L.stroke / 2.5}
           />
         </svg>
 
-        {/* Stops and labels */}
+        {/* Stops and cards */}
         {STAGES.map((stage, i) => {
           const { x, y } = L.points[i];
           const xPct = (x / L.w) * 100;
           const yPct = (y / L.h) * 100;
           const terminal = i === 0 || i === STAGES.length - 1;
-          const isDone = done[i];
-          const isCurrent = i === current;
-          const left = L.side(x, L.w) === 'left';
+          const isDone = i < doneCount;
+          const isCurrent = i === doneCount;
+          const left = L.sides[i] === 'left';
           const Icon = stage.icon;
 
-          const labelStyle = left
+          const cardStyle = left
             ? { top: `${yPct}%`, right: `calc(${100 - xPct}% + ${L.offset}rem)`, width: `calc(${xPct}% - ${L.offset}rem - 0.5rem)` }
             : { top: `${yPct}%`, left: `calc(${xPct}% + ${L.offset}rem)`, width: `calc(${100 - xPct}% - ${L.offset}rem - 0.5rem)` };
 
@@ -278,38 +343,45 @@ export default function OrderPath() {
                 className={`absolute z-10 grid -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full border-2 transition-all duration-500 ${
                   terminal ? L.term : L.chip
                 } ${terminal ? 'ring-4 ring-accent/20' : ''} ${
-                  isDone ? 'scale-100 border-accent bg-accent text-on-accent' : 'scale-90 border-border bg-surface text-muted'
+                  isDone
+                    ? 'scale-100 border-accent bg-accent text-on-accent shadow-[0_8px_20px_-8px_var(--accent)]'
+                    : 'scale-90 border-border bg-surface text-muted'
                 }`}
                 style={{ left: `${xPct}%`, top: `${yPct}%` }}
               >
                 {isCurrent && <span className="absolute inset-0 animate-ring rounded-full bg-accent/40" />}
                 <Icon size={terminal ? L.termIcon : L.icon} strokeWidth={1.8} className="relative" />
+                <span
+                  className={`absolute -top-1 -right-1 grid size-5 place-items-center rounded-full border border-bg text-[0.6rem] font-bold tabular-nums transition-colors duration-500 ${
+                    isDone ? 'bg-text text-bg' : 'bg-border text-muted'
+                  }`}
+                >
+                  {i + 1}
+                </span>
               </span>
 
-              {/* Label */}
+              {/* Card */}
               <div
-                className={`absolute flex -translate-y-1/2 flex-col ${left ? 'items-end text-right' : 'items-start text-left'}`}
-                style={labelStyle}
+                className={`absolute -translate-y-1/2 rounded-2xl border bg-surface/90 p-3 backdrop-blur transition-all duration-500 md:p-4 ${
+                  left ? 'text-right' : 'text-left'
+                } ${
+                  isDone
+                    ? 'border-accent/40 opacity-100 shadow-soft'
+                    : 'border-border opacity-60'
+                }`}
+                style={cardStyle}
               >
-                {terminal && (
-                  <span className="text-[0.7rem] font-semibold tracking-[0.2em] text-accent uppercase md:text-xs">
-                    {i === 0 ? 'Start' : 'Finish'}
-                  </span>
-                )}
+                <span className="block text-[0.65rem] font-semibold tracking-[0.2em] text-accent uppercase md:text-xs">
+                  {terminal ? (i === 0 ? 'Start' : 'Finish') : `Step ${two(i + 1)}`}
+                </span>
                 <span
-                  className={`font-display text-[1.6rem] leading-[0.95] font-bold tracking-[0.01em] uppercase transition-colors duration-500 md:text-[clamp(1.75rem,3.6vw,3.25rem)] ${
-                    isDone ? 'text-accent' : 'text-muted'
+                  className={`mt-0.5 block font-display text-[1.35rem] leading-[0.95] font-bold tracking-[0.01em] uppercase transition-colors duration-500 md:text-[clamp(1.5rem,2.8vw,2.4rem)] ${
+                    isDone ? 'text-text' : 'text-muted'
                   }`}
                 >
                   {stage.title}
                 </span>
-                <span
-                  className={`mt-2 inline-block max-w-full rounded-2xl border border-accent/30 bg-surface px-3 py-1.5 text-xs leading-snug text-muted shadow-soft transition-all duration-500 md:text-sm ${
-                    left ? 'rotate-2' : '-rotate-2'
-                  } ${isDone ? 'translate-y-0 opacity-100' : 'translate-y-2 opacity-0'}`}
-                >
-                  {stage.note}
-                </span>
+                <span className="mt-1.5 block text-xs leading-snug text-muted md:text-sm">{stage.note}</span>
               </div>
             </div>
           );

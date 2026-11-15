@@ -58,7 +58,7 @@ export function resolveAppIconName(icon, fallback = 'graph') {
   return ICON_ASSETS[componentName] || fallback;
 }
 
-export default function AppIcon({ name, tone = 1, entity, hueRotate = true, className = 'size-6' }) {
+export default function AppIcon({ name, tone = 1, entity, hueRotate = true, className = 'size-6', style }) {
   if (!name) return null;
   const resolvedTone = entity ? entityColorStep('entity', entity) : tone;
   const toneClass = hueRotate ? iconToneClass(resolvedTone) : '';
@@ -70,6 +70,7 @@ export default function AppIcon({ name, tone = 1, entity, hueRotate = true, clas
       aria-hidden="true"
       draggable="false"
       className={`icon ${toneClass} object-contain ${className}`}
+      style={style}
     />
   );
 }

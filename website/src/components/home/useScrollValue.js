@@ -1,45 +1,37 @@
 // src/components/home/useScrollValue.js
 //
-// USAGE
-//   const { p } = useScrollValue(() => {
-//     const rect = ref.current?.getBoundingClientRect();
-//     return rect ? { p: clamp(-rect.top / rect.height) } : null;
-//   }, { p: 0 });
+// Two small scroll helpers. Both listen in the capture phase, so they also work when
+// your layout scrolls inside a div instead of the window, and both run at most once per frame.
 //
-// Calls `compute(viewportHeight)` on every scroll and resize (at most once per frame)
-// and returns whatever object it produced. It listens in the capture phase, so it also
-// works when your layout scrolls inside a div instead of the window.
-// Return null from compute to skip an update. State only changes when a number moved
-// by more than 0.001, so it does not re-render for no reason.
+// 1) useScrollFrame(callback)
+//    Calls callback(viewportHeight) on mount, on every scroll and on resize.
+//    It does NOT cause re-renders: write to the DOM (refs) inside the callback.
+//    This is the smooth option for scroll-driven animation.
+//
+// 2) useScrollValue(compute, initial)   (default export)
+//    Like the above, but keeps what compute() returns in React state, only updating it
+//    when a number moved by more than 0.001. Return null from compute to skip an update.
 
 import { useEffect, useRef, useState } from 'react';
 
-const same = (a, b) => {
-  const keys = Object.keys(b);
-  return keys.every((k) => (typeof b[k] === 'number' ? Math.abs((a?.[k] ?? NaN) - b[k]) < 0.001 : a?.[k] === b[k]));
-};
-
-export default function useScrollValue(compute, initial) {
-  const [value, setValue] = useState(initial);
-  const computeRef = useRef(compute);
+export function useScrollFrame(callback) {
+  const callbackRef = useRef(callback);
 
   useEffect(() => {
-    computeRef.current = compute;
+    callbackRef.current = callback;
   });
 
   useEffect(() => {
     let frame = 0;
-
-    const update = () => {
+    const run = () => {
       frame = 0;
-      const next = computeRef.current(window.innerHeight);
-      if (next) setValue((prev) => (same(prev, next) ? prev : next));
+      callbackRef.current(window.innerHeight);
     };
     const schedule = () => {
-      if (!frame) frame = requestAnimationFrame(update);
+      if (!frame) frame = requestAnimationFrame(run);
     };
 
-    update();
+    run();
     window.addEventListener('scroll', schedule, { passive: true, capture: true });
     window.addEventListener('resize', schedule);
     return () => {
@@ -48,6 +40,18 @@ export default function useScrollValue(compute, initial) {
       window.removeEventListener('resize', schedule);
     };
   }, []);
+}
+
+const same = (a, b) =>
+  Object.keys(b).every((k) => (typeof b[k] === 'number' ? Math.abs((a?.[k] ?? NaN) - b[k]) < 0.001 : a?.[k] === b[k]));
+
+export default function useScrollValue(compute, initial) {
+  const [value, setValue] = useState(initial);
+
+  useScrollFrame((vh) => {
+    const next = compute(vh);
+    if (next) setValue((prev) => (same(prev, next) ? prev : next));
+  });
 
   return value;
 }

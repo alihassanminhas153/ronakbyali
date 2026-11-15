@@ -1,29 +1,28 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Link } from "react-router";
-import Lenis from "lenis";
-import { ArrowUpRight, BadgePercent, Globe, Palette, ShieldCheck } from "lucide-react";
+import { ArrowUpRight, Tag } from "lucide-react";
 
-// Adjust this path to where Home.jsx lives (this assumes src/pages/shared/Home.jsx)
+// Adjust these paths to where Home.jsx lives (this assumes src/pages/shared/Home.jsx)
 import ProductsMarquee from "../../../components/home/ProductsMarquee";
-import ImageTextScroll from "../../../components/home/ImageTextScroll";
 import OrderPath from "../../../components/home/OrderPath";
 
 /* ==========================================================================
-   HOME: hero section
-   The section is exactly the viewport height minus your layout's header.
+   HOME: hero section, then the products marquee, then the order journey
+   The hero is exactly the viewport height minus your layout's header.
    Layers (back to front):
      1. big two-word heading, ONE row, top of the hero, swaps words all at once
-     2. hero image, transparent, anchored to the bottom, rises in after loading
-        (so the heading shows through behind it)
-     3. small typewriter pill with icons and a moving glow border
+     2. hero images from src/assets/hero/ (kebab-case file names, e.g. cotton-summer-kurta.webp),
+        transparent, anchored to the bottom. The first one rises from the bottom after loading,
+        then every few seconds the current one slides fully out and the next slides in, forever.
+     3. dots at the bottom showing which image is on screen (click to jump)
+     4. a small label in the bottom-left corner with the product name (read from the file name)
+        that links to the products page
    A loader covers the page first. Colours come only from index.css variables,
    so light and dark both work.
    ========================================================================== */
 
 /* ---- Content: edit freely ---- */
 const BRAND = "Ronak By Ali";
-const PRODUCTS_PATH = "/products";
-const PRODUCTS_LABEL = "ronakbyali.com/products";
 
 // Big heading: exactly two words each. The first word uses the text colour, the second the accent.
 // The font size is fitted so the WIDEST phrase fills one row, so keep phrases similar in length.
@@ -33,20 +32,36 @@ const HEADING_PHRASES = [
   ["Safe", "Delivery"],
   ["Your", "Style"],
 ];
-const HEADING_SWAP_MS = 5000; // how long each phrase stays
+const HEADING_SWAP_MS = 3200; // how long each heading phrase stays
 
-// Typewriter pill: each phrase has its own icon. The last one is the link text.
-const PHRASES = [
-  { text: "Get Discounts", icon: BadgePercent },
-  { text: "Your Custom Designs", icon: Palette },
-  { text: "Safe order delivery", icon: ShieldCheck },
-  { text: PRODUCTS_LABEL, icon: Globe, isLink: true },
-];
-const PHRASE_TEXTS = PHRASES.map((p) => p.text);
+// Hero images: put them in website/src/assets/hero/ and name each file after its product
+// in kebab-case, e.g. cotton-summer-kurta.webp  ->  label "Cotton Summer Kurta".
+//   - Add or remove files and the slider updates by itself.
+//   - Slides play in file-name order. To control the order, start names with a number:
+//     01-cotton-summer-kurta.webp, 02-silk-dupatta.webp (the number is not shown in the label).
+// Why src/assets and not public/: a browser cannot list a folder, so the images are found at
+// build time with Vite's import.meta.glob, and Vite cannot glob files inside public/.
+const heroModules = import.meta.glob("/src/assets/hero/*.webp", { eager: true, query: "?url", import: "default" });
 
-// File: website/public/images/webp/transparent/hero.webp (Vite serves /public from the root)
-const HERO_IMAGE = "/images/webp/transparent/hero.webp";
-const HERO_ALT = "Ronak By Ali featured product";
+// "/src/assets/hero/01-cotton-summer-kurta.webp" -> "Cotton Summer Kurta"
+const toProductName = (path) =>
+  path
+    .split("/")
+    .pop()
+    .replace(/\.webp$/i, "")
+    .replace(/^\d+[-_.\s]+/, "") // optional ordering number
+    .split(/[-_]+/)
+    .filter(Boolean)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+
+const HERO_IMAGES = Object.entries(heroModules)
+  .sort(([a], [b]) => a.localeCompare(b, undefined, { numeric: true }))
+  .map(([path, url]) => ({ url, name: toProductName(path) }));
+
+const PRODUCTS_PATH = "/products"; // where the label sends you
+const SLIDE_MS = 3500; // how long each image stays
+const SLIDE_ANIM_MS = 1100; // how long a slide animation takes
 
 // Loader never shows for less than this, so it does not just flash
 const MIN_LOADER_MS = 1600;
@@ -54,7 +69,8 @@ const MIN_LOADER_MS = 1600;
 /* ---- Sizes: tweak here ---- */
 const HEADING_WIDTH_FILL = 0.96; // 1 = edge to edge; the widest phrase fills this share of the row
 const HEADING_MAX_HEIGHT = 0.6; // heading may never be taller than this share of the hero
-const PILL_TEXT_SIZE = "text-base sm:text-lg";
+// Image box height as a share of the hero (phone / tablet / desktop)
+const IMAGE_HEIGHT = "h-[88%] sm:h-[94%] lg:h-[98%]";
 
 /* The layout injects the header. Set --header-h on your layout wrapper
    (e.g. style={{ "--header-h": "4rem" }}) so the hero is exactly 100dvh minus it.
@@ -65,37 +81,25 @@ const prefersReducedMotion = () =>
   typeof window !== "undefined" &&
   window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 
-/* ---------- Typewriter: types, holds, deletes, moves to the next phrase ---------- */
-function useTypewriter(phrases, active) {
-  const [index, setIndex] = useState(0);
-  const [text, setText] = useState("");
-  const [deleting, setDeleting] = useState(false);
+/* ---------- Hero images: known at build time, so only the first one is waited for ---------- */
+function useHeroImages() {
+  const [firstDone, setFirstDone] = useState(HERO_IMAGES.length === 0); // first image loaded, or failed: either way stop waiting
 
   useEffect(() => {
-    if (!active || prefersReducedMotion()) return;
+    if (HERO_IMAGES.length === 0) return;
 
-    const full = phrases[index];
-    let timer;
+    const first = new Image();
+    first.onload = () => setFirstDone(true);
+    first.onerror = () => setFirstDone(true);
+    first.src = HERO_IMAGES[0].url;
 
-    if (!deleting && text === full) {
-      timer = setTimeout(() => setDeleting(true), 1600); // hold the finished phrase
-    } else if (deleting && text === "") {
-      timer = setTimeout(() => {
-        setDeleting(false);
-        setIndex((i) => (i + 1) % phrases.length);
-      }, 300);
-    } else {
-      timer = setTimeout(
-        () => setText(full.slice(0, text.length + (deleting ? -1 : 1))),
-        deleting ? 35 : 75
-      );
-    }
-    return () => clearTimeout(timer);
-  }, [active, deleting, index, phrases, text]);
+    // Warm up the rest in the background so every slide appears instantly
+    HERO_IMAGES.slice(1).forEach(({ url }) => {
+      new Image().src = url;
+    });
+  }, []);
 
-  // Reduced motion: no typing, just show the first phrase
-  if (prefersReducedMotion()) return { text: phrases[0], index: 0 };
-  return { text, index };
+  return { images: HERO_IMAGES, firstDone };
 }
 
 /* ---------- Fit text: sizes the heading so its widest phrase fits ONE row ---------- */
@@ -231,74 +235,44 @@ function Heading({ ready, sectionRef }) {
   );
 }
 
-/* ---------- Typewriter "input": ONE pill, ONE link, icons, moving glow ----------
-   A conic-gradient wedge spins behind the pill. It is drawn twice:
-   sharp as a thin border, and blurred as the glow around it. */
-const SPINNER =
-  "absolute top-1/2 left-1/2 aspect-square w-[220%] -translate-x-1/2 -translate-y-1/2 animate-spin [animation-duration:3.6s] bg-[conic-gradient(from_0deg,transparent_0%,transparent_55%,var(--accent)_82%,var(--accent-hover)_100%)]";
+/* ---------- One hero slide ----------
+   A slide is mounted fresh every time it is shown:
+     - the very first one starts BELOW the hero and rises up
+     - every later one starts off to the RIGHT and slides in
+   When it is replaced it slides fully out to the LEFT, then it is removed. */
+const SLIDE_EASE = "cubic-bezier(0.2,0.7,0.2,1)";
 
-function TypewriterField({ text, index, ready }) {
-  const { icon: Icon, isLink } = PHRASES[index];
+function Slide({ src, alt, first, leaving }) {
+  const [shown, setShown] = useState(false);
+
+  // Let the start position paint once, then animate to the resting position
+  useEffect(() => {
+    const id = setTimeout(() => setShown(true), 40);
+    return () => clearTimeout(id);
+  }, []);
+
+  const transform = leaving
+    ? "translate3d(-100%,0,0)"
+    : shown
+      ? "translate3d(0,0,0)"
+      : first
+        ? "translate3d(0,100%,0)"
+        : "translate3d(100%,0,0)";
 
   return (
     <div
-      className={`w-[min(100%,25rem)] transition duration-700 ease-[cubic-bezier(0.2,0.7,0.2,1)] sm:w-[30rem] ${
-        ready ? "scale-100 opacity-100 blur-0" : "scale-90 opacity-0 blur-sm"
-      }`}
-      style={{ transitionDelay: ready ? "700ms" : "0ms" }}
+      className="absolute inset-0 px-2 will-change-transform"
+      style={{
+        transform,
+        transition: `transform ${first && !leaving ? 1500 : SLIDE_ANIM_MS}ms ${SLIDE_EASE}`,
+        transitionDelay: first && !leaving ? "100ms" : "0ms",
+      }}
     >
-      <div className="relative rounded-full p-[1.5px]">
-        {/* Glow: blurred copy that spills outside the pill */}
-        <span aria-hidden="true" className="absolute -inset-1 overflow-hidden rounded-full opacity-70 blur-md">
-          <span className={SPINNER} />
-        </span>
-        {/* Sharp moving border */}
-        <span aria-hidden="true" className="absolute inset-0 overflow-hidden rounded-full">
-          <span className={SPINNER} />
-        </span>
-
-        <Link
-          to={PRODUCTS_PATH}
-          aria-label={`Browse products at ${PRODUCTS_LABEL}`}
-          className="group relative flex h-14 w-full items-center gap-3 rounded-full bg-surface py-1 pr-1 pl-1.5 text-text transition focus-visible:ring-4 focus-visible:ring-accent/20 sm:h-16"
-        >
-          {/* Screen readers get the full list instead of letter-by-letter noise */}
-          <span className="sr-only">{PHRASES.map((p) => p.text).join(", ")}</span>
-
-          {/* Icon chip: swaps with each phrase */}
-          <span
-            aria-hidden="true"
-            className="inline-flex size-11 shrink-0 items-center justify-center rounded-full bg-accent-soft text-accent sm:size-12"
-          >
-            <Icon key={index} size={22} strokeWidth={1.8} className="animate-rise" />
-          </span>
-
-          {/* Typed text */}
-          <span aria-hidden="true" className={`flex min-w-0 flex-1 items-center text-left font-heading ${PILL_TEXT_SIZE}`}>
-            <span
-              className={`truncate font-medium tracking-tight transition-colors duration-300 ${
-                isLink ? "text-accent underline decoration-accent/40 decoration-2 underline-offset-4" : "text-text"
-              }`}
-            >
-              {text}
-            </span>
-            <span className="ml-1 h-5 w-[3px] shrink-0 animate-caret rounded-full bg-accent shadow-[0_0_10px_var(--accent)] sm:h-6" />
-          </span>
-
-          {/* Arrow with a soft pulsing ring */}
-          <span className="relative inline-flex size-12 shrink-0 sm:size-14">
-            <span aria-hidden="true" className="absolute inset-0 animate-ring rounded-full bg-accent/50" />
-            <span className="relative inline-flex size-full items-center justify-center rounded-full bg-btn text-btn-ink transition group-hover:bg-btn-hover group-active:scale-95">
-              <ArrowUpRight
-                size={22}
-                strokeWidth={2}
-                aria-hidden="true"
-                className="transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
-              />
-            </span>
-          </span>
-        </Link>
-      </div>
+      <img
+        src={src}
+        alt={alt}
+        className="h-full w-full object-contain object-bottom drop-shadow-[0_24px_30px_var(--card-shadow)]"
+      />
     </div>
   );
 }
@@ -306,33 +280,43 @@ function TypewriterField({ text, index, ready }) {
 /* ---------- Page ---------- */
 export default function Home() {
   const sectionRef = useRef(null);
+  const serial = useRef(0);
+  const { images, firstDone } = useHeroImages();
+
   const [minTimePassed, setMinTimePassed] = useState(false);
-  const [imageDone, setImageDone] = useState(false); // loaded or failed, either way do not hang the loader
-
-  useEffect(() => {
-    if (prefersReducedMotion()) return undefined;
-
-    const lenis = new Lenis({ lerp: 0.1, smoothWheel: true, wheelMultiplier: 0.9 });
-    let frameId;
-    const raf = (time) => {
-      lenis.raf(time);
-      frameId = requestAnimationFrame(raf);
-    };
-    frameId = requestAnimationFrame(raf);
-
-    return () => {
-      cancelAnimationFrame(frameId);
-      lenis.destroy();
-    };
-  }, []);
+  const [current, setCurrent] = useState(0); // which image is showing
+  const [slides, setSlides] = useState([]); // mounted slides: the current one, plus the one sliding out
 
   useEffect(() => {
     const id = setTimeout(() => setMinTimePassed(true), MIN_LOADER_MS);
     return () => clearTimeout(id);
   }, []);
 
-  const ready = minTimePassed && imageDone;
-  const { text, index } = useTypewriter(PHRASE_TEXTS, ready);
+  const ready = minTimePassed && firstDone;
+
+  // First image: mount it once the loader is done (it rises from the bottom)
+  useEffect(() => {
+    if (ready && images.length > 0 && slides.length === 0) {
+      setSlides([{ key: 0, index: 0, first: true, leaving: false }]);
+    }
+  }, [ready, images.length, slides.length]);
+
+  // Show another image: the old slide leaves, a new one slides in
+  const goTo = useCallback((next) => {
+    setCurrent(next);
+    setSlides((prev) => [
+      ...prev.map((s) => ({ ...s, leaving: true })),
+      { key: ++serial.current, index: next, first: false, leaving: false },
+    ]);
+    setTimeout(() => setSlides((prev) => prev.filter((s) => !s.leaving)), SLIDE_ANIM_MS + 200);
+  }, []);
+
+  // Auto-advance, forever. The timer restarts whenever the image changes (so a dot click resets it).
+  useEffect(() => {
+    if (!ready || images.length < 2 || prefersReducedMotion()) return;
+    const id = setTimeout(() => goTo((current + 1) % images.length), SLIDE_MS);
+    return () => clearTimeout(id);
+  }, [ready, images.length, current, goTo]);
 
   return (
     <>
@@ -343,38 +327,89 @@ export default function Home() {
         aria-labelledby="hero-title"
         className={`relative isolate w-full overflow-hidden bg-[radial-gradient(70rem_36rem_at_50%_90%,var(--accent-soft),transparent_70%)] ${HERO_HEIGHT}`}
       >
-        {/* Top group, pinned to the top. It has no z-index of its own, so the
-            heading (z-0) sits BEHIND the image (z-10) while the pill (z-20) stays in front. */}
-        <div className="relative flex flex-col items-center gap-3 px-3 pt-2 sm:gap-5 sm:px-6 sm:pt-4">
-          <div className="relative z-0 w-full">
-            <Heading ready={ready} sectionRef={sectionRef} />
-          </div>
-          <div className="relative z-20 flex w-full justify-center">
-            <TypewriterField text={text} index={index} ready={ready} />
-          </div>
+        {/* Heading, pinned to the top. z-0 puts it BEHIND the images (z-10). */}
+        <div className="relative z-0 px-3 pt-2 sm:px-6 sm:pt-4">
+          <Heading ready={ready} sectionRef={sectionRef} />
         </div>
 
-        {/* Image: transparent, bottom-anchored, rises in after loading.
-            object-contain scales it to the biggest size that fits, on every screen. */}
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex h-[80%] justify-center px-2 sm:h-[86%] lg:h-[92%]">
-          <img
-            src={HERO_IMAGE}
-            alt={HERO_ALT}
-            onLoad={() => setImageDone(true)}
-            onError={() => setImageDone(true)}
-            className={`h-full w-full object-contain object-bottom drop-shadow-[0_24px_30px_var(--card-shadow)] transition-transform duration-[1500ms] ease-[cubic-bezier(0.2,0.7,0.2,1)] will-change-transform ${
-              ready ? "translate-y-0" : "translate-y-full"
-            }`}
-            style={{ transitionDelay: ready ? "100ms" : "0ms" }}
-          />
+        {/* Images: transparent, bottom-anchored. object-contain scales each one to the
+            biggest size that fits, on every screen. Sliding is clipped by the section. */}
+        <div className={`pointer-events-none absolute inset-x-0 bottom-0 z-10 ${IMAGE_HEIGHT}`}>
+          {slides.map((slide) => (
+            <Slide
+              key={slide.key}
+              src={images[slide.index].url}
+              alt={images[slide.index].name}
+              first={slide.first}
+              leaving={slide.leaving}
+            />
+          ))}
         </div>
+
+        {/* Product label: the current image's product name (from its file name), links to the products page */}
+        {images.length > 0 && (
+          <Link
+            to={PRODUCTS_PATH}
+            aria-label={`${images[current]?.name}: browse all products`}
+            className={`group absolute bottom-16 left-3 z-20 flex max-w-[72vw] items-center gap-2 rounded-full border border-border bg-surface/80 py-1.5 pr-1.5 pl-3 text-text shadow-soft backdrop-blur transition duration-700 hover:border-accent focus-visible:ring-4 focus-visible:ring-accent/20 sm:bottom-5 sm:left-6 sm:max-w-[min(22rem,30vw)] ${
+              ready ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0"
+            }`}
+            style={{ transitionDelay: ready ? "900ms" : "0ms" }}
+          >
+            <Tag size={14} strokeWidth={2} aria-hidden="true" className="shrink-0 text-accent" />
+            <span className="min-w-0">
+              <span className="block text-[0.6rem] leading-none font-semibold tracking-[0.18em] text-muted uppercase">
+                Featured
+              </span>
+              {/* key restarts the rise animation each time the image changes */}
+              <span key={current} className="block animate-rise truncate font-heading text-sm leading-tight font-semibold">
+                {images[current]?.name}
+              </span>
+            </span>
+            <span className="grid size-7 shrink-0 place-items-center rounded-full bg-btn text-btn-ink transition group-hover:bg-btn-hover group-active:scale-95">
+              <ArrowUpRight
+                size={15}
+                strokeWidth={2}
+                aria-hidden="true"
+                className="transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
+              />
+            </span>
+          </Link>
+        )}
+
+        {/* Dots: which image is on screen. Click one to jump to it. */}
+        {images.length > 1 && (
+          <div
+            className={`absolute bottom-3 left-1/2 z-20 -translate-x-1/2 transition duration-700 sm:bottom-5 ${
+              ready ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0"
+            }`}
+            style={{ transitionDelay: ready ? "900ms" : "0ms" }}
+          >
+            <div
+              role="group"
+              aria-label="Hero images"
+              className="flex items-center gap-2 rounded-full border border-border bg-surface/70 px-3 py-2 backdrop-blur"
+            >
+              {images.map((_, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => i !== current && goTo(i)}
+                  aria-label={`Show image ${i + 1} of ${images.length}`}
+                  aria-current={i === current ? "true" : undefined}
+                  title={`Image ${i + 1}`}
+                  className={`h-2.5 cursor-pointer rounded-full transition-all duration-500 ${
+                    i === current ? "w-7 bg-accent" : "w-2.5 bg-border hover:bg-muted"
+                  }`}
+                />
+              ))}
+            </div>
+          </div>
+        )}
       </section>
 
       {/* Products, right after the hero */}
       <ProductsMarquee />
-
-      {/* Image-filled words that change as you scroll (pinned) */}
-      <ImageTextScroll />
 
       {/* Order journey: a path that draws itself as you scroll */}
       <OrderPath />

@@ -3,8 +3,9 @@
 // USAGE
 //   <ProductsMarquee />
 //
-// Loads the featured products from productsSlice and shows them with the shared
-// ProductCard in an endless, auto-scrolling marquee. It is a marquee on EVERY
+// Loads the featured products from productsSlice, keeps ONE product per category
+// (at most 6) and shows them with the shared ProductCard in an endless,
+// auto-scrolling marquee that repeats the cards to fill any screen width. It is a marquee on EVERY
 // screen size (cards never stack into one column on narrow screens).
 //   - The section animates in when it scrolls into view, and the cards play
 //     their own staggered entrance at that moment.
@@ -12,7 +13,7 @@
 //   - prefers-reduced-motion: no auto-scroll, the row becomes a swipeable strip.
 //   - No CSS keyframes needed: the scroll uses the Web Animations API.
 
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Link } from 'react-router';
 import { ArrowUpRight } from 'lucide-react';
@@ -25,7 +26,8 @@ import {
 } from '../../store/slices/productsSlice';
 
 /* ---- Settings: tweak here ---- */
-const FEATURED_LIMIT = 12; // how many featured products to load
+const FEATURED_LIMIT = 30; // how many featured products to load (we then keep one per category)
+const MAX_CARDS = 6; // the marquee never shows more cards than this
 const SPEED = 45; // marquee speed in pixels per second
 const SHOP_PATH = '/products';
 
@@ -162,6 +164,20 @@ export default function ProductsMarquee() {
   const dispatch = useDispatch();
   const products = useSelector(selectFeaturedProducts);
   const status = useSelector(selectFeaturedStatus);
+
+  // One product per category, at most MAX_CARDS (the first one found for each category)
+  const cards = useMemo(() => {
+    const seen = new Set();
+    const out = [];
+    for (const product of products) {
+      const key = String(product.category || product.$id).trim().toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push(product);
+      if (out.length === MAX_CARDS) break;
+    }
+    return out;
+  }, [products]);
   const [sectionRef, seen] = useInView();
 
   // Start loading right away, so the data is ready by the time the section is seen
@@ -183,10 +199,10 @@ export default function ProductsMarquee() {
     content = <SkeletonRow />;
   } else if (status === 'failed') {
     content = <p className="px-4 py-10 text-center text-muted">Could not load products right now.</p>;
-  } else if (products.length === 0) {
+  } else if (cards.length === 0) {
     content = <p className="px-4 py-10 text-center text-muted">New products are coming soon.</p>;
   } else {
-    content = <MarqueeRow products={products} />;
+    content = <MarqueeRow products={cards} />;
   }
 
   return (
