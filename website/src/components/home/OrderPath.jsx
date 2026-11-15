@@ -22,18 +22,18 @@
 // dark both work.
 
 import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
-import { Cog, Package, Send, ShieldCheck, ShoppingBag, Star, Truck } from 'lucide-react';
+import AppIcon from '../../ui/custom/AppIcon';
 import { useScrollFrame } from './useScrollValue';
 
 /* ---- Content: edit freely (first = start terminal, last = end terminal) ---- */
 const STAGES = [
-  { title: 'Ordering', note: 'You pick it, customise it and place your order.', icon: ShoppingBag },
-  { title: 'Product processing', note: 'We confirm your design and get your piece made.', icon: Cog },
-  { title: 'Packaging', note: 'Every item is checked and packed with care.', icon: Package },
-  { title: 'Safe keeping', note: 'Your parcel is held securely until it is ready to go.', icon: ShieldCheck },
-  { title: 'Dispatching', note: 'Handed to the courier with your tracking details.', icon: Send },
-  { title: 'Delivery', note: 'Safely at your door, right on time.', icon: Truck },
-  { title: 'Review', note: 'Tell us how we did and help others choose.', icon: Star },
+  { title: 'Ordering', note: 'You pick it, customise it and place your order.', icon: 'cart' },
+  { title: 'Product processing', note: 'We confirm your design and get your piece made.', icon: 'settings_gear' },
+  { title: 'Packaging', note: 'Every item is checked and packed with care.', icon: 'boxes' },
+  { title: 'Safe keeping', note: 'Your parcel is held securely until it is ready to go.', icon: 'single_box' },
+  { title: 'Dispatching', note: 'Handed to the courier with your tracking details.', icon: 'truck' },
+  { title: 'Delivery', note: 'Safely at your door, right on time.', icon: 'success' },
+  { title: 'Review', note: 'Tell us how we did and help others choose.', icon: 'reviews' },
 ];
 
 /* ---------- Path geometry ----------
@@ -131,8 +131,8 @@ const WIDE = makeLayout({
   termOffset: 3.25,
   chip: 'size-12',
   term: 'size-16',
-  icon: 22,
-  termIcon: 28,
+  icon: 28,
+  termIcon: 36,
 });
 
 // Phones: a narrow road near the left, every heading on the right
@@ -160,8 +160,8 @@ const NARROW = makeLayout({
   termOffset: 2.5,
   chip: 'size-10',
   term: 'size-12',
-  icon: 18,
-  termIcon: 22,
+  icon: 24,
+  termIcon: 30,
 });
 
 const clamp = (v) => Math.min(1, Math.max(0, v));
@@ -356,7 +356,6 @@ export default function OrderPath() {
           const terminal = i === 0 || i === STAGES.length - 1;
           const isDone = i < doneCount;
           const isCurrent = i === doneCount;
-          const Icon = stage.icon;
           const place = headingPlacement(stop, L, terminal);
 
           return (
@@ -373,7 +372,14 @@ export default function OrderPath() {
                 style={{ left: `${xPct}%`, top: `${yPct}%` }}
               >
                 {isCurrent && <span className="absolute inset-0 animate-ring rounded-full bg-accent/40" />}
-                <Icon size={terminal ? L.termIcon : L.icon} strokeWidth={1.8} className="relative" />
+                <AppIcon
+                  name={stage.icon}
+                  className="relative"
+                  style={{
+                    width: terminal ? L.termIcon : L.icon,
+                    height: terminal ? L.termIcon : L.icon,
+                  }}
+                />
               </span>
 
               {/* Heading only */}
