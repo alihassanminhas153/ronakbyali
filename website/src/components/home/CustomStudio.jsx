@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router";
 import { ArrowUpRight } from "lucide-react";
 
+import { CUSTOM_STUDIO_PATH } from "../../lib/siteInfo";
+
 /* ==========================================================================
    CUSTOM STUDIO: one viewport tall, only a short title and one animated drawing.
    The drawing loops every 12 seconds and tells the custom-order story without words:
@@ -11,6 +13,8 @@ import { ArrowUpRight } from "lucide-react";
    - Phones get a tighter crop of the same drawing so it stays big enough to read.
    - Colours come only from your theme variables. Class names start with "cs-".
    - Reduced motion: no animation, you see the finished tee.
+   - learnMore (default true) shows a "Learn more" link to the custom studio page.
+     The custom studio page itself passes learnMore={false}, so it does not link to itself.
    ========================================================================== */
 
 const TITLE = "Custom made";
@@ -100,7 +104,7 @@ function useOnScreen(ref) {
   return on;
 }
 
-export default function CustomStudio() {
+export default function CustomStudio({ learnMore = true }) {
   const sectionRef = useRef(null);
   const on = useOnScreen(sectionRef);
   const narrow = useNarrow();
@@ -113,12 +117,24 @@ export default function CustomStudio() {
     >
       <style>{CSS}</style>
 
-      <h2
-        id="custom-studio-title"
-        className="font-display text-4xl leading-[0.9] font-bold tracking-[0.01em] text-text uppercase sm:text-6xl lg:text-7xl"
-      >
-        {TITLE}
-      </h2>
+      <div className="flex items-end justify-between gap-4">
+        <h2
+          id="custom-studio-title"
+          className="font-display text-4xl leading-[0.9] font-bold tracking-[0.01em] text-text uppercase sm:text-6xl lg:text-7xl"
+        >
+          {TITLE}
+        </h2>
+
+        {learnMore && (
+          <Link
+            to={CUSTOM_STUDIO_PATH}
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-border bg-surface px-4 py-2 font-heading text-sm font-semibold text-text transition hover:border-accent hover:text-accent focus-visible:ring-4 focus-visible:ring-accent/20 sm:text-base"
+          >
+            Learn more
+            <ArrowUpRight size={16} aria-hidden="true" />
+          </Link>
+        )}
+      </div>
 
       <div className="relative mt-2 min-h-0 flex-1">
         <svg
@@ -252,17 +268,6 @@ export default function CustomStudio() {
           </g>
         </svg>
       </div>
-      <Link
-        to="/custom-studio"
-        className="group mt-3 inline-flex w-fit self-end items-center gap-2 rounded-full bg-accent px-5 py-3 text-sm font-semibold text-on-accent shadow-soft transition-colors hover:bg-accent-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg motion-reduce:transition-none"
-      >
-        Learn more
-        <ArrowUpRight
-          size={18}
-          aria-hidden="true"
-          className="transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 motion-reduce:transition-none"
-        />
-      </Link>
     </section>
   );
 }

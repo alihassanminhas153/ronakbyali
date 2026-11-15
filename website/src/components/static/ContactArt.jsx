@@ -91,10 +91,11 @@ export default function ContactArt({ className = "" }) {
         <path d="M-100 0 L0 66 L100 0 Z" className="ct-a ct-flapFront fill-accent stroke-text" strokeWidth="5" />
       </g>
 
-      {/* paper plane */}
+      {/* paper plane: two closed wings that meet at the centre crease, so no edge is left open */}
       <g className="ct-a ct-plane">
-        <path d="M0 0 L46 -16 L14 8 Z" className="fill-bg stroke-text" strokeWidth="4" />
-        <path d="M14 8 L18 22 L28 6" className="fill-accent stroke-text" strokeWidth="4" />
+        <path d="M58 0 L2 -24 L24 2 Z" className="fill-bg stroke-text" strokeWidth="4" />
+        <path d="M58 0 L24 2 L14 24 Z" className="fill-accent stroke-text" strokeWidth="4" />
+        <path d="M24 2 L2 -24 L12 -2" className="stroke-text" strokeWidth="3" opacity="0.5" />
       </g>
 
       {/* bubble 1: someone typing */}

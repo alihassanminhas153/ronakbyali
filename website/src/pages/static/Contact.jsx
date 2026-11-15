@@ -17,8 +17,11 @@ const card =
   "flex items-center gap-3 rounded-3xl rounded-bl-none border border-border bg-surface px-4 py-3 transition-colors sm:gap-4 sm:px-5 sm:py-4";
 const iconWrap =
   "grid size-10 shrink-0 place-items-center rounded-full border border-accent bg-accent-soft text-accent sm:size-12";
-const pill =
-  "inline-flex shrink-0 items-center gap-1.5 rounded-full border border-border bg-bg px-3 py-1.5 font-heading text-xs font-semibold text-text transition hover:border-accent hover:text-accent focus-visible:ring-4 focus-visible:ring-accent/20 sm:text-sm";
+const pillBase =
+  "inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 font-heading text-xs font-semibold transition focus-visible:ring-4 focus-visible:ring-accent/20 sm:text-sm";
+const pill = `${pillBase} border-border bg-bg text-text hover:border-accent hover:text-accent`;
+// Filled button: its text stays the "on accent" colour on hover (it used to turn into the background colour)
+const pillPrimary = `${pillBase} border-accent bg-accent text-on-accent hover:text-on-accent hover:opacity-90`;
 
 function Row({ icon: Icon, label, value, children }) {
   return (
@@ -60,7 +63,7 @@ export default function Contact() {
         <div className="flex flex-col justify-center gap-4 lg:self-center">
           <ul className="m-0 flex list-none flex-col gap-2 p-0 sm:gap-3">
             <Row icon={MessageCircle} label="WhatsApp, the fastest way" value={WHATSAPP_SHOWN}>
-              <a href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer" className={`${pill} border-accent bg-accent text-on-accent hover:text-on-accent hover:opacity-90`}>
+              <a href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer" className={pillPrimary}>
                 Open chat
                 <ArrowUpRight size={14} aria-hidden="true" />
               </a>
