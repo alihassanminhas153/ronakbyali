@@ -1,58 +1,11 @@
 // src/ui/custom/checkout/CheckoutParts.jsx
 // Pieces shared by the checkout drawer (Buy now) and the checkout page.
 import { useState } from "react";
-import { Eye, EyeOff, Pencil, Check } from "lucide-react";
-import TextInput from "../input/TextInput";
 
 const INPUT =
-  "mt-1 h-11 w-full rounded-md border bg-surface px-3 pr-11 text-text focus:border-accent focus:outline-none";
+  "mt-1 h-11 w-full rounded-md border bg-surface px-3 pr-16 text-text focus:border-accent focus:outline-none";
 
-/* ---------- logged-in user: details as text, with a Change button ---------- */
-export function ContactSummary({ profile, form, errors = {}, onChange, editing, setEditing }) {
-  const rows = [
-    { label: "Name", value: form.customerName },
-    { label: "Username", value: profile?.username ? `@${profile.username}` : "" },
-    { label: "Email", value: form.customerEmail || profile?.email },
-    { label: "Phone", value: form.customerPhone },
-  ].filter((row) => row.label !== "Username" || row.value);
-
-  return (
-    <div className="min-w-0">
-      <div className="flex items-center justify-between gap-3">
-        <h3 className="font-semibold text-text">Your details</h3>
-        <button
-          type="button"
-          onClick={() => setEditing(!editing)}
-          className="inline-flex min-h-9 items-center gap-1.5 rounded-md px-2 text-sm font-medium text-accent hover:bg-accent-soft focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
-        >
-          {editing ? <Check size={15} aria-hidden="true" /> : <Pencil size={15} aria-hidden="true" />}
-          {editing ? "Done" : "Change"}
-        </button>
-      </div>
-
-      {editing ? (
-        <div className="mt-3 grid gap-3 sm:grid-cols-2">
-          <TextInput label="Full name" required value={form.customerName} onChange={onChange("customerName")} error={errors.customerName} maxLength={128} autoComplete="name" />
-          <TextInput label="Phone" required type="tel" value={form.customerPhone} onChange={onChange("customerPhone")} error={errors.customerPhone} maxLength={20} inputMode="tel" autoComplete="tel" />
-        </div>
-      ) : (
-        <dl className="mt-3 grid gap-x-6 gap-y-3 sm:grid-cols-2">
-          {rows.map(({ label, value }) => (
-            <div key={label} className="min-w-0">
-              <dt className="text-[11px] font-semibold uppercase tracking-wider text-muted">{label}</dt>
-              <dd className={`mt-0.5 break-words ${value ? "font-medium text-text" : "text-muted"}`}>{value || "Not added"}</dd>
-            </div>
-          ))}
-        </dl>
-      )}
-      {!editing && (errors.customerName || errors.customerPhone) && (
-        <p role="alert" className="mt-2 text-sm text-error">{errors.customerName || errors.customerPhone}</p>
-      )}
-    </div>
-  );
-}
-
-/* ---------- password with a show / hide eye ---------- */
+/* ---------- password with a show / hide control ---------- */
 export function PasswordField({ label = "Password *", value, onChange, error, autoComplete = "current-password", autoFocus = false }) {
   const [visible, setVisible] = useState(false);
   return (
@@ -74,9 +27,9 @@ export function PasswordField({ label = "Password *", value, onChange, error, au
           onClick={() => setVisible((v) => !v)}
           aria-label={visible ? "Hide password" : "Show password"}
           aria-pressed={visible}
-          className="absolute inset-y-0 right-0 flex w-11 items-center justify-center rounded-r-md text-muted hover:text-text focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
+          className="absolute inset-y-0 right-0 flex w-16 items-center justify-center rounded-r-md text-xs text-muted hover:text-text focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
         >
-          {visible ? <EyeOff size={18} aria-hidden="true" /> : <Eye size={18} aria-hidden="true" />}
+          {visible ? "Hide" : "Show"}
         </button>
       </span>
       {error && <span role="alert" className="mt-1 block text-sm font-normal text-error">{error}</span>}

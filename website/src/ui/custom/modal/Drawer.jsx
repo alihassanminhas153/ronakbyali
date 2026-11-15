@@ -6,7 +6,7 @@ import { toneVar } from '../../graphs/utils';
 // Side panel that slides in from the right (same behaviour as the product form).
 //   Mount it while you need it (use a changing `key` for a fresh form), flip `open`.
 //   onSubmit given -> the panel is a <form>.   footer = buttons node.
-export default function Drawer({ open, onClose, title, titleClassName = '', subtitle, icon: Icon, tone = 1, busy = false, onSubmit, footer, children, width = 'max-w-xl' }) {
+export default function Drawer({ open, onClose, title, titleClassName = '', subtitle, icon: Icon, tone = 1, closeLabel, busy = false, onSubmit, footer, children, width = 'max-w-xl' }) {
   const [shown, setShown] = useState(false);
   const color = toneVar(tone);
 
@@ -51,8 +51,16 @@ export default function Drawer({ open, onClose, title, titleClassName = '', subt
               {subtitle && <p className="truncate text-xs text-muted">{subtitle}</p>}
             </div>
           </div>
-          <button type="button" onClick={onClose} disabled={busy} aria-label="Close" className="grid h-10 w-10 place-items-center rounded-md text-muted transition-colors hover:bg-surface-alt hover:text-text">
-            <X size={18} />
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={busy}
+            aria-label="Close"
+            className={`grid h-10 shrink-0 place-items-center rounded-md text-muted transition-colors hover:bg-surface-alt hover:text-text ${
+              closeLabel ? 'min-w-16 px-3 text-sm' : 'w-10'
+            }`}
+          >
+            {closeLabel || <X size={18} />}
           </button>
         </header>
         <div className="flex-1 space-y-4 overflow-y-auto px-4 py-4 sm:px-6">{children}</div>

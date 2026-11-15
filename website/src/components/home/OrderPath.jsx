@@ -1,399 +1,331 @@
-// src/components/home/OrderPath.jsx   (Home page, after the products marquee)
-//
-// USAGE
-//   <OrderPath />
-//
-// A winding road with smooth, perfectly circular corners that draws itself as you scroll
-// past it, showing how an order travels:
-//   Ordering > Product processing > Packaging > Safe keeping > Dispatching > Delivery > Review
-// Each stop shows only its icon and its heading. The first and last stops are the terminals;
-// the stops in between light up at the moment the drawn line reaches them.
-//
-// The road is a polyline of straight runs (different lengths, directions and angles, so it
-// is irregular) whose every corner is rounded with a true circular arc. It is drawn in layers:
-// a soft wide track, a dotted centre line, then the progress line in a theme gradient with a
-// glow and a pulsing tip.
-//
-// It never pins or hijacks the scroll: the section is a normal block. Scroll updates write
-// straight to the SVG (no React re-render per frame), so scrolling stays smooth. React only
-// re-renders when a stop becomes complete.
-//
-// Phones get their own narrow road. Colours come only from theme variables, so light and
-// dark both work.
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { Box, CreditCard, Palette, Shirt, Truck } from "lucide-react";
 
-import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
-import AppIcon from '../../ui/custom/AppIcon';
-import { useScrollFrame } from './useScrollValue';
+/* ==========================================================================
+   ORDER PATH: one smooth, curvy, stitched line that fits in ONE viewport height.
+   - It starts drawing only when the section is really on screen (about 60% visible),
+     plays once, and takes a fixed time. It is NOT tied to scroll speed.
+   - If the tab is hidden while it draws, it pauses and carries on when you come back
+     (no sudden jump).
+   - A round arrow head travels at the tip of the line and turns with the curve.
+   - Wide screens: the line waves left to right. Phones: top to bottom, labels on the right.
+   Colours come only from your index.css variables.
+   ========================================================================== */
 
-/* ---- Content: edit freely (first = start terminal, last = end terminal) ---- */
-const STAGES = [
-  { title: 'Ordering', note: 'You pick it, customise it and place your order.', icon: 'cart' },
-  { title: 'Product processing', note: 'We confirm your design and get your piece made.', icon: 'settings_gear' },
-  { title: 'Packaging', note: 'Every item is checked and packed with care.', icon: 'boxes' },
-  { title: 'Safe keeping', note: 'Your parcel is held securely until it is ready to go.', icon: 'single_box' },
-  { title: 'Dispatching', note: 'Handed to the courier with your tracking details.', icon: 'truck' },
-  { title: 'Delivery', note: 'Safely at your door, right on time.', icon: 'success' },
-  { title: 'Review', note: 'Tell us how we did and help others choose.', icon: 'reviews' },
+/* ---- Content: edit freely ---- */
+const TITLE = "From idea to your door";
+const STEPS = [
+  { icon: Shirt, title: "Pick a design", text: "Choose a ready-made piece from the shop, or start your own custom design." },
+  { icon: Palette, title: "Make it yours", text: "Pick size and colour. For custom pieces, upload your artwork and add notes." },
+  { icon: CreditCard, title: "Checkout and confirm", text: "Review your cart, pay and confirm. Custom orders get a price check first." },
+  { icon: Box, title: "We make and pack", text: "Ready-made pieces are packed right away. Custom ones are made to order." },
+  { icon: Truck, title: "Tracked delivery", text: "Follow your parcel from our door to yours." },
 ];
 
-/* ---------- Path geometry ----------
-   A layout is a list of corner points V and a corner radius R. Between the points the road
-   runs straight; at every point it turns along a circular arc of radius R (smaller only when
-   a run is too short to fit it). The builder also records every straight run, so a stop can be
-   placed exactly on the road: { seg: which run, t: 0..1 along it, side: where its heading goes }. */
-const f = (n) => Math.round(n * 100) / 100;
+/* ---- Sizes and timing: tweak here ---- */
+const WIDE_AT = 768; // px: this width and above uses the left-to-right layout
+const NODE_WIDE = 56; // step circle size (px)
+const NODE_NARROW = 44;
+const DRAW_MS = 4200; // how long the line takes to draw
+const START_VISIBLE = 0.6; // share of the section that must be on screen before it starts
+const LINE_WIDTH = 14; // thickness of the path (px)
+const SECTION_HEIGHT = "h-[calc(100dvh-var(--header-h,4.5rem))] min-h-[34rem]";
 
-function roundedPath(V, R) {
-  const pieces = []; // straight runs: where each starts/ends and how far along the road it starts
-  let d = `M${f(V[0][0])} ${f(V[0][1])}`;
-  let cur = V[0];
-  let cum = 0;
+const clamp = (n, min, max) => Math.min(max, Math.max(min, n));
+const easeInOut = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
+const prefersReducedMotion = () =>
+  typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 
-  for (let i = 1; i < V.length; i += 1) {
-    const v = V[i];
+/* ---------- Geometry ---------- */
+function buildLayout(w, h, wide) {
+  const n = STEPS.length;
+  const node = wide ? NODE_WIDE : NODE_NARROW;
 
-    if (i === V.length - 1) {
-      const len = Math.hypot(v[0] - cur[0], v[1] - cur[1]);
-      pieces.push({ ax: cur[0], ay: cur[1], bx: v[0], by: v[1], start: cum, len });
-      d += ` L${f(v[0])} ${f(v[1])}`;
-      cum += len;
-      break;
-    }
-
-    const [px, py] = V[i - 1];
-    const [nx, ny] = V[i + 1];
-    const d1x = v[0] - px;
-    const d1y = v[1] - py;
-    const d2x = nx - v[0];
-    const d2y = ny - v[1];
-    const l1 = Math.hypot(d1x, d1y);
-    const l2 = Math.hypot(d2x, d2y);
-    const u1x = d1x / l1;
-    const u1y = d1y / l1;
-    const u2x = d2x / l2;
-    const u2y = d2y / l2;
-    const phi = Math.acos(Math.min(1, Math.max(-1, u1x * u2x + u1y * u2y))); // how sharply the road turns
-
-    // Distance from the corner point where the arc starts and ends (kept to half a run at most)
-    let t = R * Math.tan(phi / 2);
-    t = Math.min(t, Math.min(l1, l2) / 2);
-    const r = t / Math.tan(phi / 2);
-
-    const ax = v[0] - u1x * t;
-    const ay = v[1] - u1y * t;
-    const bx = v[0] + u2x * t;
-    const by = v[1] + u2y * t;
-
-    const len = Math.hypot(ax - cur[0], ay - cur[1]);
-    pieces.push({ ax: cur[0], ay: cur[1], bx: ax, by: ay, start: cum, len });
-    cum += len;
-
-    const clockwise = u1x * u2y - u1y * u2x > 0;
-    d += ` L${f(ax)} ${f(ay)} A${f(r)} ${f(r)} 0 0 ${clockwise ? 1 : 0} ${f(bx)} ${f(by)}`;
-    cum += r * phi; // arc length
-    cur = [bx, by];
+  if (wide) {
+    const nodes = STEPS.map((_, i) => ({
+      x: w * (0.12 + (0.76 * i) / (n - 1)),
+      y: h * (i % 2 === 0 ? 0.64 : 0.34),
+      above: i % 2 === 1,
+    }));
+    return { node, nodes, lead: [{ x: 0, y: h * 0.5 }, { x: w, y: h * 0.5 }], labelW: clamp(w * 0.24, 130, 250) };
   }
 
-  return { d, pieces, total: cum };
+  const xa = node / 2 + 12;
+  const xb = xa + clamp(w * 0.2, 40, 90);
+  const labelLeft = xb + node / 2 + 18;
+  const nodes = STEPS.map((_, i) => ({
+    x: i % 2 === 0 ? xa : xb,
+    y: h * (0.09 + (0.82 * i) / (n - 1)),
+    labelLeft,
+  }));
+  return {
+    node,
+    nodes,
+    lead: [{ x: nodes[0].x, y: 0 }, { x: nodes[n - 1].x, y: h }],
+    labelW: Math.max(110, w - labelLeft - 4),
+  };
 }
 
-function makeLayout(cfg) {
-  const { d, pieces, total } = roundedPath(cfg.V, cfg.R);
-  const stops = cfg.stops.map(({ seg, t, side }) => {
-    const p = pieces[seg];
-    return { x: p.ax + (p.bx - p.ax) * t, y: p.ay + (p.by - p.ay) * t, at: p.start + p.len * t, side };
+function curveSegments(pts) {
+  const segs = [];
+  for (let i = 0; i < pts.length - 1; i++) {
+    const p0 = pts[i - 1] ?? pts[i];
+    const p1 = pts[i];
+    const p2 = pts[i + 1];
+    const p3 = pts[i + 2] ?? pts[i + 1];
+    segs.push([
+      p1,
+      { x: p1.x + (p2.x - p0.x) / 6, y: p1.y + (p2.y - p0.y) / 6 },
+      { x: p2.x - (p3.x - p1.x) / 6, y: p2.y - (p3.y - p1.y) / 6 },
+      p2,
+    ]);
+  }
+  return segs;
+}
+
+const bezierLength = ([a, b, c, d]) => {
+  let len = 0;
+  let prev = a;
+  for (let t = 1; t <= 32; t++) {
+    const u = t / 32;
+    const m = 1 - u;
+    const x = m * m * m * a.x + 3 * m * m * u * b.x + 3 * m * u * u * c.x + u * u * u * d.x;
+    const y = m * m * m * a.y + 3 * m * m * u * b.y + 3 * m * u * u * c.y + u * u * u * d.y;
+    len += Math.hypot(x - prev.x, y - prev.y);
+    prev = { x, y };
+  }
+  return len;
+};
+
+const f = (n) => Math.round(n * 10) / 10;
+
+function buildPath(layout) {
+  const pts = [layout.lead[0], ...layout.nodes, layout.lead[1]];
+  const segs = curveSegments(pts);
+  const d =
+    `M${f(pts[0].x)},${f(pts[0].y)}` +
+    segs.map(([, c1, c2, p]) => ` C${f(c1.x)},${f(c1.y)} ${f(c2.x)},${f(c2.y)} ${f(p.x)},${f(p.y)}`).join("");
+
+  const lengths = segs.map(bezierLength);
+  const total = lengths.reduce((a, b) => a + b, 0) || 1;
+  let run = 0;
+  const marks = layout.nodes.map((_, i) => {
+    run += lengths[i];
+    return run / total;
   });
-  return { ...cfg, d, total, stops };
+  return { d, marks };
 }
 
-// Wide screens (md and up)
-const WIDE = makeLayout({
-  key: 'wide',
-  w: 1000,
-  h: 1720,
-  R: 80,
-  stroke: 10,
-  headR: 12,
-  V: [
-    [150, 100], [650, 100], [880, 330], [880, 560], [420, 560], [180, 800],
-    [180, 1040], [640, 1040], [860, 1260], [860, 1480], [500, 1480], [320, 1600],
-  ],
-  stops: [
-    { seg: 0, t: 0, side: 'bottom' },
-    { seg: 2, t: 0.5, side: 'left' },
-    { seg: 4, t: 0.5, side: 'right' },
-    { seg: 6, t: 0.5, side: 'bottom' },
-    { seg: 8, t: 0.5, side: 'left' },
-    { seg: 9, t: 0.5, side: 'bottom' },
-    { seg: 10, t: 1, side: 'bottom' },
-  ],
-  offset: 2.5, // rem between a stop and its heading
-  termOffset: 3.25,
-  chip: 'size-12',
-  term: 'size-16',
-  icon: 28,
-  termIcon: 36,
-});
+/* ---------- Hooks ---------- */
+function useSize(ref) {
+  const [size, setSize] = useState({ w: 0, h: 0 });
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const read = () => setSize({ w: el.clientWidth, h: el.clientHeight });
+    read();
+    const ro = new ResizeObserver(read);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [ref]);
+  return size;
+}
 
-// Phones: a narrow road near the left, every heading on the right
-const NARROW = makeLayout({
-  key: 'narrow',
-  w: 400,
-  h: 1600,
-  R: 34,
-  stroke: 7,
-  headR: 9,
-  V: [
-    [70, 60], [70, 230], [160, 320], [160, 520], [70, 610],
-    [70, 800], [170, 900], [170, 1100], [60, 1200], [60, 1500],
-  ],
-  stops: [
-    { seg: 0, t: 0, side: 'right' },
-    { seg: 2, t: 0.3, side: 'right' },
-    { seg: 4, t: 0.5, side: 'right' },
-    { seg: 6, t: 0.5, side: 'right' },
-    { seg: 7, t: 0.5, side: 'right' },
-    { seg: 8, t: 0.4, side: 'right' },
-    { seg: 8, t: 1, side: 'right' },
-  ],
-  offset: 2,
-  termOffset: 2.5,
-  chip: 'size-10',
-  term: 'size-12',
-  icon: 24,
-  termIcon: 30,
-});
-
-const clamp = (v) => Math.min(1, Math.max(0, v));
-
-function useMedia(query) {
-  const [matches, setMatches] = useState(() => typeof window !== 'undefined' && window.matchMedia(query).matches);
+// True once the section has been (mostly) on screen. It never goes back to false.
+function useSeen(ref) {
+  const [seen, setSeen] = useState(false);
   useEffect(() => {
-    const mq = window.matchMedia(query);
-    const on = () => setMatches(mq.matches);
-    on();
-    mq.addEventListener('change', on);
-    return () => mq.removeEventListener('change', on);
-  }, [query]);
-  return matches;
+    const el = ref.current;
+    if (!el || seen) return;
+    if (typeof IntersectionObserver === "undefined") {
+      setSeen(true);
+      return;
+    }
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setSeen(true);
+          io.disconnect();
+        }
+      },
+      { threshold: START_VISIBLE },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [ref, seen]);
+  return seen;
 }
 
-// Where a stop's heading sits, as inline style + classes
-function headingPlacement(stop, L, terminal) {
-  const xPct = (stop.x / L.w) * 100;
-  const yPct = (stop.y / L.h) * 100;
-  const off = terminal ? L.termOffset : L.offset;
-
-  switch (stop.side) {
-    case 'left':
-      return {
-        cls: '-translate-y-1/2 text-right',
-        style: { top: `${yPct}%`, right: `calc(${100 - xPct}% + ${off}rem)`, maxWidth: `calc(${xPct}% - ${off}rem - 0.5rem)` },
-      };
-    case 'right':
-      return {
-        cls: '-translate-y-1/2 text-left',
-        style: { top: `${yPct}%`, left: `calc(${xPct}% + ${off}rem)`, maxWidth: `calc(${100 - xPct}% - ${off}rem - 0.5rem)` },
-      };
-    case 'top':
-      return { cls: '-translate-x-1/2 text-center', style: { left: `${xPct}%`, bottom: `calc(${100 - yPct}% + ${off}rem)`, maxWidth: '45%' } };
-    default: // bottom
-      return { cls: '-translate-x-1/2 text-center', style: { left: `${xPct}%`, top: `calc(${yPct}% + ${off}rem)`, maxWidth: '45%' } };
-  }
+// 0 -> 1 over DRAW_MS once `start` is true. A hidden tab pauses it (frame gaps are capped,
+// so coming back never makes it jump).
+function useDrawProgress(start) {
+  const [p, setP] = useState(0);
+  useEffect(() => {
+    if (!start) return;
+    if (prefersReducedMotion()) {
+      setP(1);
+      return;
+    }
+    let raf = 0;
+    let last = 0;
+    let elapsed = 0;
+    const tick = (now) => {
+      if (last) elapsed += Math.min(now - last, 50); // cap the gap
+      last = now;
+      const t = clamp(elapsed / DRAW_MS, 0, 1);
+      setP(easeInOut(t));
+      if (t < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [start]);
+  return p;
 }
 
+/* ---------- Component ---------- */
 export default function OrderPath() {
-  const wide = useMedia('(min-width: 768px)');
-  const L = wide ? WIDE : NARROW;
-  const gradId = `road-${useId().replace(/:/g, '')}`;
-
-  const boxRef = useRef(null);
+  const sectionRef = useRef(null);
+  const areaRef = useRef(null);
   const pathRef = useRef(null);
   const headRef = useRef(null);
-  const pulseRef = useRef(null);
-  const lengthRef = useRef(0);
-  const progressRef = useRef(0);
-  const [doneCount, setDoneCount] = useState(1); // stops completed so far (the start terminal counts from the beginning)
 
-  // Draws the line for the current progress. Writes straight to the DOM, no re-render.
-  const apply = () => {
+  const { w, h } = useSize(areaRef);
+  const seen = useSeen(sectionRef);
+  const p = useDrawProgress(seen);
+  const wide = w >= WIDE_AT;
+
+  const ready = w > 0 && h > 0;
+  const layout = ready ? buildLayout(w, h, wide) : null;
+  const geometry = layout ? buildPath(layout) : null;
+  const d = geometry?.d;
+
+  // Move the arrow head to the tip of the line and turn it along the curve
+  useEffect(() => {
     const path = pathRef.current;
-    const total = lengthRef.current;
-    if (!path || !total) return;
+    const head = headRef.current;
+    if (!path || !head || !d) return;
+    const total = path.getTotalLength();
+    const at = total * p;
+    const a = path.getPointAtLength(Math.max(0, at - 2));
+    const b = path.getPointAtLength(Math.min(total, at + 2));
+    const angle = (Math.atan2(b.y - a.y, b.x - a.x) * 180) / Math.PI;
+    head.setAttribute("transform", `translate(${b.x} ${b.y}) rotate(${angle})`);
+  }, [p, d]);
 
-    const drawn = progressRef.current * total;
-    path.style.strokeDashoffset = String(total - drawn);
-
-    const tip = path.getPointAtLength(drawn);
-    [headRef.current, pulseRef.current].forEach((c) => {
-      if (!c) return;
-      c.setAttribute('cx', tip.x);
-      c.setAttribute('cy', tip.y);
-    });
-
-    // A stop is complete once the line has reached it
-    setDoneCount(L.stops.filter((s) => s.at <= drawn + 0.5).length); // no-op when unchanged
-  };
-
-  // Measure the road and hide the line, whenever the layout (wide or narrow) is shown
-  useLayoutEffect(() => {
-    const path = pathRef.current;
-    if (!path) return;
-    lengthRef.current = path.getTotalLength();
-    path.style.strokeDasharray = String(lengthRef.current);
-    path.style.strokeDashoffset = String(lengthRef.current);
-    apply();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [L]);
-
-  // 0 when the road's top is 70% down the screen, 1 when its last stop has come into view
-  useScrollFrame((vh) => {
-    const box = boxRef.current;
-    if (!box) return;
-    const rect = box.getBoundingClientRect();
-    progressRef.current = clamp((vh * 0.7 - rect.top) / (rect.height * 0.85));
-    apply();
-  });
+  const headVisible = p > 0.002 && p < 0.995;
 
   return (
     <section
-      aria-labelledby="journey-title"
-      className="relative overflow-x-clip border-t border-border bg-bg px-4 py-12 sm:px-6 sm:py-16"
+      ref={sectionRef}
+      aria-labelledby="order-path-title"
+      className={`relative flex flex-col overflow-hidden px-4 py-6 sm:px-6 sm:py-8 ${SECTION_HEIGHT}`}
     >
-      <header className="mx-auto max-w-2xl text-center">
-        <p className="text-sm font-medium tracking-[0.2em] text-accent uppercase">The journey</p>
-        <h2
-          id="journey-title"
-          className="font-display text-[clamp(2.25rem,6vw,4rem)] leading-[0.95] font-bold tracking-[0.01em] text-text uppercase"
-        >
-          From order to <span className="text-accent">your door</span>
-        </h2>
-      </header>
-
-      {/* Screen readers get the steps as a plain list */}
-      <ol className="sr-only">
-        {STAGES.map((s) => (
-          <li key={s.title}>
-            {s.title}: {s.note}
-          </li>
-        ))}
-      </ol>
-
-      {/* The box keeps the SVG's shape, so stops and headings placed in % stay on the road */}
-      <div
-        ref={boxRef}
-        aria-hidden="true"
-        className="relative mx-auto mt-8 w-full max-w-4xl"
-        style={{ aspectRatio: `${L.w} / ${L.h}` }}
+      <h2
+        id="order-path-title"
+        className="font-display text-4xl leading-[0.9] font-bold tracking-[0.01em] text-text uppercase sm:text-6xl lg:text-7xl"
       >
-        <svg viewBox={`0 0 ${L.w} ${L.h}`} className="absolute inset-0 h-full w-full overflow-visible" fill="none">
-          <defs>
-            <linearGradient id={gradId} gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2={L.h}>
-              <stop offset="0" style={{ stopColor: 'var(--accent)' }} />
-              <stop offset="1" style={{ stopColor: 'var(--accent-hover)' }} />
-            </linearGradient>
-          </defs>
+        {TITLE}
+      </h2>
 
-          {/* 1. Soft wide track: the road itself */}
-          <path
-            d={L.d}
-            stroke="var(--accent)"
-            strokeOpacity="0.1"
-            strokeWidth={L.stroke * 2.6}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-          {/* 2. Dotted centre line: the road ahead */}
-          <path
-            d={L.d}
-            stroke="var(--accent)"
-            strokeOpacity="0.55"
-            strokeWidth={L.stroke * 0.3}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeDasharray={`1 ${L.stroke * 1.4}`}
-          />
+      <div ref={areaRef} className="relative mt-2 min-h-0 flex-1">
+        {ready && (
+          <>
+            <svg
+              aria-hidden="true"
+              width={w}
+              height={h}
+              viewBox={`0 0 ${w} ${h}`}
+              className="pointer-events-none absolute inset-0 overflow-visible"
+              fill="none"
+            >
+              {/* the empty ribbon */}
+              <path d={d} className="stroke-surface-alt" strokeWidth={LINE_WIDTH} strokeLinecap="round" />
+              <path d={d} className="stroke-border" strokeWidth={LINE_WIDTH} strokeLinecap="round" opacity="0.55" />
 
-          {/* 3. Progress line (its dash offset is set from the scroll) */}
-          <g style={{ filter: 'drop-shadow(0 0 6px var(--accent))' }}>
-            <path
-              key={L.key}
-              ref={pathRef}
-              d={L.d}
-              stroke={`url(#${gradId})`}
-              strokeWidth={L.stroke}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </g>
+              {/* the filled ribbon, drawn with pathLength="1" so a 0..1 value controls it */}
+              <path
+                ref={pathRef}
+                d={d}
+                pathLength="1"
+                className="stroke-accent"
+                strokeWidth={LINE_WIDTH}
+                strokeLinecap="round"
+                strokeDasharray="1"
+                strokeDashoffset={1 - p}
+                style={{ opacity: p > 0.002 ? 1 : 0 }}
+              />
 
-          {/* 4. Tip of the line, with a soft pulse */}
-          <circle
-            ref={pulseRef}
-            cx={L.stops[0].x}
-            cy={L.stops[0].y}
-            r={L.headR}
-            fill="var(--accent)"
-            className="animate-ring"
-            style={{ transformBox: 'fill-box', transformOrigin: 'center' }}
-          />
-          <circle
-            ref={headRef}
-            cx={L.stops[0].x}
-            cy={L.stops[0].y}
-            r={L.headR}
-            fill="var(--accent)"
-            stroke="var(--bg)"
-            strokeWidth={L.stroke / 2.5}
-          />
-        </svg>
+              {/* stitches along the whole ribbon, like thread */}
+              <path
+                d={d}
+                className="stroke-bg"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeDasharray="7 9"
+                opacity="0.9"
+              />
 
-        {/* Stops and their headings */}
-        {STAGES.map((stage, i) => {
-          const stop = L.stops[i];
-          const xPct = (stop.x / L.w) * 100;
-          const yPct = (stop.y / L.h) * 100;
-          const terminal = i === 0 || i === STAGES.length - 1;
-          const isDone = i < doneCount;
-          const isCurrent = i === doneCount;
-          const place = headingPlacement(stop, L, terminal);
-
-          return (
-            <div key={stage.title}>
-              {/* The stop */}
-              <span
-                className={`absolute z-10 grid -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full border-2 transition-all duration-500 ${
-                  terminal ? L.term : L.chip
-                } ${terminal ? 'ring-4 ring-accent/20' : ''} ${
-                  isDone
-                    ? 'scale-100 border-accent bg-accent text-on-accent shadow-[0_8px_20px_-8px_var(--accent)]'
-                    : 'scale-90 border-border bg-surface text-muted'
-                }`}
-                style={{ left: `${xPct}%`, top: `${yPct}%` }}
-              >
-                {isCurrent && <span className="absolute inset-0 animate-ring rounded-full bg-accent/40" />}
-                <AppIcon
-                  name={stage.icon}
-                  className="relative"
-                  style={{
-                    width: terminal ? L.termIcon : L.icon,
-                    height: terminal ? L.termIcon : L.icon,
-                  }}
+              {/* the arrow head: a round badge that travels with the line and turns with it */}
+              <g ref={headRef} style={{ opacity: headVisible ? 1 : 0, transition: "opacity 300ms" }}>
+                <circle r="20" className="fill-accent stroke-bg" strokeWidth="4" />
+                <path
+                  d="M-6,-7 L7,0 L-6,7 L-3,0 Z"
+                  className="fill-on-accent stroke-on-accent"
+                  strokeWidth="2"
+                  strokeLinejoin="round"
                 />
-              </span>
+              </g>
+            </svg>
 
-              {/* Heading only */}
-              <span
-                className={`absolute block font-display text-[1.35rem] leading-[0.95] font-bold tracking-[0.01em] uppercase transition-colors duration-500 md:text-[clamp(1.5rem,2.8vw,2.4rem)] ${place.cls} ${
-                  isDone ? 'text-text' : 'text-muted'
-                }`}
-                style={place.style}
-              >
-                {stage.title}
-              </span>
-            </div>
-          );
-        })}
+            <ol className="absolute inset-0 m-0 list-none p-0">
+              {STEPS.map(({ icon: Icon, title, text }, i) => {
+                const n = layout.nodes[i];
+                const reached = p >= geometry.marks[i] - 0.01;
+
+                const labelStyle = wide
+                  ? {
+                      left: n.x,
+                      top: n.above ? n.y - layout.node / 2 - 16 : n.y + layout.node / 2 + 16,
+                      width: layout.labelW,
+                      transform: n.above ? "translate(-50%, -100%)" : "translate(-50%, 0)",
+                    }
+                  : { left: n.labelLeft, top: n.y, width: layout.labelW, transform: "translate(0, -50%)" };
+
+                return (
+                  <li key={title}>
+                    <div
+                      className={`absolute z-10 grid place-items-center rounded-full border-[3px] transition-[background-color,border-color,color,transform] duration-500 motion-reduce:transition-none ${
+                        reached
+                          ? "border-bg bg-accent text-on-accent shadow-soft"
+                          : "border-border bg-surface text-muted"
+                      }`}
+                      style={{
+                        left: n.x,
+                        top: n.y,
+                        width: layout.node,
+                        height: layout.node,
+                        transform: `translate(-50%, -50%) scale(${reached ? 1 : 0.88})`,
+                      }}
+                    >
+                      <Icon size={wide ? 22 : 18} strokeWidth={2} aria-hidden="true" />
+                    </div>
+
+                    <div className="absolute" style={labelStyle}>
+                      <div
+                        className={`transition duration-500 motion-reduce:transition-none ${wide ? "text-center" : "text-left"} ${
+                          reached ? "translate-y-0 opacity-100" : "translate-y-2 opacity-0"
+                        }`}
+                      >
+                        <h3 className="font-heading text-sm leading-tight font-semibold text-text sm:text-lg">{title}</h3>
+                        <p className="mt-0.5 text-xs leading-snug text-muted sm:text-sm">{text}</p>
+                      </div>
+                    </div>
+                  </li>
+                );
+              })}
+            </ol>
+          </>
+        )}
       </div>
     </section>
   );

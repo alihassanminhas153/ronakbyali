@@ -5,9 +5,12 @@ import { ArrowUpRight, Tag } from "lucide-react";
 // Adjust these paths to where Home.jsx lives (this assumes src/pages/shared/Home.jsx)
 import ProductsMarquee from "../../../components/home/ProductsMarquee";
 import OrderPath from "../../../components/home/OrderPath";
+import Faqs from "../../../components/home/Faqs";
+import Footer from "../../../components/home/Footer";
+import useSmoothScroll from "../../../components/home/useSmoothScroll";
 
 /* ==========================================================================
-   HOME: hero section, then the products marquee, then the order journey
+   HOME: hero section, then the products marquee, the order journey, then the FAQs
    The hero is exactly the viewport height minus your layout's header.
    Layers (back to front):
      1. big two-word heading, ONE row, top of the hero, swaps words all at once
@@ -70,7 +73,8 @@ const MIN_LOADER_MS = 1600;
 const HEADING_WIDTH_FILL = 0.96; // 1 = edge to edge; the widest phrase fills this share of the row
 const HEADING_MAX_HEIGHT = 0.6; // heading may never be taller than this share of the hero
 // Image box height as a share of the hero (phone / tablet / desktop)
-const IMAGE_HEIGHT = "h-[88%] sm:h-[94%] lg:h-[98%]";
+// Phones: centred and lifted a little above the bottom edge. From sm up: sits on the bottom edge as before.
+const IMAGE_HEIGHT = "bottom-[14%] h-[74%] sm:bottom-0 sm:h-[94%] lg:h-[98%]";
 
 /* The layout injects the header. Set --header-h on your layout wrapper
    (e.g. style={{ "--header-h": "4rem" }}) so the hero is exactly 100dvh minus it.
@@ -80,6 +84,22 @@ const HERO_HEIGHT = "h-[calc(100dvh-var(--header-h,4.5rem))] min-h-[26rem]";
 const prefersReducedMotion = () =>
   typeof window !== "undefined" &&
   window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+
+/* ---------- Is the tab on screen? ----------
+   Browsers slow timers down and freeze animation frames in a background tab. Without this,
+   the slider and heading kept counting and then replayed everything at once when you came back.
+   Now every timer below pauses while the tab is hidden and starts fresh when it returns. */
+function usePageVisible() {
+  const [visible, setVisible] = useState(
+    typeof document === "undefined" ? true : document.visibilityState !== "hidden",
+  );
+  useEffect(() => {
+    const onChange = () => setVisible(document.visibilityState !== "hidden");
+    document.addEventListener("visibilitychange", onChange);
+    return () => document.removeEventListener("visibilitychange", onChange);
+  }, []);
+  return visible;
+}
 
 /* ---------- Hero images: known at build time, so only the first one is waited for ---------- */
 function useHeroImages() {
@@ -183,7 +203,7 @@ function Loader({ visible }) {
    while the previous one slides up and out, together, inside a mask. */
 const SWAP_EASE = "duration-[900ms] ease-[cubic-bezier(0.2,0.8,0.2,1)]";
 
-function Heading({ ready, sectionRef }) {
+function Heading({ ready, sectionRef, visible }) {
   const [current, setCurrent] = useState(0);
   const wrapRef = useRef(null);
   const innerRef = useRef(null);
@@ -191,10 +211,10 @@ function Heading({ ready, sectionRef }) {
 
   // Swap to the next phrase on a timer (not at all with reduced motion)
   useEffect(() => {
-    if (!ready || prefersReducedMotion()) return;
+    if (!ready || !visible || prefersReducedMotion()) return;
     const id = setInterval(() => setCurrent((c) => (c + 1) % HEADING_PHRASES.length), HEADING_SWAP_MS);
     return () => clearInterval(id);
-  }, [ready]);
+  }, [ready, visible]);
 
   const previous = (current - 1 + HEADING_PHRASES.length) % HEADING_PHRASES.length;
 
@@ -284,6 +304,8 @@ function Slide({ src, alt, status, rising }) {
 export default function Home() {
   const sectionRef = useRef(null);
   const { images, firstDone } = useHeroImages();
+  const visible = usePageVisible();
+  useSmoothScroll(); // eased wheel / touch scrolling for this page (npm i lenis)
 
   const [minTimePassed, setMinTimePassed] = useState(false);
   const [current, setCurrent] = useState(0); // which image is showing
@@ -319,12 +341,19 @@ export default function Home() {
     [current],
   );
 
-  // Auto-advance, forever. The timer restarts whenever the image changes (so a dot click resets it).
+  // Coming back to the tab: any slide that was mid-exit is parked at once, so nothing replays
   useEffect(() => {
-    if (!ready || images.length < 2 || prefersReducedMotion()) return;
+    if (!visible) return;
+    setStatuses((prev) => (prev.includes("leaving") ? prev.map((st) => (st === "leaving" ? "parked" : st)) : prev));
+  }, [visible]);
+
+  // Auto-advance, forever. The timer restarts whenever the image changes (so a dot click resets it).
+  // It does not run while the tab is hidden, and starts a full fresh wait when the tab comes back.
+  useEffect(() => {
+    if (!ready || !visible || images.length < 2 || prefersReducedMotion()) return;
     const id = setTimeout(() => goTo((current + 1) % images.length), SLIDE_MS);
     return () => clearTimeout(id);
-  }, [ready, images.length, current, goTo]);
+  }, [ready, visible, images.length, current, goTo]);
 
   return (
     <>
@@ -337,12 +366,12 @@ export default function Home() {
       >
         {/* Heading, pinned to the top. z-0 puts it BEHIND the images (z-10). */}
         <div className="relative z-0 px-3 pt-2 sm:px-6 sm:pt-4">
-          <Heading ready={ready} sectionRef={sectionRef} />
+          <Heading ready={ready} sectionRef={sectionRef} visible={visible} />
         </div>
 
         {/* Images: transparent, bottom-anchored. object-contain scales each one to the
             biggest size that fits, on every screen. Sliding is clipped by the section. */}
-        <div className={`pointer-events-none absolute inset-x-0 bottom-0 z-10 ${IMAGE_HEIGHT}`}>
+        <div className={`pointer-events-none absolute inset-x-0 z-10 ${IMAGE_HEIGHT}`}>
           {/* Soft ground shadow. It is static, so the moving images carry no shadow filter. */}
           <div
             aria-hidden="true"
@@ -418,8 +447,14 @@ export default function Home() {
       {/* Products, right after the hero */}
       <ProductsMarquee />
 
-      {/* Order journey: a path that draws itself as you scroll */}
+      {/* Order journey: one viewport tall, a curvy path that draws itself as you scroll */}
       <OrderPath />
+
+      {/* FAQs: one viewport tall, click a question and its answer slides in */}
+      <Faqs />
+
+      {/* Footer: contact details, links and the big jelly RONAK */}
+      <Footer />
     </>
   );
 }
