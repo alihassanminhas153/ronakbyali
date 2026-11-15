@@ -98,7 +98,7 @@ function SectionLabel({ collapsed, children }) {
   );
 }
 
-// The site favicon (public/favicon.svg). Falls back to a store icon if the file is missing.
+// The site favicon. Falls back to a store icon if the file is missing.
 function Brand() {
   const [failed, setFailed] = useState(false);
   return failed ? (
@@ -107,7 +107,7 @@ function Brand() {
     </span>
   ) : (
     <img
-      src="/favicon.svg"
+      src="/images/icons/branding/favicon.ico"
       alt=""
       title="Ronak By Ali"
       onError={() => setFailed(true)}

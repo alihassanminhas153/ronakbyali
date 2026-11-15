@@ -24,6 +24,7 @@ export const PATHS = {
   contact: "/contact",
   privacy: "/privacy",
   faqs: "/faqs",
+  customStudio: "/custom-studio",
 
   // accounts
   signin: "/welcome-back",
@@ -72,6 +73,7 @@ export const RESERVED_USERNAMES = [
   "products",
   "team",
   "auth",
+  "custom-studio",
   "welcome-back",
   "create-account",
   ...PRODUCT_LIST_ALIASES,

@@ -1,5 +1,6 @@
 import { useId, useState } from "react";
 import FaqArt from "./FaqArt";
+import { HOME_FAQS } from "./faqData";
 
 /* ==========================================================================
    FAQS: a chat-style question list, exactly one viewport tall (minus the header).
@@ -10,44 +11,13 @@ import FaqArt from "./FaqArt";
    Colours come only from your index.css variables, so light and dark both work.
    ========================================================================== */
 
-/* ---- Content: replace these with your own ---- */
-const FAQS = [
-  {
-    q: "Can I get a custom design made?",
-    a: "Yes. Send us a picture, a sketch or just the idea, and we will tell you what is possible, how long it takes and what it costs before we start.",
-  },
-  {
-    q: "How long does an order take?",
-    a: "Ready-made pieces ship within 2 to 3 days. Custom pieces take 7 to 14 days depending on the design, and we update you at every stage.",
-  },
-  {
-    q: "How do I know my size?",
-    a: "Use the size guide on each product page, or send us your measurements and we will recommend the closest fit. Custom orders are stitched to your exact measurements.",
-  },
-  {
-    q: "Is delivery safe and tracked?",
-    a: "Every parcel is packed carefully and sent with a tracking number, so you can follow it from our door to yours.",
-  },
-  {
-    q: "What if it does not fit?",
-    a: "Tell us within 7 days and we will exchange it or alter it for you. Custom pieces can be altered, but they cannot be returned.",
-  },
-  {
-    q: "Which payment methods do you accept?",
-    a: "You can pay online by card or bank transfer, or choose cash on delivery on ready-made pieces.",
-  },
-  {
-    q: "Do you offer discounts?",
-    a: "Yes. Seasonal sales and bulk-order discounts appear in the alerts bell and on the products page, so keep an eye there.",
-  },
-];
-
-const LOGO = "../../../public/images/icons/branding/favicon.ico"; // logo shown in the round badge at the end of the answer
+const LOGO = "/images/icons/branding/logo.webp"; // logo shown in the round badge at the end of the answer
 
 // Same trick as the hero: exactly one viewport tall minus the header, but never shorter than its content needs
 const SECTION_HEIGHT = "min-h-[calc(100dvh-var(--header-h,4.5rem))]";
 
-export default function Faqs() {
+// items: the questions to show (edit them in faqData.js). as: "h2" on the home page, "h1" on the FAQs page.
+export default function Faqs({ items = HOME_FAQS, as: Heading = "h2" }) {
   const [open, setOpen] = useState(0); // index of the open question; there is always one
   const baseId = useId();
 
@@ -56,23 +26,22 @@ export default function Faqs() {
       aria-labelledby={`${baseId}-title`}
       className={`mx-auto grid w-full max-w-[90rem] gap-5 px-4 py-6 sm:px-6 sm:py-8 lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] lg:gap-12 ${SECTION_HEIGHT}`}
     >
-      {/* Left: heading, with an optional picture pinned to the bottom */}
-      <div className="flex min-h-0 flex-col justify-between gap-6">
-        <h2
+      {/* Left: heading with the animated cat. Phones: side by side. Large screens: heading on top, cat at the bottom */}
+      <div className="flex min-h-0 items-end justify-between gap-3 lg:sticky lg:top-[calc(var(--header-h,4.5rem)+1rem)] lg:h-[calc(100dvh-var(--header-h,4.5rem)-4rem)] lg:flex-col lg:items-stretch lg:gap-6 lg:self-start">
+        <Heading
           id={`${baseId}-title`}
-          className="font-display text-5xl leading-[0.85] font-bold tracking-[0.01em] text-text uppercase sm:text-7xl lg:text-8xl xl:text-9xl"
+          className="min-w-0 font-display text-[2.75rem] leading-[0.85] font-bold tracking-[0.01em] text-text uppercase sm:text-7xl lg:text-8xl xl:text-9xl"
         >
           <span className="block">Things you</span>
           <span className="block">might ask</span>
-        </h2>
+        </Heading>
 
-        {/* Animated drawing: large screens only, so phones keep the list in one screen */}
-        <FaqArt className="mt-auto hidden max-h-[42dvh] w-full max-w-[34rem] text-text lg:block" />
+        <FaqArt className="w-[36%] max-w-[9rem] shrink-0 text-text sm:w-[30%] sm:max-w-[14rem] lg:mt-auto lg:max-h-[42dvh] lg:w-full lg:max-w-[34rem]" />
       </div>
 
       {/* Right: questions and the open answer */}
       <ul className="m-0 flex list-none flex-col justify-center gap-1.5 p-0 sm:gap-2 lg:self-center">
-        {FAQS.map(({ q, a }, i) => {
+        {items.map(({ q, a }, i) => {
           const isOpen = open === i;
           const buttonId = `${baseId}-q${i}`;
           const panelId = `${baseId}-a${i}`;
@@ -117,7 +86,7 @@ export default function Faqs() {
                     </p>
                     <span
                       aria-hidden="true"
-                      className="grid size-9 shrink-0 place-items-center overflow-hidden rounded-full border border-accent bg-[#eee] p-1.5 sm:size-12 sm:p-2"
+                      className="grid size-9 shrink-0 place-items-center overflow-hidden rounded-full border border-accent bg-[#ddd] p-1.5 sm:size-12 sm:p-2"
                     >
                       <img src={LOGO} alt="" draggable={false} className="size-full object-contain select-none" />
                     </span>

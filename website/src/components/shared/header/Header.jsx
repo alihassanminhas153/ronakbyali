@@ -157,9 +157,9 @@ export default function Header({ logo, pages = [], showOffers = false }) {
           <Link
             to="/"
             aria-label="Ronak by Ali, home"
-            className={`shrink-0 rounded-lg text-lg font-bold tracking-tight text-text transition-colors hover:text-accent sm:text-xl ${FOCUS}`}
+            className={`flex shrink-0 items-center rounded-lg transition-opacity hover:opacity-80 ${FOCUS}`}
           >
-            {logo ?? 'Ronak by Ali'}
+            {logo ?? <img src="/images/icons/branding/logo.webp" alt="" className="h-12 w-14 object-contain" />}
           </Link>
 
           <div className="flex items-center gap-2">

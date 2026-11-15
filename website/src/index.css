@@ -24,24 +24,24 @@
 /* ---------- 1. Dark mode works with either <html class="dark"> or <html data-theme="dark"> ---------- */
 @custom-variant dark (&:where(.dark, .dark *, [data-theme="dark"], [data-theme="dark"] *));
 
-/* ---------- 2. Fonts (self-hosted, files in /public/fonts) ---------- */
+/* ---------- 2. Fonts (self-hosted, files in public/fonts) ---------- */
 @font-face {
   font-family: "Barlow Condensed";
-  src: url("/public/fonts/BarlowCondensed-SemiBold.ttf") format("truetype");
+  src: url("/fonts/BarlowCondensed-SemiBold.ttf") format("truetype");
   font-weight: 600;
   font-style: normal;
   font-display: swap;
 }
 @font-face {
   font-family: "Barlow Condensed";
-  src: url("/public/fonts/BarlowCondensed-Bold.ttf") format("truetype");
+  src: url("/fonts/BarlowCondensed-Bold.ttf") format("truetype");
   font-weight: 700;
   font-style: normal;
   font-display: swap;
 }
 @font-face {
   font-family: "Inter";
-  src: url("/public/fonts/Inter-VariableFont_opsz\,wght.ttf") format("truetype");
+  src: url("/fonts/Inter-VariableFont_opsz\,wght.ttf") format("truetype");
   font-weight: 100 900; /* widened so heading weights (600-800) render correctly */
   font-style: normal;
   font-display: swap;
@@ -50,7 +50,7 @@
 /* Panel / section heading font (admin + user panels) */
 @font-face {
   font-family: "Space Grotesk";
-  src: url("/public/fonts/SpaceGrotesk-VariableFont_wght.ttf") format("truetype");
+  src: url("/fonts/SpaceGrotesk-VariableFont_wght.ttf") format("truetype");
   font-weight: 300 700;
   font-style: normal;
   font-display: swap;

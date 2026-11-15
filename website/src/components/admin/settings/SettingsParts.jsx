@@ -6,7 +6,7 @@ import AppIcon from '../../../ui/custom/AppIcon';
 import { getAvatarUrl } from '../../../store/slices/authSlice';
 import { initials } from './settingsMeta';
 
-/* ---------- icons: the .ico files in public/images/icons/app_icons, one colour family ---------- */
+/* ---------- icons: the .ico files at /images/icons/app_icons, one colour family ---------- */
 
 export const Ico = ({ name, className = 'size-6', tone = 1, entity, hueRotate = true }) => (
   <AppIcon name={name} tone={tone} entity={entity} hueRotate={hueRotate} className={`${className} shrink-0 object-contain`} />

@@ -1,10 +1,21 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Link } from "react-router";
 import { useSelector } from "react-redux";
 import { Check, Copy, Mail, MessageCircle, User } from "lucide-react";
 
 import { PATHS } from "../../router/path";
 import { selectMe } from "../../store/slices/userSlice";
+import useCopied from "../../lib/useCopied";
+import {
+  BRAND,
+  OWNER,
+  EMAIL,
+  WHATSAPP_SHOWN,
+  WHATSAPP_URL,
+  LOGIN_PATH,
+  SIGNUP_PATH,
+  CUSTOM_STUDIO_PATH,
+} from "../../lib/siteInfo";
 
 /* ==========================================================================
    FOOTER
@@ -17,17 +28,10 @@ import { selectMe } from "../../store/slices/userSlice";
    Colours and fonts come from index.css (font-display = Barlow Condensed Bold).
    ========================================================================== */
 
-/* ---- Content: edit freely ---- */
-const BRAND = "Ronak By Ali";
-const BIG_WORD = "RONAK";
-const OWNER = "Ali Hassan Minhas";
-const EMAIL = "ronakbyali@gmail.com";
-const WHATSAPP_DIGITS = "923218854601"; // used in the wa.me link (no + or spaces)
-const WHATSAPP_SHOWN = "+92 321 8854601";
-const WHATSAPP_TEXT = "Hello Ronak By Ali, I would like to ask about an order.";
+/* Contact details and paths live in src/lib/siteInfo.js */
 
-const LOGIN_PATH = "/welcome-back";
-const SIGNUP_PATH = "/create-account";
+// The huge word at the very bottom of the page
+const BIG_WORD = "RONAK";
 
 /* ---- Sizes and timing ---- */
 const WORD_FILL = 0.98; // how much of the width the big word may fill
@@ -55,42 +59,6 @@ const WOBBLE_FRAMES = [
   { transform: "scale(1.03, 0.98)" },
   { transform: "scale(1, 1)" },
 ];
-
-/* ---------- Copy to clipboard (with an old-browser fallback) ---------- */
-async function copyText(text) {
-  try {
-    await navigator.clipboard.writeText(text);
-    return true;
-  } catch {
-    try {
-      const area = document.createElement("textarea");
-      area.value = text;
-      area.style.position = "fixed";
-      area.style.opacity = "0";
-      document.body.appendChild(area);
-      area.select();
-      const ok = document.execCommand("copy");
-      area.remove();
-      return ok;
-    } catch {
-      return false;
-    }
-  }
-}
-
-function useCopied() {
-  const [copied, setCopied] = useState("");
-  const timer = useRef(0);
-  useEffect(() => () => clearTimeout(timer.current), []);
-  const copy = useCallback(async (key, text) => {
-    if (await copyText(text)) {
-      setCopied(key);
-      clearTimeout(timer.current);
-      timer.current = setTimeout(() => setCopied(""), 1800);
-    }
-  }, []);
-  return { copied, copy };
-}
 
 /* ---------- Fit the big word to the width of the footer ---------- */
 function useFitWord(wrapRef, innerRef) {
@@ -233,7 +201,6 @@ export default function Footer() {
   const username = String(me?.username || authProfile?.username || "").replace(/^@/, "");
 
   const { copied, copy } = useCopied();
-  const whatsappHref = `https://wa.me/${WHATSAPP_DIGITS}?text=${encodeURIComponent(WHATSAPP_TEXT)}`;
 
   return (
     <footer className="relative overflow-hidden border-t border-border bg-surface-alt">
@@ -272,7 +239,7 @@ export default function Footer() {
 
               <li className="flex items-center gap-3">
                 <MessageCircle size={18} aria-hidden="true" className="shrink-0 text-accent" />
-                <a href={whatsappHref} target="_blank" rel="noopener noreferrer" className={linkClass}>
+                <a href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer" className={linkClass}>
                   {WHATSAPP_SHOWN}
                   <span className="ml-2 text-xs font-normal text-muted">WhatsApp</span>
                 </a>
@@ -293,8 +260,23 @@ export default function Footer() {
               </Link>
             </li>
             <li>
+              <Link to={CUSTOM_STUDIO_PATH} className={linkClass}>
+                Custom studio
+              </Link>
+            </li>
+            <li>
               <Link to={PATHS.faqs} className={linkClass}>
                 FAQs
+              </Link>
+            </li>
+            <li>
+              <Link to={PATHS.privacy} className={linkClass}>
+                Privacy
+              </Link>
+            </li>
+            <li>
+              <Link to="/disclaimer" className={linkClass}>
+                Disclaimer
               </Link>
             </li>
           </Column>

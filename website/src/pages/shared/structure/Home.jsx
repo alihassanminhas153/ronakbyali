@@ -5,6 +5,7 @@ import { ArrowUpRight, Tag } from "lucide-react";
 // Adjust these paths to where Home.jsx lives (this assumes src/pages/shared/Home.jsx)
 import ProductsMarquee from "../../../components/home/ProductsMarquee";
 import OrderPath from "../../../components/home/OrderPath";
+import CustomStudio from "../../../components/home/CustomStudio";
 import Faqs from "../../../components/home/Faqs";
 import Footer from "../../../components/home/Footer";
 import useSmoothScroll from "../../../components/home/useSmoothScroll";
@@ -449,6 +450,9 @@ export default function Home() {
 
       {/* Order journey: one viewport tall, a curvy path that draws itself as you scroll */}
       <OrderPath />
+
+      {/* Custom studio: one viewport tall, an animated drawing of a custom order being made (no text) */}
+      <CustomStudio />
 
       {/* FAQs: one viewport tall, click a question and its answer slides in */}
       <Faqs />

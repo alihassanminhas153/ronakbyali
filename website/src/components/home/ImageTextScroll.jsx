@@ -18,7 +18,7 @@ import { useRef } from 'react';
 import useScrollValue from './useScrollValue';
 
 /* ---- Content: edit freely ---- */
-// Put an opaque, colourful photo or texture here (public/images/webp/showcase.webp)
+// Put an opaque, colourful photo or texture here (/images/webp/showcase.webp)
 const CLIP_IMAGE = '/images/webp/showcase.webp';
 
 // big = image-filled word, small = theme-colour word under it

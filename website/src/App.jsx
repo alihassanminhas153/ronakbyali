@@ -51,12 +51,15 @@ import AdminAlerts from "./pages/admin/dashboard/Alerts";
 import AdminSettings from "./pages/admin/dashboard/Settings";
 import Contact from "./pages/static/Contact";
 import Privacy from "./pages/static/Privacy";
+import Disclaimer from "./pages/static/Disclaimer";
 import FAQs from "./pages/static/FAQs";
+import CustomStudioPage from "./pages/static/CustomStudio";
 
 const SITE_PAGES = [
   { name: "Shop", link: PATHS.products },
   { name: "Contact", link: PATHS.contact },
   { name: "Privacy", link: PATHS.privacy },
+  { name: "Custom", link: "/custom-studio" },
   { name: "FAQs", link: PATHS.faqs },
 ];
 
@@ -65,7 +68,9 @@ const STATIC_PAGE_TITLES = {
   "/products": "Shop",
   "/contact": "Contact",
   "/privacy": "Privacy Policy",
+  "/disclaimer": "Disclaimer",
   "/faqs": "FAQs",
+  "/custom-studio": "Custom Studio",
   "/welcome-back": "Sign In",
   "/create-account": "Create Account",
   "/auth/callback": "Signing In",
@@ -148,7 +153,9 @@ export default function App() {
         <Route element={<PlainLayout pages={SITE_PAGES} />}>
           <Route path="contact" element={<Contact />} />
           <Route path="privacy" element={<Privacy />} />
+          <Route path="disclaimer" element={<Disclaimer />} />
           <Route path="faqs" element={<FAQs />} />
+          <Route path="custom-studio" element={<CustomStudioPage />} />
           {/* Unknown /team/... URLs must not be mistaken for a product link. */}
           <Route path="team/:username/*" element={<CatchAllRoute />} />
           <Route path="*" element={<CatchAllRoute />} />        {/* unknown URL */}
