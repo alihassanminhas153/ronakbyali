@@ -1,17 +1,19 @@
 import { useEffect, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { Check, CreditCard } from 'lucide-react';
+import { CreditCard } from 'lucide-react';
 
 import {
   ORDER_STATUS,
   PAYMENT_METHODS,
   PAYMENT_STATUS,
   addTrackerUpdate,
+  deleteLatestOrderDetail,
   clearStaffWarning,
   clearTrackerError,
   fetchTracker,
   orderItemKey,
   parseOrderItems,
+  postOrderDetail,
   selectStaffOrderById,
   selectStaffUpdateError,
   selectStaffWarning,
@@ -26,13 +28,16 @@ import {
 } from '../../../store/slices/ordersSlice';
 import { editableKeysFor } from '../../../lib/appwrite/order';
 import { UPDATE_PRESETS } from '../../../lib/appwrite/tracker';
+import productService from '../../../lib/appwrite/product';
 import ConfirmDialog from '../../../ui/custom/modal/ConfirmDialog';
-import { tint } from '../../../ui/graphs/utils';
+import SelectInput from '../../../ui/custom/input/SelectInput';
+import TextInput from '../../../ui/custom/input/TextInput';
+import { addToast } from '../../../store/slices/uiSlice';
 
 import { DrawerShell, Field, ReadValue, Section, inputCls } from './FormParts';
 import { DeliveryChip } from './OrderBadges';
 import OrderTracker from './OrderTracker';
-import { METHOD_LABEL, PAYMENT_META, STATUS_META, fullDate, money, toneColor } from './orderMeta';
+import { METHOD_LABEL, PAYMENT_META, STATUS_META, fullDate, money } from './orderMeta';
 
 const STATUS_CHOICES = ORDER_STATUS.map((v) => ({ value: v, label: STATUS_META[v].label, tone: STATUS_META[v].tone }));
 const PAYMENT_CHOICES = PAYMENT_STATUS.map((v) => ({ value: v, label: PAYMENT_META[v].label, tone: PAYMENT_META[v].tone }));
@@ -77,35 +82,6 @@ function Btn({ children, onClick, disabled, busy, primary }) {
   );
 }
 
-// Tap-to-choose pills. Always visible, no dropdown, so there is nothing to see through.
-function Choice({ options, value, current, onChange }) {
-  return (
-    <div role="radiogroup" className="flex flex-wrap gap-2">
-      {options.map((o) => {
-        const on = o.value === value;
-        const color = toneColor(o.tone);
-        return (
-          <button
-            key={o.value}
-            type="button"
-            role="radio"
-            aria-checked={on}
-            onClick={() => onChange(o.value)}
-            style={on ? { background: tint(color, 16), borderColor: color, color } : undefined}
-            className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
-              on ? '' : 'border-border bg-surface text-muted hover:border-accent-tone-1/50 hover:text-text'
-            }`}
-          >
-            {on && <Check size={13} aria-hidden="true" />}
-            {o.label}
-            {current && o.value === current && <span className="text-[11px] font-normal opacity-70">(now)</span>}
-          </button>
-        );
-      })}
-    </div>
-  );
-}
-
 function Row({ label, value, strong }) {
   return (
     <div className={`flex items-center justify-between gap-3 text-sm ${strong ? 'font-semibold' : 'text-muted'}`}>
@@ -137,7 +113,9 @@ export default function OrderForm({ open, orderId, onClose }) {
   const [title, setTitle] = useState('');
   const [note, setNote] = useState('');
   const [adminNotes, setAdminNotes] = useState(order?.adminNotes || '');
+  const [detailDraft, setDetailDraft] = useState('');
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [deleteDetailOpen, setDeleteDetailOpen] = useState(false);
   const [busy, setBusy] = useState(''); // which button is working
   const [flash, setFlash] = useState('');
 
@@ -219,6 +197,17 @@ export default function OrderForm({ open, orderId, onClose }) {
       setNote('');
     }
   };
+  const postDetail = async () => {
+    if (await run('detail', postOrderDetail({ orderId, detail: detailDraft }), 'Update posted')) {
+      setDetailDraft('');
+      dispatch(addToast({ type: 'success', message: 'Update posted' }));
+    }
+  };
+  const deleteDetail = async () => {
+    if (await run('delete-detail', deleteLatestOrderDetail({ orderId }), 'Latest update deleted')) {
+      setDeleteDetailOpen(false);
+    }
+  };
 
   // A field the order's status still allows is an input, otherwise plain text.
   const field = (key, label, { optional, area, type = 'text', className = '' } = {}) =>
@@ -265,7 +254,7 @@ export default function OrderForm({ open, orderId, onClose }) {
         {/* 1. status + payment (orders table) */}
         <Section title="Status and payment" subtitle="Pick one, then confirm" appIcon="donut_chart" tone={1}>
           <Field label="Order status" className="sm:col-span-2">
-            <Choice options={STATUS_CHOICES} value={nextStatus} current={order.status} onChange={setNextStatus} />
+            <SelectInput aria-label="Order status" value={nextStatus} onChange={setNextStatus} options={STATUS_CHOICES} size="md" />
             {statusDirty && (
               <div className="mt-3 flex flex-wrap items-center gap-2">
                 <Btn primary busy={busy === 'status'} onClick={onStatusClick}>
@@ -279,7 +268,7 @@ export default function OrderForm({ open, orderId, onClose }) {
             </p>
           </Field>
           <Field label="Payment" className="sm:col-span-2">
-            <Choice options={PAYMENT_CHOICES} value={nextPayment} current={order.paymentStatus} onChange={setNextPayment} />
+            <SelectInput aria-label="Payment status" value={nextPayment} onChange={setNextPayment} options={PAYMENT_CHOICES} size="md" />
             {paymentDirty && (
               <div className="mt-3 flex flex-wrap items-center gap-2">
                 <Btn primary busy={busy === 'payment'} onClick={savePayment}>
@@ -332,6 +321,22 @@ export default function OrderForm({ open, orderId, onClose }) {
           <div className="sm:col-span-2">
             <OrderTracker order={order} tracker={tracker} loading={!tracker && !trackerError} />
           </div>
+          <div className="space-y-2 sm:col-span-2">
+            <TextInput
+              label="Order detail"
+              value={detailDraft}
+              onChange={(event) => setDetailDraft(event.target.value)}
+              maxLength={300}
+              showCount
+              hint="Visible to the customer in their order details."
+            />
+            <Btn primary busy={busy === 'detail'} disabled={!detailDraft.trim()} onClick={postDetail}>Post update</Btn>
+            {tracker?.updates?.[0]?.kind === 'detail' && (
+              <button type="button" onClick={() => setDeleteDetailOpen(true)} className="ml-2 text-sm text-error underline">
+                Delete latest update
+              </button>
+            )}
+          </div>
         </Section>
 
         {/* 3. customer + delivery (what is open depends on the status) */}
@@ -358,7 +363,13 @@ export default function OrderForm({ open, orderId, onClose }) {
           )}
           <Field label="Payment method" className="sm:col-span-2">
             {allowed.includes('paymentMethod') ? (
-              <Choice options={METHOD_CHOICES} value={form.paymentMethod} onChange={(v) => setForm((f) => ({ ...f, paymentMethod: v }))} />
+              <SelectInput
+                aria-label="Payment method"
+                value={form.paymentMethod}
+                onChange={(paymentMethod) => setForm((f) => ({ ...f, paymentMethod }))}
+                options={METHOD_CHOICES}
+                size="md"
+              />
             ) : (
               <p className="text-sm text-text">{METHOD_LABEL[order.paymentMethod] || '—'}</p>
             )}
@@ -384,6 +395,17 @@ export default function OrderForm({ open, orderId, onClose }) {
               </li>
             ))}
           </ul>
+          {order.isCustom && (
+            <div className="space-y-3 rounded-md border border-accent-tone-6/30 bg-accent-tone-6/5 p-3 sm:col-span-2">
+              <p className="text-xs font-semibold uppercase tracking-wide text-accent-tone-6">Custom order</p>
+              <p className="whitespace-pre-line text-sm text-text">{order.customDetails || 'No customization details provided.'}</p>
+              {order.customFileId && (
+                <a href={productService.getImageUrl(order.customFileId)} target="_blank" rel="noopener noreferrer" className="inline-block">
+                  <img src={productService.getImageUrl(order.customFileId)} alt="Customer reference" className="size-24 rounded-md border border-border object-cover" />
+                </a>
+              )}
+            </div>
+          )}
           <dl className="space-y-1.5 sm:col-span-2">
             <Row label="Subtotal" value={money(order.subtotal)} />
             <Row label="Delivery" value={money(order.deliveryCharges)} />
@@ -434,6 +456,16 @@ export default function OrderForm({ open, orderId, onClose }) {
         confirmLabel={`Mark ${STATUS_META[nextStatus]?.label.toLowerCase()}`}
         onConfirm={saveStatus}
         onCancel={() => setConfirmOpen(false)}
+      />
+      <ConfirmDialog
+        open={deleteDetailOpen}
+        danger
+        busy={busy === 'delete-detail'}
+        title="Delete the latest customer update?"
+        message="The customer will no longer see this update. The previous order detail will become current."
+        confirmLabel="Delete update"
+        onConfirm={deleteDetail}
+        onCancel={() => setDeleteDetailOpen(false)}
       />
     </>
   );

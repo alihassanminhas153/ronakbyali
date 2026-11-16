@@ -1,5 +1,5 @@
 import envVars from '../../../env/var';
-import { Client, TablesDB, ID } from 'appwrite';
+import { Client, TablesDB, ID, Query } from 'appwrite';
 
 // Quick titles the admin can tap when adding a manual update.
 export const UPDATE_PRESETS = [
@@ -45,10 +45,11 @@ function parseUpdate(entry, i) {
         return {
             id: obj.id || `u${i}`,
             at: obj.at || null,
-            title: String(obj.title || 'Update'),
-            note: String(obj.note || ''),
+            title: String(obj.title || (obj.text ? 'Order detail' : 'Update')),
+            note: String(obj.note || obj.text || ''),
             status: obj.status || null,
             by: obj.by || null,
+            kind: obj.kind || (obj.text ? 'detail' : 'timeline'),
         };
     }
     return { id: `u${i}`, at: null, title: String(entry), note: '', status: null, by: null };
@@ -57,7 +58,13 @@ function parseUpdate(entry, i) {
 // Row -> { $id, orderId, link, updates[] } with the NEWEST update first.
 export function toTracker(row) {
     const list = (row?.updates || []).map(parseUpdate).reverse();
-    return { $id: row.$id, orderId: row.orderId || row.$id, link: row.updateLink || null, updates: list };
+    return {
+        $id: row.$id,
+        orderId: row.orderId || row.$id,
+        link: row.updateLink || null,
+        detail: row.detail || null,
+        updates: list,
+    };
 }
 
 // Table ronakByAli_tracker (env: ronakByAliTracker). The row id IS the order's id,
@@ -123,6 +130,7 @@ export class TrackerService {
                         }),
                     ],
                     updateLink: null,
+                    detail: null,
                 },
             });
             return toTracker(row);
@@ -143,6 +151,91 @@ export class TrackerService {
         if (row) return toTracker(row);
         if (row === false) return this._fail('Could not load the tracking updates.');
         return this.createForOrder({ order, by: 'system' });
+    }
+
+    async getForOrder(orderId) {
+        this.lastError = null;
+        const row = await this._getRow(orderId);
+        if (row === false) return this._fail('Could not load the tracking updates.');
+        return row ? toTracker(row) : null;
+    }
+
+    async getDetails(orderIds = []) {
+        try {
+            const unique = [...new Set(orderIds)].filter(Boolean);
+            const batches = [];
+            for (let i = 0; i < unique.length; i += 100) batches.push(unique.slice(i, i + 100));
+            const results = await Promise.all(batches.map((ids) => this.table.listRows({
+                databaseId: this.databaseId,
+                tableId: this.tableId,
+                queries: [Query.equal('orderId', ids), Query.limit(100)],
+            })));
+            return Object.fromEntries(results.flatMap((result) => result?.rows || [])
+                .map((row) => [row.orderId || row.$id, row.detail || null]));
+        } catch (error) {
+            console.error(error.message);
+            return this._fail('Could not load order details.');
+        }
+    }
+
+    async postDetail(orderId, text, { order } = {}) {
+        this.lastError = null;
+        const detail = String(text || '').trim().slice(0, 300);
+        if (!detail) return this._fail('Write an order detail before posting.');
+        try {
+            const base = await this._rowOrCreate(orderId, order);
+            if (!base) return false;
+            const entry = JSON.stringify({ text: detail, at: new Date().toISOString(), kind: 'detail' });
+            const updates = [...(base.updates || []), entry].slice(-MAX_UPDATES);
+            const row = await this.table.updateRow({
+                databaseId: this.databaseId,
+                tableId: this.tableId,
+                rowId: orderId,
+                data: { updates, detail },
+            });
+            return toTracker(row);
+        } catch (error) {
+            console.error(error.message);
+            return this._fail('Could not post the order detail.');
+        }
+    }
+
+    async deleteLatestDetail(orderId) {
+        this.lastError = null;
+        try {
+            const base = await this._getRow(orderId);
+            if (!base) return this._fail('Could not find the tracking record.');
+            const updates = [...(base.updates || [])];
+            const latest = updates[updates.length - 1];
+            let parsed;
+            try { parsed = JSON.parse(latest); } catch { parsed = null; }
+            if (!parsed || (parsed.kind !== 'detail' && typeof parsed.text !== 'string')) {
+                return this._fail('The latest update is not an order detail.');
+            }
+            updates.pop();
+            let detail = null;
+            for (let i = updates.length - 1; i >= 0; i -= 1) {
+                try {
+                    const item = JSON.parse(updates[i]);
+                    if (item?.kind === 'detail' || typeof item?.text === 'string') {
+                        detail = String(item.text || '');
+                        break;
+                    }
+                } catch {
+                    // Legacy plain-text timeline entries are not order details.
+                }
+            }
+            const row = await this.table.updateRow({
+                databaseId: this.databaseId,
+                tableId: this.tableId,
+                rowId: orderId,
+                data: { updates, detail },
+            });
+            return toTracker(row);
+        } catch (error) {
+            console.error(error.message);
+            return this._fail('Could not delete the latest order detail.');
+        }
     }
 
     async _rowOrCreate(orderId, order) {

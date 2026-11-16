@@ -5,6 +5,7 @@ import { ArrowUpRight, Menu, ShoppingCart, X } from 'lucide-react';
 import { TYPE_META } from '../../admin/alerts/alertMeta';
 import { dismissAlert } from '../../../store/slices/alertSlice';
 import { useAppDispatch } from '../../../store/slices/hooks';
+import { PATHS } from '../../../router/path';
 import AppIcon, { resolveAppIconName } from '../../../ui/custom/AppIcon';
 import ThemeToggle from '../../../ui/custom/toggles/ThemeToggle';
 import { tint, toneVar } from '../../../ui/graphs/utils';
@@ -62,7 +63,7 @@ function Announcement({ alert, onDismiss }) {
         <button
           type="button"
           onClick={close}
-          aria-label={`Hide “${alert.title}” until your next visit`}
+          aria-label={`Hide “${alert.title}” on this browser`}
           className={`grid size-8 shrink-0 place-items-center rounded-full text-muted transition-colors hover:bg-surface/70 hover:text-text ${FOCUS}`}
         >
           <X size={16} aria-hidden="true" />
@@ -155,7 +156,7 @@ export default function Header({ logo, pages = [], showOffers = false }) {
       <header className="sticky top-0 z-40 border-b border-border/80 bg-bg/95 shadow-sm backdrop-blur-md">
         <div className="mx-auto flex h-[4.25rem] w-full max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:h-[4.5rem] lg:px-8">
           <Link
-            to="/"
+            to={PATHS.home}
             aria-label="Ronak by Ali, home"
             className={`flex shrink-0 items-center rounded-lg transition-opacity hover:opacity-80 ${FOCUS}`}
           >
@@ -196,7 +197,7 @@ export default function Header({ logo, pages = [], showOffers = false }) {
                 </>
               ) : (
                 <Link
-                  to="/welcome-back"
+                  to={PATHS.signin}
                   className={`hidden h-10 items-center rounded-lg border border-border px-4 text-sm font-semibold text-text transition-colors duration-200 hover:border-accent/50 hover:bg-accent-soft hover:text-accent motion-reduce:transition-none sm:inline-flex ${FOCUS}`}
                 >
                   Sign in
@@ -277,7 +278,7 @@ export default function Header({ logo, pages = [], showOffers = false }) {
               </Link>
             ) : (
               <Link
-                to="/welcome-back"
+                to={PATHS.signin}
                 onClick={closeMenu}
                 className={`flex h-11 items-center justify-center rounded-xl bg-accent px-4 text-sm font-semibold text-white transition-colors hover:bg-accent-hover ${FOCUS}`}
               >

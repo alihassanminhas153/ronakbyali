@@ -275,7 +275,7 @@ export default function Footer() {
               </Link>
             </li>
             <li>
-              <Link to="/disclaimer" className={linkClass}>
+              <Link to={PATHS.disclaimer} className={linkClass}>
                 Disclaimer
               </Link>
             </li>

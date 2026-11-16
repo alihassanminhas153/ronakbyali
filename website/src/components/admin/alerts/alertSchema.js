@@ -25,6 +25,7 @@ export const blankForm = {
   link: '',
   priority: '0',
   userId: '',
+  pages: [],
   startsAt: '',
   endsAt: '',
 };
@@ -42,6 +43,7 @@ export function toForm(alert) {
     link: alert.link || '',
     priority: String(alert.priority ?? 0),
     userId: alert.userId || '',
+    pages: Array.isArray(alert.pages) ? alert.pages.filter((page) => page !== 'all') : [],
     startsAt: isoToLocal(alert.startsAt),
     endsAt: isoToLocal(alert.endsAt),
   };
@@ -59,6 +61,7 @@ export function toPayload(form) {
     link: form.link.trim() || null,
     priority: Math.trunc(Number(form.priority)) || 0,
     userId: form.userId.trim() || null,
+    pages: Array.isArray(form.pages) ? [...new Set(form.pages.filter(Boolean))] : [],
     startsAt: localToIso(form.startsAt),
     endsAt: localToIso(form.endsAt),
   };

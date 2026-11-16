@@ -61,7 +61,7 @@ const initialState = adapter.getInitialState({
   updating: false, // a customer change is in progress
   updateError: null,
   // courier link + timeline of each order, by order id
-  tracker: trackerAdapter.getInitialState({ status: 'idle', saving: false, error: null }),
+  tracker: trackerAdapter.getInitialState({ status: 'idle', saving: false, error: null, details: {} }),
   // every customer's orders (admin, support, manager). Kept apart from "my orders".
   staff: staffAdapter.getInitialState({
     total: 0,
@@ -385,6 +385,16 @@ export const fetchTracker = createAsyncThunk('orders/trackerFetch', async (arg, 
   return tracker;
 });
 
+export const fetchMyTracker = createAsyncThunk('orders/myTrackerFetch', async (orderId, { getState, rejectWithValue }) => {
+  const state = getState();
+  const userId = getUserId(state.auth.profile);
+  const order = state.orders.entities[orderId];
+  if (!userId || !order || order.userId !== userId) return rejectWithValue('Order not found.');
+  const tracker = await trackerService.getForOrder(orderId);
+  if (tracker === false) return rejectWithValue(trackerService.lastError || 'Could not load the tracking updates.');
+  return tracker || { orderId, link: null, detail: null, updates: [] };
+});
+
 const trackerWrite = (type, call, message) =>
   createAsyncThunk(type, async (arg, { getState, rejectWithValue }) => {
     if (notStaff(getState().auth.profile)) return rejectWithValue('You do not have access to all orders.');
@@ -407,6 +417,23 @@ export const setTrackerLink = trackerWrite(
   ({ orderId, link }, order) => trackerService.setLink(orderId, link, { order }),
   'Could not save the tracking link.'
 );
+export const postOrderDetail = trackerWrite(
+  'orders/trackerPostDetail',
+  ({ orderId, detail }, order) => trackerService.postDetail(orderId, detail, { order }),
+  'Could not post the order detail.'
+);
+export const deleteLatestOrderDetail = trackerWrite(
+  'orders/trackerDeleteDetail',
+  ({ orderId }) => trackerService.deleteLatestDetail(orderId),
+  'Could not delete the latest order detail.'
+);
+
+export const fetchTrackerDetails = createAsyncThunk('orders/trackerDetails', async (orderIds, { getState, rejectWithValue }) => {
+  if (notStaff(getState().auth.profile)) return rejectWithValue('You do not have access to order details.');
+  const details = await trackerService.getDetails(orderIds);
+  if (!details) return rejectWithValue(trackerService.lastError || 'Could not load order details.');
+  return details;
+});
 
 /* ---------- staff: change an order ---------- */
 
@@ -665,12 +692,15 @@ const ordersSlice = createSlice({
         trackerAdapter.upsertOne(state.tracker, action.payload);
         state.tracker.status = 'succeeded';
       })
+        .addCase(fetchMyTracker.fulfilled, (state, action) => {
+          trackerAdapter.upsertOne(state.tracker, action.payload);
+        })
       .addCase(fetchTracker.rejected, (state, action) => {
         state.tracker.status = 'failed';
         state.tracker.error = action.payload || action.error?.message;
       });
 
-    [addTrackerUpdate, setTrackerLink].forEach((thunk) => {
+    [addTrackerUpdate, setTrackerLink, postOrderDetail, deleteLatestOrderDetail].forEach((thunk) => {
       builder
         .addCase(thunk.pending, (state) => {
           state.tracker.saving = true;
@@ -684,6 +714,10 @@ const ordersSlice = createSlice({
           state.tracker.saving = false;
           state.tracker.error = action.payload || action.error?.message;
         });
+    });
+
+    builder.addCase(fetchTrackerDetails.fulfilled, (state, action) => {
+      state.tracker.details = { ...state.tracker.details, ...action.payload };
     });
 
     builder.addMatcher(isSessionEnded, () => initialState);
@@ -736,6 +770,7 @@ export const selectTrackerByOrder = (id) => (s) => s.orders.tracker.entities[id]
 export const selectTrackerStatus = (s) => s.orders.tracker.status;
 export const selectTrackerSaving = (s) => s.orders.tracker.saving;
 export const selectTrackerError = (s) => s.orders.tracker.error;
+export const selectTrackerDetails = (s) => s.orders.tracker.details;
 
 // Sync service helpers.
 export const parseOrderItems = (order) => orderService.parseItems(order);

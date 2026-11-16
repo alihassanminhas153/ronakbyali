@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router';
 import { Lock, Mail } from 'lucide-react';
 
 import { useAppDispatch, useAppSelector } from '../../../store/slices/hooks';
+import { PATHS } from '../../../router/path';
 import {
   authenticateWithEmail,
   continueWithGoogle,
@@ -143,7 +144,7 @@ function CredentialsStep() {
       footer={
         <>
           Already have an account?{' '}
-          <Link to="/welcome-back" className="font-medium text-accent hover:text-accent-hover hover:underline">
+          <Link to={PATHS.signin} className="font-medium text-accent hover:text-accent-hover hover:underline">
             Log in
           </Link>
         </>

@@ -1,5 +1,5 @@
-import PanelPageTitle from '../../../ui/custom/PanelPageTitle';
 import AppIcon from '../../../ui/custom/AppIcon';
+import PageHeader from '../../../ui/custom/PageHeader';
 import { useEffect, useMemo, useState } from 'react';
 import {
   CalendarDays,
@@ -238,39 +238,35 @@ export default function Users() {
 
   return (
     <div className={`space-y-5 transition-opacity duration-300 motion-reduce:transition-none ${entered ? 'opacity-100' : 'opacity-0'}`}>
-      <header className="flex items-end justify-between gap-3">
-        <div className="min-w-0">
-          <PanelPageTitle icon="customers" className="font-display text-3xl font-bold tracking-wide text-text sm:text-4xl">Users</PanelPageTitle>
-          <p className="mt-1 hidden text-sm text-muted lg:block" aria-live="polite">
-            {loadedOnce ? (
-              <>
-                <CountUp value={users.length} className="font-semibold text-text" /> of {stats.total} {stats.total === 1 ? 'user' : 'users'}
-              </>
-            ) : (
-              'Loading users…'
+      <PageHeader
+        art="profile"
+        title="Users"
+        subtitle={loadedOnce ? (
+          <>
+            <CountUp value={users.length} className="font-semibold text-text" /> of {stats.total} {stats.total === 1 ? 'user' : 'users'}
+          </>
+        ) : 'Loading users…'}
+        actions={(
+          <div className="flex items-center gap-3">
+            {ago && (
+              <span className="hidden items-center gap-1.5 text-xs text-muted sm:flex" aria-live="polite">
+                <span className={`h-1.5 w-1.5 rounded-full ${busy ? 'animate-pulse bg-accent-tone-3' : 'bg-accent-tone-7'}`} />
+                {busy ? 'Syncing…' : `Updated ${ago}`}
+              </span>
             )}
-          </p>
-        </div>
-
-        <div className="flex items-center gap-3">
-          {ago && (
-            <span className="hidden items-center gap-1.5 text-xs text-muted sm:flex" aria-live="polite">
-              <span className={`h-1.5 w-1.5 rounded-full ${busy ? 'animate-pulse bg-accent-tone-3' : 'bg-accent-tone-7'}`} />
-              {busy ? 'Syncing…' : `Updated ${ago}`}
-            </span>
-          )}
-          <button
-            type="button"
-            onClick={() => dispatch(fetchUsers())}
-            disabled={busy || failed || loading}
-            title="Fetch the latest users from the database"
-            className="group inline-flex h-10 items-center gap-2 rounded-lg border border-border bg-surface pl-3 pr-3.5 text-sm font-medium text-text shadow-soft transition-all duration-200 hover:-translate-y-px hover:border-accent-tone-1 hover:bg-surface-alt hover:text-accent-tone-1 active:translate-y-0 active:scale-95 disabled:translate-y-0 disabled:opacity-70 disabled:hover:border-border disabled:hover:bg-surface disabled:hover:text-text"
-          >
-            <RefreshCw size={16} className={busy ? 'animate-spin' : 'transition-transform duration-500 group-hover:rotate-180'} />
-            <span>{busy ? 'Refreshing' : 'Refresh'}</span>
-          </button>
-        </div>
-      </header>
+            <button
+              type="button"
+              onClick={() => dispatch(fetchUsers())}
+              disabled={busy || failed || loading}
+              title="Fetch the latest users from the database"
+              className="group inline-flex h-10 items-center gap-2 rounded-lg border border-border bg-surface pl-3 pr-3.5 text-sm font-medium text-text shadow-soft transition-all duration-200 hover:-translate-y-px hover:border-accent-tone-1 hover:bg-surface-alt hover:text-accent-tone-1 active:translate-y-0 active:scale-95 disabled:translate-y-0 disabled:opacity-70 disabled:hover:border-border disabled:hover:bg-surface disabled:hover:text-text"
+            >
+              <RefreshCw size={16} className={busy ? 'animate-spin' : 'transition-transform duration-500 group-hover:rotate-180'} />
+              <span>{busy ? 'Refreshing' : 'Refresh'}</span>
+            </button>
+          </div>
+        )}
+      />
 
       {/* Banner: same family as the Products add button */}
       <div

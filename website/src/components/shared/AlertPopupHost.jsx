@@ -10,9 +10,10 @@ import {
   dismissAlert,
   fetchAlertPopups,
   markAlertSeen,
-  selectCurrentPopup,
+  selectAlertPopups,
   trackAlertImpression,
 } from '../../store/slices/alertSlice';
+import usePageAlerts from './usePageAlerts';
 import AppIcon, { resolveAppIconName } from '../../ui/custom/AppIcon';
 import { tint, toneVar } from '../../ui/graphs/utils';
 
@@ -22,10 +23,11 @@ export default function AlertPopupHost() {
   const dispatch = useAppDispatch();
   const authChecked = useAppSelector(selectAuthChecked);
   const profile = useAppSelector(selectProfile);
-  const popup = useAppSelector(selectCurrentPopup);
+  const popups = useAppSelector(selectAlertPopups);
+  const popup = usePageAlerts(popups)[0] ?? null;
   const [loadedFor, setLoadedFor] = useState(null);
   const dialogRef = useRef(null);
-  const userId = profile?.$id ?? profile?.userId ?? null;
+  const userId = profile?.userId ?? profile?.$id ?? null;
   const userKey = userId || 'guest';
   const isStaff = STAFF_ROLES.includes(profile?.role);
 
@@ -117,7 +119,7 @@ export default function AlertPopupHost() {
         <button
           type="button"
           onClick={() => dispatch(dismissAlert(visiblePopup.$id))}
-          aria-label="Hide this alert until your next visit"
+          aria-label="Hide this alert on this browser"
           className="absolute right-3 top-3 grid size-8 place-items-center rounded-full text-muted transition-colors hover:bg-surface-alt hover:text-text focus-visible:outline-2 focus-visible:outline-accent"
         >
           <X size={17} aria-hidden="true" />

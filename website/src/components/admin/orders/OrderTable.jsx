@@ -50,7 +50,7 @@ function ViewButton({ order, onView }) {
   );
 }
 
-const OrderRow = memo(function OrderRow({ order, index, onView }) {
+const OrderRow = memo(function OrderRow({ order, index, onView, detail }) {
   const dim = ['cancelled', 'returned'].includes(order.status) ? 'opacity-60' : '';
   const iconTone = STATUS_META[order.status]?.tone || 1;
   return (
@@ -64,11 +64,13 @@ const OrderRow = memo(function OrderRow({ order, index, onView }) {
           <AppIcon name="single_box" tone={iconTone} className="size-5 shrink-0 object-contain" />
           {order.orderNumber}
         </p>
+        {order.isCustom && <span className="mt-1 inline-flex rounded-full bg-accent-tone-6/10 px-2 py-0.5 text-[11px] font-medium text-accent-tone-6">Custom</span>}
         <div className="mt-1"><DeliveryChip type={order.deliveryType} /></div>
       </td>
       <td className={`px-4 py-3 ${dim}`}>
         <p className="max-w-64 truncate text-sm font-medium text-text">{order.customerName}</p>
         <p className="mt-0.5 max-w-64 truncate text-xs text-muted">{order.customerPhone} · {order.city}</p>
+        {detail && <Tooltip label={detail}><p className="mt-1 max-w-64 truncate text-xs text-muted">{detail}</p></Tooltip>}
       </td>
       <td className={`whitespace-nowrap px-4 py-3 ${dim}`}>
         <PaymentBadge status={order.paymentStatus} />
@@ -82,7 +84,7 @@ const OrderRow = memo(function OrderRow({ order, index, onView }) {
   );
 });
 
-const OrderCard = memo(function OrderCard({ order, index, onView }) {
+const OrderCard = memo(function OrderCard({ order, index, onView, detail }) {
   const iconTone = STATUS_META[order.status]?.tone || 1;
   return (
     <li
@@ -97,11 +99,13 @@ const OrderCard = memo(function OrderCard({ order, index, onView }) {
             {order.orderNumber}
           </p>
           <div className="mt-1"><DeliveryChip type={order.deliveryType} /></div>
+          {order.isCustom && <span className="mt-1 inline-flex rounded-full bg-accent-tone-6/10 px-2 py-0.5 text-[11px] font-medium text-accent-tone-6">Custom</span>}
         </div>
       </div>
       <div className="mt-3 min-w-0">
         <p className="truncate text-sm font-medium text-text">{order.customerName}</p>
         <p className="mt-0.5 truncate text-xs text-muted">{order.customerPhone} · {order.city}</p>
+        {detail && <Tooltip label={detail}><p className="mt-1 truncate text-xs text-muted">{detail}</p></Tooltip>}
       </div>
       <div className="mt-3 flex items-center justify-between gap-3 border-t border-border pt-3">
         <div>
@@ -115,14 +119,14 @@ const OrderCard = memo(function OrderCard({ order, index, onView }) {
   );
 });
 
-export default function OrderTable({ orders, onView }) {
+export default function OrderTable({ orders, onView, trackerDetails = {} }) {
   return (
     <>
       <ul className="grid gap-3 sm:grid-cols-2 lg:hidden">
-        {orders.map((o, i) => <OrderCard key={o.$id} order={o} index={i} onView={onView} />)}
+        {orders.map((o, i) => <OrderCard key={o.$id} order={o} index={i} onView={onView} detail={trackerDetails[o.$id]} />)}
       </ul>
       <Shell>
-        {orders.map((o, i) => <OrderRow key={o.$id} order={o} index={i} onView={onView} />)}
+        {orders.map((o, i) => <OrderRow key={o.$id} order={o} index={i} onView={onView} detail={trackerDetails[o.$id]} />)}
       </Shell>
     </>
   );

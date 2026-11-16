@@ -1,4 +1,4 @@
-import PanelPageTitle from '../../../ui/custom/PanelPageTitle';
+import PageHeader from '../../../ui/custom/PageHeader';
 import AppIcon from '../../../ui/custom/AppIcon';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
@@ -13,6 +13,7 @@ import {
   fetchStaffCounts,
   fetchStaffOrderAnalytics,
   fetchStaffOrders,
+  fetchTrackerDetails,
   searchStaffOrders,
   selectStaffCounts,
   selectStaffError,
@@ -22,6 +23,7 @@ import {
   selectStaffOrders,
   selectStaffStatus,
   selectStaffTotal,
+  selectTrackerDetails,
 } from '../../../store/slices/ordersSlice';
 import {
   DELIVERY_LABEL,
@@ -75,6 +77,7 @@ export default function Orders() {
   const analyticsOrders = useSelector(selectStaffOrderAnalytics);
   const analyticsStatus = useSelector(selectStaffOrderAnalyticsStatus);
   const analyticsError = useSelector(selectStaffOrderAnalyticsError);
+  const trackerDetails = useSelector(selectTrackerDetails);
 
   const [filters, setFilters] = useState(EMPTY);
   const [selectedId, setSelectedId] = useState(null);
@@ -135,6 +138,11 @@ export default function Orders() {
       ),
     [rows, filters]
   );
+  const orderIds = useMemo(() => orders.map((order) => order.$id), [orders]);
+
+  useEffect(() => {
+    if (orderIds.length) dispatch(fetchTrackerDetails(orderIds));
+  }, [dispatch, orderIds]);
 
   // Refresh button: pull the latest rows from Appwrite (list and tab counts).
   const refresh = async () => {
@@ -188,41 +196,37 @@ export default function Orders() {
 
   return (
     <div className="space-y-5">
-      <header className="flex items-end justify-between gap-3">
-        <div className="min-w-0">
-          <PanelPageTitle icon="list" className="font-display text-3xl font-bold tracking-wide text-text sm:text-4xl">Orders</PanelPageTitle>
-          <p className="mt-1 hidden text-sm text-muted lg:block">
-            {loading && !rows.length ? (
-              'Loading…'
-            ) : (
-              <>
-                <CountUp value={searching ? orders.length : total} className="font-semibold text-text" />{' '}
-                {(searching ? orders.length : total) === 1 ? 'order' : 'orders'}
-                {filtered ? ' match' : ''}
-              </>
+      <PageHeader
+        art="orders"
+        title="Orders"
+        subtitle={loading && !rows.length ? 'Loading…' : (
+          <>
+            <CountUp value={searching ? orders.length : total} className="font-semibold text-text" />{' '}
+            {(searching ? orders.length : total) === 1 ? 'order' : 'orders'}
+            {filtered ? ' match' : ''}
+          </>
+        )}
+        actions={(
+          <div className="flex items-center gap-3">
+            {ago && (
+              <span className="hidden items-center gap-1.5 text-xs text-muted sm:flex" aria-live="polite">
+                <span className={`h-1.5 w-1.5 rounded-full ${busy ? 'animate-pulse bg-accent-tone-3' : 'bg-accent-tone-7'}`} />
+                {busy ? 'Syncing…' : `Updated ${ago}`}
+              </span>
             )}
-          </p>
-        </div>
-
-        <div className="flex items-center gap-3">
-          {ago && (
-            <span className="hidden items-center gap-1.5 text-xs text-muted sm:flex" aria-live="polite">
-              <span className={`h-1.5 w-1.5 rounded-full ${busy ? 'animate-pulse bg-accent-tone-3' : 'bg-accent-tone-7'}`} />
-              {busy ? 'Syncing…' : `Updated ${ago}`}
-            </span>
-          )}
-          <button
-            type="button"
-            onClick={refresh}
-            disabled={busy}
-            title="Fetch the latest orders from the database"
-            className="group inline-flex h-10 items-center gap-2 rounded-lg border border-border bg-surface pl-3 pr-3.5 text-sm font-medium text-text shadow-soft transition-all duration-200 hover:-translate-y-px hover:border-accent-tone-1 hover:bg-surface-alt hover:text-accent-tone-1 active:translate-y-0 active:scale-95 disabled:translate-y-0 disabled:opacity-70 disabled:hover:border-border disabled:hover:bg-surface disabled:hover:text-text"
-          >
-            <RefreshCw size={16} className={busy ? 'animate-spin' : 'transition-transform duration-500 group-hover:rotate-180'} />
-            <span>{busy ? 'Refreshing' : 'Refresh'}</span>
-          </button>
-        </div>
-      </header>
+            <button
+              type="button"
+              onClick={refresh}
+              disabled={busy}
+              title="Fetch the latest orders from the database"
+              className="group inline-flex h-10 items-center gap-2 rounded-lg border border-border bg-surface pl-3 pr-3.5 text-sm font-medium text-text shadow-soft transition-all duration-200 hover:-translate-y-px hover:border-accent-tone-1 hover:bg-surface-alt hover:text-accent-tone-1 active:translate-y-0 active:scale-95 disabled:translate-y-0 disabled:opacity-70 disabled:hover:border-border disabled:hover:bg-surface disabled:hover:text-text"
+            >
+              <RefreshCw size={16} className={busy ? 'animate-spin' : 'transition-transform duration-500 group-hover:rotate-180'} />
+              <span>{busy ? 'Refreshing' : 'Refresh'}</span>
+            </button>
+          </div>
+        )}
+      />
 
       {/* Big pending button (same block as "Add product") */}
       <button
@@ -325,7 +329,7 @@ export default function Orders() {
           </div>
         ) : (
           <>
-            <OrderTable orders={visibleOrders} onView={openOrder} />
+            <OrderTable orders={visibleOrders} onView={openOrder} trackerDetails={trackerDetails} />
             {searching && orders.length > visibleOrders.length && (
               <div className="flex justify-center">
                 <ActionButton variant="secondary" onClick={() => setVisibleSearch((count) => count + PAGE)}>

@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router';
 import { Lock, Mail } from 'lucide-react';
 
 import { useAppDispatch, useAppSelector } from '../../../store/slices/hooks';
+import { PATHS } from '../../../router/path';
 import {
   authenticateWithEmail,
   continueWithGoogle,
@@ -120,7 +121,7 @@ export default function Signin() {
       footer={
         <>
           New here?{' '}
-          <Link to="/create-account" className="font-medium text-accent hover:text-accent-hover hover:underline">
+          <Link to={PATHS.signup} className="font-medium text-accent hover:text-accent-hover hover:underline">
             Create an account
           </Link>
         </>

@@ -63,6 +63,12 @@ function Section({ title, subtitle, icon, tone = 1, children, delay = 0 }) {
   );
 }
 
+const PAGE_OPTIONS = [
+  { value: 'home', label: 'Home' },
+  { value: 'products', label: 'Products list' },
+  { value: 'product', label: 'Product page' },
+];
+
 function Switch({ checked, onChange, label, hint, tone = 3 }) {
   return (
     <button
@@ -160,6 +166,15 @@ export default function AlertForm({ open, alert, onClose, onSaved }) {
   };
   const on = (key) => (e) => set(key)(e.target.value);
   const blockWheel = (e) => e.currentTarget.blur();
+  const togglePage = (page) => {
+    set('pages')((current = []) => {
+      if (page === 'all') return [];
+      const list = Array.isArray(current) ? current : [];
+      const next = list.filter((item) => item !== page);
+      if (next.length === list.length) return [...list, page];
+      return next;
+    });
+  };
 
   const submit = async (e) => {
     e.preventDefault();
@@ -308,6 +323,30 @@ export default function AlertForm({ open, alert, onClose, onSaved }) {
             <Section title="Audience and schedule" subtitle="Who sees it, and when." icon={CalendarClock} tone={3} delay={120}>
               <Field label="User id" hint="empty = everyone" optional error={errors.userId} className="sm:col-span-2">
                 <input value={form.userId} onChange={on('userId')} maxLength={ALERT_LIMITS.userId + 10} placeholder="Paste a user id to target one person" className={inputCls(errors.userId)} />
+              </Field>
+              <Field label="Show on pages" optional className="sm:col-span-2">
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => set('pages')([])}
+                    className={`rounded-full border px-3 py-1.5 text-sm transition-colors ${form.pages.length === 0 ? 'border-accent bg-accent/10 text-accent' : 'border-border bg-surface text-muted hover:border-accent-tone-1/50'}`}
+                  >
+                    Everywhere
+                  </button>
+                  {PAGE_OPTIONS.map((option) => {
+                    const active = form.pages.includes(option.value);
+                    return (
+                      <button
+                        key={option.value}
+                        type="button"
+                        onClick={() => togglePage(option.value)}
+                        className={`rounded-full border px-3 py-1.5 text-sm transition-colors ${active ? 'border-accent bg-accent/10 text-accent' : 'border-border bg-surface text-muted hover:border-accent-tone-1/50'}`}
+                      >
+                        {option.label}
+                      </button>
+                    );
+                  })}
+                </div>
               </Field>
               <ScheduleDateTime label="Starts" value={form.startsAt} onChange={set('startsAt')} error={errors.startsAt} />
               <ScheduleDateTime label="Ends" value={form.endsAt} onChange={set('endsAt')} error={errors.endsAt} />

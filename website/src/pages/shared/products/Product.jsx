@@ -8,6 +8,7 @@ import { Link, Navigate, useLocation, useNavigate, useParams } from "react-route
 import { useDispatch, useSelector } from "react-redux";
 import {
   BadgeCheck,
+  ShoppingCart,
   Star,
   Tag,
   X,
@@ -45,6 +46,8 @@ import reviewService from "../../../lib/appwrite/review";
 import { getEffectivePricing } from "../../../lib/saleMath";
 import ProductCheckoutDrawer from "./ProductCheckoutDrawer";
 import { loadDraft } from "../../../lib/checkoutDraft";
+import { openLoginModal } from "../../../store/slices/uiSlice";
+import CustomOrderDrawer from "../../../components/shop/CustomOrderDrawer";
 
 /* ------------------------------------------------------------------ */
 /* helpers                                                             */
@@ -458,6 +461,7 @@ function Details({ product }) {
   const [checkoutMounted, setCheckoutMounted] = useState(false);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [checkoutSession, setCheckoutSession] = useState(0);
+  const [customOpen, setCustomOpen] = useState(false);
   const closeTimer = useRef(null);
   const checkoutTrigger = useRef(null);
   const reopened = useRef(false);
@@ -510,6 +514,13 @@ function Details({ product }) {
 
   // Optimistic: the heart flips at once and rolls back if saving fails.
   const handleWish = () => dispatch(toggleWishlist({ productId: product.$id }));
+  const openCustomOrder = () => {
+    if (!account && !authProfile) {
+      dispatch(openLoginModal());
+      return;
+    }
+    setCustomOpen(true);
+  };
 
   const openCheckout = () => {
     checkoutTrigger.current = document.activeElement;
@@ -647,22 +658,25 @@ function Details({ product }) {
             <path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l1 1.1L12 21l7.8-7.5 1-1.1a5.5 5.5 0 0 0 0-7.8z" />
           </svg>
         </button>
-        <button
-          type="button"
-          onClick={handleAdd}
-          disabled={!inStock || atLimit || updating}
-          className="h-12 min-w-[12rem] flex-1 rounded-md bg-brown px-6 font-semibold text-on-brown transition hover:bg-brown-hover disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-        >
-          {!inStock
-            ? "Out of stock"
-            : atLimit
-              ? "Maximum in your cart"
-              : updating
-                ? "Adding..."
-                : added
-                  ? "Added to cart"
-                  : "Add to cart"}
-        </button>
+        <div className="flex min-w-0 flex-1 gap-2">
+          <button
+            type="button"
+            onClick={handleAdd}
+            disabled={!inStock || atLimit || updating}
+            aria-label={!inStock ? "Out of stock" : atLimit ? "Maximum in your cart" : updating ? "Adding to cart" : added ? "Added to cart" : "Add to cart"}
+            className="inline-flex h-11 min-w-0 flex-1 items-center justify-center gap-2 rounded-md bg-brown px-2 font-semibold text-on-brown transition hover:bg-brown-hover disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent sm:h-12 sm:px-4"
+          >
+            <ShoppingCart size={18} aria-hidden="true" />
+            <span className="hidden sm:inline">
+              {!inStock ? "Out of stock" : atLimit ? "Maximum in your cart" : updating ? "Adding..." : added ? "Added to cart" : "Add to cart"}
+            </span>
+          </button>
+          {product.isCustom === true && (
+            <button type="button" onClick={openCustomOrder} className="h-11 min-w-0 flex-1 rounded-md border border-border bg-surface px-2 text-sm font-semibold text-text transition hover:border-accent hover:text-accent sm:h-12 sm:px-4">
+              Customize
+            </button>
+          )}
+        </div>
 
       </div>
 
@@ -751,6 +765,7 @@ function Details({ product }) {
         quantity={qty}
         account={account || authProfile}
       />
+      <CustomOrderDrawer open={customOpen} onClose={() => setCustomOpen(false)} product={product} />
     </section>
   );
 }

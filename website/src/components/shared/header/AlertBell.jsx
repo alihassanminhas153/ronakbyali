@@ -56,7 +56,7 @@ export default function AlertBell({ data }) {
     navigate(`${alertPath}?alert=${encodeURIComponent(alert.$id)}`);
   };
 
-  const preview = alerts.slice(0, PREVIEW_LIMIT);
+  const preview = alerts.filter(isUnread).slice(0, PREVIEW_LIMIT);
   const badge = unreadCount > 9 ? '9+' : String(unreadCount);
 
   return (
@@ -112,12 +112,14 @@ export default function AlertBell({ data }) {
           <div className="flex flex-col items-center gap-2 px-6 py-10 text-center">
             <Bell size={24} className="text-muted" aria-hidden="true" />
             <p className="text-sm font-medium text-text">
-              {alertsStatus === 'loading' ? 'Loading alerts…' : alertsStatus === 'failed' ? 'Could not load alerts' : 'No alerts yet'}
+              {alertsStatus === 'loading' ? 'Loading alerts…' : alertsStatus === 'failed' ? 'Could not load alerts' : alerts.length ? 'You are all caught up' : 'No alerts yet'}
             </p>
             <p className="text-sm text-muted">
               {alertsStatus === 'failed'
                 ? 'Please try opening the notification panel again.'
-                : 'Updates about your orders and the store will appear here.'}
+                : alerts.length
+                  ? 'You have read all your recent alerts.'
+                  : 'Updates about your orders and the store will appear here.'}
             </p>
           </div>
         ) : (

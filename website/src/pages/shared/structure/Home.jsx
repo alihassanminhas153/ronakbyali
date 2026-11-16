@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Link } from "react-router";
 import { ArrowUpRight, Tag } from "lucide-react";
+import { PATHS } from "../../../router/path";
 
 // Adjust these paths to where Home.jsx lives (this assumes src/pages/shared/Home.jsx)
 import ProductsMarquee from "../../../components/home/ProductsMarquee";
@@ -65,7 +66,7 @@ const HERO_IMAGES = Object.entries(heroModules)
   .sort(([a], [b]) => a.localeCompare(b, undefined, { numeric: true }))
   .map(([path, url]) => ({ url, name: toProductName(path) }));
 
-const PRODUCTS_PATH = "/products"; // where the label sends you
+const PRODUCTS_PATH = PATHS.products; // where the label sends you
 const SLIDE_MS = 5000; // how long each image stays
 const SLIDE_ANIM_MS = 1200; // how long a slide animation takes
 

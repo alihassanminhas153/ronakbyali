@@ -242,6 +242,11 @@ export class OrderService {
                 ...details,
                 trackingId: null,
                 adminNotes: null,
+                ...(form.isCustom ? {
+                    isCustom: true,
+                    customDetails: String(form.customDetails || '').trim().slice(0, 1000),
+                    customFileId: form.customFileId || null,
+                } : {}),
             };
 
             const order = await this._createWithUniqueNumber(profile.$id, data);

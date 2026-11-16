@@ -4,6 +4,18 @@ import { tint, toneVar } from '../../../ui/graphs/utils';
 import { DisplayBadge, StateBadge, TypeBadge } from './AlertBadges';
 import { TYPE_META, describeSchedule, formatDateTime, seenRate } from './alertMeta';
 
+const PAGE_LABELS = {
+  home: 'Home',
+  products: 'Products',
+  product: 'Product',
+};
+
+const pageChips = (alert) => {
+  const pages = Array.isArray(alert?.pages) ? alert.pages.filter(Boolean) : [];
+  if (!pages.length || pages.includes('all')) return ['Everywhere'];
+  return pages.map((page) => PAGE_LABELS[page] || page);
+};
+
 function IconButton({ label, onClick, disabled, danger, children }) {
   return (
     <button
@@ -69,7 +81,7 @@ export function Pager({ page, pageSize, total, onPage, disabled }) {
 function SkeletonRows() {
   return Array.from({ length: 5 }, (_, i) => (
     <tr key={i} className="border-t border-border">
-      <td colSpan={7} className="px-4 py-4"><div className="h-9 animate-pulse rounded-md bg-surface-alt" /></td>
+      <td colSpan={8} className="px-4 py-4"><div className="h-9 animate-pulse rounded-md bg-surface-alt" /></td>
     </tr>
   ));
 }
@@ -86,6 +98,7 @@ export default function AlertTable({ rows, loading, busyId, page, pageSize, tota
               <th className="px-3 py-3 font-medium">Display</th>
               <th className="px-3 py-3 font-medium">Status</th>
               <th className="px-3 py-3 font-medium">Schedule</th>
+              <th className="px-3 py-3 font-medium">Pages</th>
               <th className="px-3 py-3 font-medium">Audience</th>
               <th className="px-3 py-3 font-medium">Reach</th>
               <th className="px-3 py-3 text-right font-medium"><span className="sr-only">Actions</span></th>
@@ -95,7 +108,7 @@ export default function AlertTable({ rows, loading, busyId, page, pageSize, tota
             {loading && !rows.length && <SkeletonRows />}
             {!loading && !rows.length && (
               <tr>
-                <td colSpan={7} className="px-4 py-14 text-center">
+                <td colSpan={8} className="px-4 py-14 text-center">
                   <span className="mx-auto mb-3 grid h-12 w-12 place-items-center rounded-full bg-surface-alt text-muted"><Bell size={22} /></span>
                   <p className="text-sm text-muted">{emptyText}</p>
                 </td>
@@ -130,6 +143,15 @@ export default function AlertTable({ rows, loading, busyId, page, pageSize, tota
                   <td className="px-3 py-3 text-xs">
                     <p className="text-text">{describeSchedule(a)}</p>
                     <p className="text-muted">{a.endsAt ? formatDateTime(a.endsAt) : 'Runs until turned off'}</p>
+                  </td>
+                  <td className="px-3 py-3 text-xs text-muted">
+                    <div className="flex flex-wrap gap-1.5">
+                      {pageChips(a).map((label) => (
+                        <span key={`${a.$id}-${label}`} className="rounded-full border border-border bg-surface px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-muted">
+                          {label}
+                        </span>
+                      ))}
+                    </div>
                   </td>
                   <td className="px-3 py-3 text-xs text-muted">
                     <span className="inline-flex items-center gap-1.5"><Users size={13} />{a.userId ? 'One user' : 'Everyone'}</span>

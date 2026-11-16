@@ -1,4 +1,4 @@
-import PanelPageTitle from '../../../ui/custom/PanelPageTitle';
+import PageHeader from '../../../ui/custom/PageHeader';
 import AppIcon from '../../../ui/custom/AppIcon';
 import { entityColorStep, toneColor } from '../../../lib/entityColors';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -207,8 +207,8 @@ function AlertCard({ alert, onSeen, onDismiss }) {
         <button
           type="button"
           onClick={() => onDismiss(alert)}
-          aria-label={`Hide “${alert.title}” until your next visit`}
-          title="Hide until your next visit"
+          aria-label={`Hide “${alert.title}” on this browser`}
+          title="Hide on this browser"
           className="shrink-0 rounded-full p-1.5 text-muted transition-colors hover:bg-surface-alt hover:text-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
         >
           <X size={16} aria-hidden="true" />
@@ -317,7 +317,7 @@ function AlertsView({ me }) {
   };
   const onDismiss = (alert) => {
     dispatch(dismissAlert({ alertId: alert.$id }));
-    notify('ok', 'Hidden for now. It may come back on your next visit.');
+    notify('ok', 'Hidden on this browser.');
   };
 
   const loading = status === 'loading' && all.length === 0;
@@ -335,31 +335,31 @@ function AlertsView({ me }) {
         entered ? 'translate-y-0 opacity-100' : 'translate-y-2 opacity-0'
       }`}
     >
-      <header className="flex items-end justify-between gap-3">
-        <div className="min-w-0">
-          <PanelPageTitle icon="alert" className="font-display text-3xl font-bold tracking-wide text-text sm:text-4xl">Alerts</PanelPageTitle>
-          <p className="mt-1 hidden text-sm text-muted lg:block">News, offers and notices from the store.</p>
-        </div>
-
-        <div className="flex items-center gap-3">
-          {ago && (
-            <span className="hidden items-center gap-1.5 text-xs text-muted sm:flex" aria-live="polite">
-              <span className={`h-1.5 w-1.5 rounded-full ${busy ? 'animate-pulse bg-accent-tone-3' : 'bg-accent-tone-7'}`} />
-              {busy ? 'Syncing…' : `Updated ${ago}`}
-            </span>
-          )}
-          <button
-            type="button"
-            onClick={refresh}
-            disabled={busy}
-            title="Fetch your latest alerts from the database"
-            className="group inline-flex h-10 items-center gap-2 rounded-lg border border-border bg-surface pl-3 pr-3.5 text-sm font-medium text-text shadow-soft transition-all duration-200 hover:-translate-y-px hover:border-accent-tone-1 hover:bg-surface-alt hover:text-accent-tone-1 active:translate-y-0 active:scale-95 disabled:translate-y-0 disabled:opacity-70 disabled:hover:border-border disabled:hover:bg-surface disabled:hover:text-text"
-          >
-            <RefreshCw size={16} className={refreshing ? 'animate-spin' : 'transition-transform duration-500 group-hover:rotate-180'} />
-            <span>{refreshing ? 'Refreshing' : 'Refresh'}</span>
-          </button>
-        </div>
-      </header>
+      <PageHeader
+        art="alerts"
+        title="Alerts"
+        subtitle="News, offers and notices from the store."
+        actions={(
+          <div className="flex items-center gap-3">
+            {ago && (
+              <span className="hidden items-center gap-1.5 text-xs text-muted sm:flex" aria-live="polite">
+                <span className={`h-1.5 w-1.5 rounded-full ${busy ? 'animate-pulse bg-accent-tone-3' : 'bg-accent-tone-7'}`} />
+                {busy ? 'Syncing…' : `Updated ${ago}`}
+              </span>
+            )}
+            <button
+              type="button"
+              onClick={refresh}
+              disabled={busy}
+              title="Fetch your latest alerts from the database"
+              className="group inline-flex h-10 items-center gap-2 rounded-lg border border-border bg-surface pl-3 pr-3.5 text-sm font-medium text-text shadow-soft transition-all duration-200 hover:-translate-y-px hover:border-accent-tone-1 hover:bg-surface-alt hover:text-accent-tone-1 active:translate-y-0 active:scale-95 disabled:translate-y-0 disabled:opacity-70 disabled:hover:border-border disabled:hover:bg-surface disabled:hover:text-text"
+            >
+              <RefreshCw size={16} className={refreshing ? 'animate-spin' : 'transition-transform duration-500 group-hover:rotate-180'} />
+              <span>{refreshing ? 'Refreshing' : 'Refresh'}</span>
+            </button>
+          </div>
+        )}
+      />
 
       {notice && <Notice key={notice.id} type={notice.type} text={notice.text} onDismiss={() => setNotice(null)} />}
 
@@ -390,7 +390,7 @@ function AlertsView({ me }) {
             {all.length === 0 ? 'You’re all caught up' : all.length === 1 ? '1 alert for you' : `${all.length} alerts for you`}
           </span>
           <p className="mt-2 text-sm text-white/80">
-            Press “Got it” to stop seeing an alert for good, or the X to hide it until your next visit.
+            Press “Got it” to stop seeing an alert for good, or the X to hide it on this browser.
           </p>
         </div>
       </section>

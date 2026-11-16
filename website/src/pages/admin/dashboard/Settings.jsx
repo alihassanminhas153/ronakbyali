@@ -8,7 +8,7 @@ import ProfileTab from '../../../components/admin/settings/ProfileTab';
 import DevicesTab from '../../../components/admin/settings/DevicesTab';
 import AccessTab from '../../../components/admin/settings/AccessTab';
 import { Ico, tabIcon } from '../../../components/admin/settings/SettingsParts';
-import PanelPageTitle from '../../../ui/custom/PanelPageTitle';
+import PageHeader from '../../../ui/custom/PageHeader';
 
 // created once, so the tab icons keep a stable identity between renders
 const ProfileIcon = tabIcon('user', 3);
@@ -29,15 +29,16 @@ function Settings() {
 
   return (
     <div className={`space-y-5 transition-opacity duration-300 motion-reduce:transition-none ${entered ? 'opacity-100' : 'opacity-0'}`}>
-      <header className="flex items-end justify-between gap-3">
-        <div className="min-w-0">
-          <PanelPageTitle className="font-display text-3xl font-bold tracking-wide text-text sm:text-4xl">Settings</PanelPageTitle>
-          <p className="mt-1 text-sm text-muted">Manage your profile, security, and workspace access.</p>
-        </div>
-        <span className="grid size-14 shrink-0 place-items-center rounded-2xl border border-border bg-surface shadow-soft sm:size-16">
-          <Ico name="settings_gear" tone={8} className="size-9 sm:size-10" />
-        </span>
-      </header>
+      <PageHeader
+        art="settings"
+        title="Settings"
+        subtitle="Manage your profile, security, and workspace access."
+        actions={(
+          <span className="grid size-14 shrink-0 place-items-center rounded-2xl border border-border bg-surface shadow-soft sm:size-16">
+            <Ico name="settings_gear" tone={8} className="size-9 sm:size-10" />
+          </span>
+        )}
+      />
 
       <section
         style={{ background: 'linear-gradient(120deg, var(--brown), var(--accent))' }}

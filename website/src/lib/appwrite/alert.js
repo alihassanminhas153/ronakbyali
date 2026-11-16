@@ -30,7 +30,8 @@ export const isExpired = (alert) => alertState(alert) === 'expired';
 // POPUP RULES
 //   - "Got it" (markSeen)  -> never shown again to that user. Kept in this browser
 //                             (localStorage) and, for signed-in users, on the row (seenBy).
-//   - X / outside click (dismiss) -> hidden for this browser session only (sessionStorage).
+//   - X / outside click (dismiss) -> hidden on this browser for this user until reset by
+//     clearing site storage or creating a new alert.
 //   - Admin "reset seen" clears seenBy + seenCount, and browsers notice it (see hasSeen).
 //
 // NOTE: Appwrite only lets signed-in users write to this table, so guests keep their
@@ -39,6 +40,7 @@ export const isExpired = (alert) => alertState(alert) === 'expired';
 const EDITABLE = ['title', 'message', 'type', 'status', 'popup', 'link', 'buttonText', 'priority', 'userId', 'startsAt', 'endsAt', 'pages', 'saleId'];
 const SETTABLE_STATUS = [ALERT_STATUS.ACTIVE, ALERT_STATUS.INACTIVE]; // "expired" is never set by hand
 const SEEN_KEY = 'rba_seen_alerts';
+const DISMISSED_KEY = 'rba_dismissed_alerts';
 const SEEN_CAP = 200;
 
 export class AlertService {
@@ -65,7 +67,7 @@ export class AlertService {
     async getActiveAlerts({ userId } = {}) {
         try {
             const rows = await this._listLive({ popup: false, userId });
-            return rows.filter((a) => !this._isDismissed(a.$id));
+            return rows.filter((a) => !this._isDismissed(a.$id, userId));
         } catch (error) {
             this._fail(error, 'Could not load alerts.');
             return [];
@@ -76,7 +78,8 @@ export class AlertService {
     async getActiveNotifications({ userId } = {}) {
         this.lastError = null;
         try {
-            return await this._listLive({ userId });
+            const rows = await this._listLive({ userId });
+            return rows.filter((alert) => !this._isDismissed(alert.$id, userId));
         } catch (error) {
             return this._fail(error, 'Could not load alerts.');
         }
@@ -87,7 +90,7 @@ export class AlertService {
     async getPopupAlerts({ userId } = {}) {
         try {
             const rows = await this._listLive({ popup: true, userId });
-            return rows.filter((a) => !this.hasSeen(a, userId) && !this._isDismissed(a.$id));
+            return rows.filter((a) => !this.hasSeen(a, userId) && !this._isDismissed(a.$id, userId));
         } catch (error) {
             this._fail(error, 'Could not load alerts.');
             return [];
@@ -155,8 +158,18 @@ export class AlertService {
     }
 
     // The X button or clicking outside: only hides it for this session.
-    dismiss(alertId) {
-        this._sessionSet(`dismissed_${alertId}`, '1');
+    dismiss(alertId, userId) {
+        if (!alertId) return false;
+        try {
+            const key = `${DISMISSED_KEY}:${userId || 'guest'}`;
+            const ids = this._readDismissed(userId);
+            if (!ids.includes(alertId)) ids.push(alertId);
+            if (ids.length > SEEN_CAP) ids.splice(0, ids.length - SEEN_CAP);
+            window.localStorage.setItem(key, JSON.stringify(ids));
+        } catch {
+            // Keep the current-session behavior if persistent storage is unavailable.
+            this._sessionSet(`dismissed_${alertId}`, '1');
+        }
         return true;
     }
 
@@ -432,8 +445,8 @@ export class AlertService {
         return !alert.userId || alert.userId === userId;
     }
 
-    _isDismissed(alertId) {
-        return !!this._sessionGet(`dismissed_${alertId}`);
+    _isDismissed(alertId, userId) {
+        return this._readDismissed(userId).includes(alertId) || !!this._sessionGet(`dismissed_${alertId}`);
     }
 
     // Browser storage helpers (safe if storage is blocked).
@@ -474,6 +487,15 @@ export class AlertService {
             window.localStorage.setItem(`${SEEN_KEY}:${userId || 'guest'}`, JSON.stringify(map));
         } catch {
             /* ignore */
+        }
+    }
+
+    _readDismissed(userId) {
+        try {
+            const raw = JSON.parse(window.localStorage.getItem(`${DISMISSED_KEY}:${userId || 'guest'}`) || '[]');
+            return Array.isArray(raw) ? raw.filter((id) => typeof id === 'string') : [];
+        } catch {
+            return [];
         }
     }
 }

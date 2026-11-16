@@ -12,7 +12,7 @@ export default function CatchAllRoute() {
 
   if (!isReady) return null;
   if (isLoggedIn) return <Navigate to={panel} replace />;
-  if (/^\/team(\/|$)/i.test(location.pathname)) {
+  if (/^(?:\/p)?\/team(\/|$)/i.test(location.pathname)) {
     return <Navigate to={PATHS.signin} replace state={{ from: location }} />;
   }
   return <NotFound />;

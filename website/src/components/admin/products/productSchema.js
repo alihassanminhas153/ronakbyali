@@ -33,6 +33,9 @@ export function toForm(p) {
     featured: Boolean(p?.featured),
     order: str(p?.order ?? 0),
     saleId: str(p?.saleId),
+    isCustom: Boolean(p?.isCustom),
+    customDetails: str(p?.customDetails),
+    customFileId: str(p?.customFileId),
 
     originalPrice: str(p?.originalPrice),
     discountPercentage: str(p?.discountPercentage ?? 0),
@@ -104,5 +107,8 @@ export function toPayload(f) {
 
     totalAvailable: numOrNull(f.totalAvailable) ?? 0,
     sold: numOrNull(f.sold) ?? 0,
+    isCustom: Boolean(f.isCustom),
+    customDetails: f.isCustom ? textOrNull(f.customDetails) : null,
+    customFileId: f.isCustom ? textOrNull(f.customFileId) : null,
   };
 }

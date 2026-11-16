@@ -92,9 +92,10 @@ export const markAlertSeen = createAsyncThunk('alerts/seen', async (arg, { getSt
   return alertService.markSeen({ alert, userId: getUserId(profile) });
 });
 
-export const dismissAlert = createAsyncThunk('alerts/dismiss', async (arg) => {
+export const dismissAlert = createAsyncThunk('alerts/dismiss', async (arg, { getState }) => {
   const alertId = typeof arg === 'string' ? arg : stripToast(arg).alertId;
-  alertService.dismiss(alertId);
+  const profile = getState().auth.profile;
+  alertService.dismiss(alertId, getUserId(profile));
   return alertId;
 });
 

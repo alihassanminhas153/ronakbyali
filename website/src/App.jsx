@@ -18,7 +18,9 @@ import ProtectedRoute from "./router/ProtecteRoute";
 import SlugRoute from "./router/SlugRoute";
 import CatchAllRoute from "./router/CatchAllRoute";
 import RedirectRoute from "./router/RedirectRoute";
+import RouteErrorBoundary from "./router/RouteErrorBoundary";
 import { PATHS, PRODUCT_LIST_ALIASES } from "./router/path";
+import NotFound from "./pages/shared/structure/NotFound";
 import ToastViewport from "./ui/custom/toast/ToastViewport";
 
 // shared pages
@@ -60,18 +62,18 @@ const SITE_PAGES = [
   { name: "Shop", link: PATHS.products },
   { name: "Contact", link: PATHS.contact },
   { name: "Privacy", link: PATHS.privacy },
-  { name: "Custom", link: "/custom-studio" },
+  { name: "Custom", link: PATHS.customStudio },
   { name: "FAQs", link: PATHS.faqs },
 ];
 
 const STATIC_PAGE_TITLES = {
   "/": "Home",
-  "/products": "Shop",
-  "/contact": "Contact",
-  "/privacy": "Privacy Policy",
-  "/disclaimer": "Disclaimer",
-  "/faqs": "FAQs",
-  "/custom-studio": "Custom Studio",
+  "/p/products": "Shop",
+  "/p/contact": "Contact",
+  "/p/privacy": "Privacy Policy",
+  "/p/disclaimer": "Disclaimer",
+  "/p/faqs": "FAQs",
+  "/p/custom-studio": "Custom Studio",
   "/welcome-back": "Sign In",
   "/create-account": "Create Account",
   "/auth/callback": "Signing In",
@@ -135,6 +137,7 @@ export default function App() {
       </div>
     )}
     <ToastViewport />
+    <RouteErrorBoundary>
     <Routes>
       {/* Pathless layout route ABOVE every other route: a blocked user sees only the
           Blocked page, whatever URL they type. */}
@@ -144,45 +147,75 @@ export default function App() {
           <Route index element={<Home />} />                                   {/* /  */}
         </Route>
 
-        {/* ---------- Product list: /products. Every other spelling redirects to it ----------
-            (product, allProducts, all-products ... see PRODUCT_LIST_ALIASES in path.js.
-            Matching ignores case, and ?q=&category= style filters are carried over.) */}
+        {/* Legacy URLs redirect to the /p prefix while the old links still work. */}
         {PRODUCT_LIST_ALIASES.map((alias) => (
           <Route key={alias} path={alias} element={<RedirectRoute to={PATHS.products} />} />
         ))}
-        {/* old long link /products/:category/:group/:productId -> the new form */}
-        <Route
-          path="products/:category/:group/:productId"
-          element={<RedirectRoute to={(p) => PATHS.product(p.category, p.group, p.productId)} />}
-        />
+        <Route path="products" element={<RedirectRoute to={PATHS.products} />} />
+        <Route path="contact" element={<RedirectRoute to={PATHS.contact} />} />
+        <Route path="privacy" element={<RedirectRoute to={PATHS.privacy} />} />
+        <Route path="disclaimer" element={<RedirectRoute to={PATHS.disclaimer} />} />
+        <Route path="faqs" element={<RedirectRoute to={PATHS.faqs} />} />
+        <Route path="custom-studio" element={<RedirectRoute to={PATHS.customStudio} />} />
+        <Route path="products/:category/:group/:productId" element={<RedirectRoute to={(p) => PATHS.product(p.category, p.group, p.productId)} />} />
+        <Route path=":category/:group/:productId" element={<RedirectRoute to={(p) => PATHS.product(p.category, p.group, p.productId)} />} />
 
-        <Route path="products" element={<AllProducts pages={SITE_PAGES} />} /> {/* /products */}
+        <Route path="p">
+          <Route path="products" element={<AllProducts pages={SITE_PAGES} />} />
+          <Route element={<PlainLayout pages={SITE_PAGES} />}>
+            <Route path="contact" element={<Contact />} />
+            <Route path="privacy" element={<Privacy />} />
+            <Route path="disclaimer" element={<Disclaimer />} />
+            <Route path="faqs" element={<FAQs />} />
+            <Route path="custom-studio" element={<CustomStudioPage />} />
+            <Route path="team/:username/*" element={<CatchAllRoute />} />
+            <Route path="*" element={<NotFound />} />
+          </Route>
 
-        {/* ---------- Public pages ---------- */}
-        <Route element={<PlainLayout pages={SITE_PAGES} />}>
-          <Route path="contact" element={<Contact />} />
-          <Route path="privacy" element={<Privacy />} />
-          <Route path="disclaimer" element={<Disclaimer />} />
-          <Route path="faqs" element={<FAQs />} />
-          <Route path="custom-studio" element={<CustomStudioPage />} />
-          {/* Unknown /team/... URLs must not be mistaken for a product link. */}
-          <Route path="team/:username/*" element={<CatchAllRoute />} />
-          <Route path="*" element={<CatchAllRoute />} />        {/* unknown URL */}
+          <Route element={<PlainLayout pages={SITE_PAGES} showOffers />}>
+            <Route path=":category/:group/:productId" element={<Product />} />
+          </Route>
+
+          <Route element={<AuthLayout />}>
+            <Route element={<GuestRoute />}>
+              <Route path="create-account" element={<Signup />} />
+              <Route path="welcome-back" element={<Signin />} />
+            </Route>
+          </Route>
+
+          <Route path="team/:username" element={<ProtectedRoute area="admin" />}>
+            <Route element={<AdminLayout />}>
+              <Route index element={<AdminOverview />} />
+              <Route path="orders" element={<AdminOrders />} />
+              <Route path="products" element={<AdminProducts />} />
+              <Route path="users" element={<AdminUsers />} />
+              <Route path="finance" element={<AdminFinance />} />
+              <Route path="cart-and-wishlist" element={<AdminCartAndWishlist />} />
+              <Route path="reviews" element={<AdminReviews />} />
+              <Route path="alerts" element={<AdminAlerts />} />
+              <Route path="settings" element={<AdminSettings />} />
+            </Route>
+          </Route>
+
+          <Route path=":username">
+            <Route index element={<SlugRoute />} />
+            <Route element={<ProtectedRoute area="user" />}>
+              <Route element={<AccountLayout />}>
+                <Route path="profile" element={<UserProfile />} />
+                <Route path="orders" element={<UserOrders />} />
+                <Route path="cart" element={<UserCart />} />
+                <Route path="checkout" element={<UserCheckout />} />
+                <Route path="confirm-order" element={<ConfirmOrder />} />
+                <Route path="wishlist" element={<UserWishlist />} />
+                <Route path="reviews" element={<UserReviews />} />
+                <Route path="alerts" element={<UserAlerts />} />
+              </Route>
+            </Route>
+          </Route>
         </Route>
 
-        {/* Product details are the only public pages that show offer bars/popups. */}
-        <Route element={<PlainLayout pages={SITE_PAGES} showOffers />}>
-          {/* One product: /:category/:group/:productId (productId is the slug).
-              The short form /:productId is resolved by SlugRoute below. */}
-          <Route path=":category/:group/:productId" element={<Product />} />
-        </Route>
-
-        {/* ---------- Accounts ---------- */}
-        {/* Google sends people back here. Standalone and OUTSIDE GuestRoute so the page
-            is not redirected away while completeLogin is still creating/loading the profile. */}
         <Route path="auth/callback" element={<AuthCallback />} />
 
-        {/* logged-out only */}
         <Route element={<AuthLayout />}>
           <Route element={<GuestRoute />}>
             <Route path="create-account" element={<Signup />} />
@@ -190,7 +223,6 @@ export default function App() {
           </Route>
         </Route>
 
-        {/* ---------- Admin panel (admin, support, manager): /team/:username/... ---------- */}
         <Route path="team/:username" element={<ProtectedRoute area="admin" />}>
           <Route element={<AdminLayout />}>
             <Route index element={<AdminOverview />} />
@@ -205,11 +237,8 @@ export default function App() {
           </Route>
         </Route>
 
-        {/* ---------- User: /:username/...  (and short product /:productId) ---------- */}
         <Route path=":username">
-          {/* /:something -> own overview if it's your username, else short product link */}
           <Route index element={<SlugRoute />} />
-
           <Route element={<ProtectedRoute area="user" />}>
             <Route element={<AccountLayout />}>
               <Route path="profile" element={<UserProfile />} />
@@ -223,8 +252,11 @@ export default function App() {
             </Route>
           </Route>
         </Route>
+
+        <Route path="*" element={<NotFound />} />
       </Route>
     </Routes>
+    </RouteErrorBoundary>
     </>
   );
 }

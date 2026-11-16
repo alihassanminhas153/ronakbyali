@@ -14,6 +14,7 @@ import {
   trackAlertImpression,
 } from '../../../store/slices/alertSlice';
 import useSeenAlerts from './useSeenAlerts';
+import usePageAlerts from '../usePageAlerts';
 
 export const alertTitle = (alert) => alert.title ?? alert.subject ?? 'Alert';
 export const alertText = (alert) => alert.message ?? alert.body ?? alert.description ?? '';
@@ -26,6 +27,8 @@ export default function useHeaderData({ showOffers = false } = {}) {
   const user = useAppSelector(selectMe);
   const bars = useAppSelector(selectAlertBars);
   const list = useAppSelector(selectAlertNotifications);
+  const pageBars = usePageAlerts(bars);
+  const pageAlerts = usePageAlerts(list);
   const alertsStatus = useAppSelector(selectAlertNotificationsStatus);
   const userId = authProfile?.userId ?? authProfile?.$id ?? user?.$id ?? null;
   const { seen, markSeen } = useSeenAlerts(userId);
@@ -55,15 +58,15 @@ export default function useHeaderData({ showOffers = false } = {}) {
 
   useEffect(() => {
     if (!showOffers) return;
-    bars.forEach((alert) => dispatch(trackAlertImpression({ alert })));
-  }, [bars, dispatch, showOffers]);
+    pageBars.forEach((alert) => dispatch(trackAlertImpression({ alert })));
+  }, [dispatch, pageBars, showOffers]);
 
   const alerts = useMemo(
     () =>
-      [...(Array.isArray(list) ? list : [])].sort(
+      [...(Array.isArray(pageAlerts) ? pageAlerts : [])].sort(
         (a, b) => new Date(b.$createdAt).getTime() - new Date(a.$createdAt).getTime(),
       ),
-    [list],
+    [pageAlerts],
   );
 
   const isUnread = useCallback((alert) => !seen.includes(alert.$id), [seen]);
@@ -77,7 +80,7 @@ export default function useHeaderData({ showOffers = false } = {}) {
     accountPath,
     alertPath,
     cartPath,
-    bars,
+    bars: pageBars,
     alerts,
     alertsStatus,
     unreadCount,

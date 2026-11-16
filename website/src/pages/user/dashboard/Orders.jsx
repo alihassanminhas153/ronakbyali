@@ -1,7 +1,7 @@
 // src/pages/user/dashboard/Orders.jsx   (route: /:username/orders)
 // Same look as Profile.jsx: gradient hero, StatTile cards, rounded-xl bordered surfaces,
 // graph-colour accents, Notice banner, Refresh button with "Updated x ago".
-import PanelPageTitle from '../../../ui/custom/PanelPageTitle';
+import PageHeader from '../../../ui/custom/PageHeader';
 import AppIcon from '../../../ui/custom/AppIcon';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router';
@@ -40,6 +40,7 @@ import {
   clearLastPlacedOrder,
   clearOrderUpdateError,
   canEditOrder,
+  fetchMyTracker,
   parseOrderItems,
   orderItemKey,
   selectMyOrders,
@@ -49,6 +50,7 @@ import {
   selectOrderUpdateError,
   selectLastPlacedOrder,
   selectLastPlacedKind,
+  selectTrackerByOrder,
 } from '../../../store/slices/ordersSlice';
 import { getProductImageUrl } from '../../../store/slices/productsSlice';
 import { PATHS } from '../../../router/path';
@@ -64,6 +66,8 @@ import HeatmapCalendar from '../../../ui/graphs/HeatmapCalendar';
 import { capitalize, formatDateTime, formatMoney } from '../../../components/user/profile/profileMeta';
 import { paidAmountForOrder } from '../../../lib/orderMath';
 import { entityColorStep, toneColor } from '../../../lib/entityColors';
+import OrderTracker from '../../../components/admin/orders/OrderTracker';
+import productService from '../../../lib/appwrite/product';
 
 /* =====================================================================
    CONFIG
@@ -306,6 +310,7 @@ function OrderCard({ order, busy, username, index }) {
   const dispatch = useAppDispatch();
   const entered = useEntered();
   const items = useMemo(() => parseOrderItems(order), [order]);
+  const tracker = useAppSelector(selectTrackerByOrder(order.$id));
   const editable = canEditOrder(order);
   const meta = STATUS[order.status] || STATUS.pending;
 
@@ -316,6 +321,10 @@ function OrderCard({ order, busy, username, index }) {
   const [cancelError, setCancelError] = useState('');
 
   const itemCount = items.reduce((s, i) => s + (Number(i.quantity) || 0), 0);
+
+  useEffect(() => {
+    if (open && !tracker) dispatch(fetchMyTracker(order.$id));
+  }, [dispatch, open, order.$id, tracker]);
 
   const startEdit = () => {
     setDraft({
@@ -368,6 +377,7 @@ function OrderCard({ order, busy, username, index }) {
         </span>
         <span className="min-w-0 flex-1">
           <span className="block truncate font-heading text-base font-semibold text-text">Order {order.orderNumber}</span>
+          {order.isCustom && <span className="mt-1 inline-flex rounded-full bg-accent-tone-6/10 px-2 py-0.5 text-[11px] font-medium text-accent-tone-6">Custom order</span>}
           <span className="block truncate text-xs text-muted">
             {formatDateTime(order.$createdAt)} · {itemCount} {itemCount === 1 ? 'item' : 'items'}
           </span>
@@ -406,6 +416,17 @@ function OrderCard({ order, busy, username, index }) {
             <p className="text-sm text-text">
               Tracking number: <span className="font-semibold">{order.trackingId}</span>
             </p>
+          )}
+          {order.isCustom && (
+            <section className="rounded-xl border border-accent-tone-6/30 bg-accent-tone-6/5 p-4">
+              <h3 className="text-sm font-semibold text-text">Your customization</h3>
+              <p className="mt-1 whitespace-pre-line text-sm text-muted">{order.customDetails}</p>
+              {order.customFileId && (
+                <a href={productService.getImageUrl(order.customFileId)} target="_blank" rel="noopener noreferrer" className="mt-3 inline-block">
+                  <img src={productService.getImageUrl(order.customFileId)} alt="Your reference" className="size-20 rounded-md border border-border object-cover" />
+                </a>
+              )}
+            </section>
           )}
 
           {/* items */}
@@ -461,6 +482,17 @@ function OrderCard({ order, busy, username, index }) {
               );
             })}
           </ul>
+
+          {tracker?.detail && (
+            <section className="rounded-xl border border-border bg-surface-alt p-4">
+              <h3 className="text-sm font-semibold text-text">Latest order update</h3>
+              <p className="mt-1 whitespace-pre-line text-sm text-muted">{tracker.detail}</p>
+            </section>
+          )}
+          <section aria-label="Order updates" className="rounded-xl border border-border bg-surface p-4">
+            <h3 className="mb-3 text-sm font-semibold text-text">Tracking updates</h3>
+            <OrderTracker order={order} tracker={tracker} loading={!tracker} />
+          </section>
 
           {/* money */}
           <dl className="ml-auto max-w-xs space-y-1 text-sm">
@@ -703,30 +735,31 @@ export default function Orders() {
         entered ? 'translate-y-0 opacity-100' : 'translate-y-2 opacity-0'
       }`}
     >
-      <header className="flex items-end justify-between gap-3">
-        <div className="min-w-0">
-          <PanelPageTitle icon="list" className="font-display text-3xl font-bold tracking-wide text-text sm:text-4xl">Orders</PanelPageTitle>
-          <p className="mt-1 hidden text-sm text-muted lg:block">Track, change or cancel your orders until they ship.</p>
-        </div>
-        <div className="flex items-center gap-3">
-          {ago && (
-            <span className="hidden items-center gap-1.5 text-xs text-muted sm:flex" aria-live="polite">
-              <span className={`h-1.5 w-1.5 rounded-full ${busy ? 'animate-pulse bg-accent-tone-3' : 'bg-accent-tone-7'}`} />
-              {busy ? 'Syncing…' : `Updated ${ago}`}
-            </span>
-          )}
-          <button
-            type="button"
-            onClick={refresh}
-            disabled={busy}
-            title="Fetch your latest orders from the database"
-            className="group inline-flex h-10 items-center gap-2 rounded-lg border border-border bg-surface pl-3 pr-3.5 text-sm font-medium text-text shadow-soft transition-all duration-200 hover:-translate-y-px hover:border-accent-tone-1 hover:bg-surface-alt hover:text-accent-tone-1 active:translate-y-0 active:scale-95 disabled:translate-y-0 disabled:opacity-70 disabled:hover:border-border disabled:hover:bg-surface disabled:hover:text-text"
-          >
-            <RefreshCw size={16} className={refreshing ? 'animate-spin' : 'transition-transform duration-500 group-hover:rotate-180'} />
-            <span>{refreshing ? 'Refreshing' : 'Refresh'}</span>
-          </button>
-        </div>
-      </header>
+      <PageHeader
+        art="orders"
+        title="Orders"
+        subtitle="Track, change or cancel your orders until they ship."
+        actions={(
+          <div className="flex items-center gap-3">
+            {ago && (
+              <span className="hidden items-center gap-1.5 text-xs text-muted sm:flex" aria-live="polite">
+                <span className={`h-1.5 w-1.5 rounded-full ${busy ? 'animate-pulse bg-accent-tone-3' : 'bg-accent-tone-7'}`} />
+                {busy ? 'Syncing…' : `Updated ${ago}`}
+              </span>
+            )}
+            <button
+              type="button"
+              onClick={refresh}
+              disabled={busy}
+              title="Fetch your latest orders from the database"
+              className="group inline-flex h-10 items-center gap-2 rounded-lg border border-border bg-surface pl-3 pr-3.5 text-sm font-medium text-text shadow-soft transition-all duration-200 hover:-translate-y-px hover:border-accent-tone-1 hover:bg-surface-alt hover:text-accent-tone-1 active:translate-y-0 active:scale-95 disabled:translate-y-0 disabled:opacity-70 disabled:hover:border-border disabled:hover:bg-surface disabled:hover:text-text"
+            >
+              <RefreshCw size={16} className={refreshing ? 'animate-spin' : 'transition-transform duration-500 group-hover:rotate-180'} />
+              <span>{refreshing ? 'Refreshing' : 'Refresh'}</span>
+            </button>
+          </div>
+        )}
+      />
 
       {placed && (
         <Notice

@@ -1,5 +1,5 @@
 // src/pages/user/dashboard/Checkout.jsx   (route: /:username/checkout)
-import PanelPageTitle from "../../../ui/custom/PanelPageTitle";
+import PageHeader from "../../../ui/custom/PageHeader";
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { useDispatch, useSelector } from "react-redux";
@@ -376,8 +376,8 @@ function Choice({ name, checked, onChange, title, detail }) {
 
 function Shell({ children }) {
   return (
-    <section className="w-full">
-      <PanelPageTitle className="mb-5 font-['Barlow_Condensed',sans-serif] text-3xl font-bold text-text sm:text-4xl">Checkout</PanelPageTitle>
+    <section className="w-full space-y-5">
+      <PageHeader art="orderForm" title="Checkout" subtitle="Review your items, delivery, and payment details." />
       {children}
     </section>
   );

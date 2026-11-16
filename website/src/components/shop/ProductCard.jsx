@@ -115,6 +115,7 @@ function ProductCard({
   wishBusy = false,
   onAddToCart,
   onToggleWishlist,
+  onCustomize,
   index = 0,
 }) {
   const entered = useEntered((index % PAGE_SIZE) * 40);
@@ -283,7 +284,7 @@ function ProductCard({
             disabled={outOfStock || cartBusy}
             aria-label={outOfStock ? 'Out of stock' : inCart ? 'In your cart. Add one more' : 'Add to cart'}
             title={outOfStock ? 'Out of stock' : inCart ? 'In your cart' : 'Add to cart'}
-            className={`relative inline-flex h-10 min-w-0 flex-1 items-center justify-center gap-1 overflow-hidden rounded-xl px-1 text-xs font-semibold shadow-sm transition-all duration-200 hover:shadow-md active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 sm:h-11 sm:gap-2 sm:px-3 sm:text-sm ${
+            className={`relative inline-flex h-11 min-w-0 flex-1 items-center justify-center gap-1 overflow-hidden rounded-xl px-1 text-xs font-semibold shadow-sm transition-all duration-200 hover:shadow-md active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 sm:gap-2 sm:px-3 sm:text-sm ${
               remaining === 1 && !outOfStock
                 ? 'bg-success text-white hover:brightness-90'
                 : 'bg-brown text-on-brown hover:bg-brown-hover'
@@ -294,8 +295,16 @@ function ProductCard({
             ) : (
               <ShoppingCart size={16} className="shrink-0 transition-transform duration-300 group-hover/card:-translate-y-0.5 sm:size-[18px]" aria-hidden="true" />
             )}
-            <span className="sm:hidden">{outOfStock ? 'Sold out' : inCart ? 'Add one' : 'Add'}</span>
-            <span className="hidden truncate sm:inline">{outOfStock ? 'Sold out' : inCart ? 'Add one more' : 'Add to cart'}</span>
+            <span className="sr-only sm:not-sr-only sm:inline">{outOfStock ? 'Sold out' : inCart ? 'Add one more' : 'Add to cart'}</span>
+          </button>
+        )}
+        {product.isCustom === true && onCustomize && (
+          <button
+            type="button"
+            onClick={() => onCustomize(product)}
+            className="inline-flex h-11 min-w-0 flex-1 items-center justify-center rounded-xl border border-border bg-surface px-2 text-xs font-semibold text-text transition-colors hover:border-accent hover:text-accent sm:text-sm"
+          >
+            Customize
           </button>
         )}
         {onToggleWishlist && (

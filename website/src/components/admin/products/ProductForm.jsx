@@ -7,6 +7,7 @@ import { fetchSales, selectSaleOptions, selectSalesList } from '../../../store/s
 import productService from '../../../lib/appwrite/product';
 import SearchSelect from '../../../ui/custom/input/SearchSelect';
 import SelectInput from '../../../ui/custom/input/SelectInput';
+import ImageUploader from '../../../ui/custom/input/ImageUploader';
 import AppIcon, { resolveAppIconName } from '../../../ui/custom/AppIcon';
 import { colorFor, tint, toneVar } from '../../../ui/graphs/utils';
 import { getSaleStatus } from '../../../lib/saleMath';
@@ -138,6 +139,11 @@ export default function ProductForm({ open, product, categories = [], groups = [
   const [images, setImages] = useState(() =>
     (product?.imageIds || []).map((id) => ({ key: id, id, url: productService.getImageUrl(id) }))
   );
+  const [sampleImages, setSampleImages] = useState(() =>
+    product?.customFileId
+      ? [{ key: product.customFileId, kind: 'existing', id: product.customFileId, url: productService.getImageUrl(product.customFileId) }]
+      : []
+  );
   const imagesRef = useRef(images);
   imagesRef.current = images;
 
@@ -238,6 +244,7 @@ export default function ProductForm({ open, product, categories = [], groups = [
     setSaving(true);
     setSubmitError('');
     let uploadedIds = [];
+    let uploadedSampleId = null;
     try {
       // 1. unique slug
       const slug = await productService.generateUniqueSlug(form.slug || form.name, product?.$id);
@@ -253,18 +260,34 @@ export default function ProductForm({ open, product, categories = [], groups = [
       let next = 0;
       const imageIds = images.map((i) => (i.file ? uploadedIds[next++] : i.id)); // keeps the admin's order
 
+      let customFileId = null;
+      if (form.isCustom && sampleImages[0]) {
+        if (sampleImages[0].kind === 'new') {
+          const uploaded = await productService.uploadImage(sampleImages[0].file);
+          if (!uploaded) throw new Error('Sample image upload failed.');
+          uploadedSampleId = uploaded.$id;
+          customFileId = uploadedSampleId;
+        } else {
+          customFileId = sampleImages[0].id;
+        }
+      }
+
       // 3. save the row (service fills priceFormat, remaining and status)
-      const data = productService.prepareProductData({ ...toPayload(form), slug, imageIds });
+      const data = productService.prepareProductData({ ...toPayload(form), slug, imageIds, customFileId });
       if (editing) await dispatch(updateProduct([product.$id, data])).unwrap();
       else await dispatch(addProduct([data])).unwrap();
 
       // 4. remove images the admin deleted from the bucket
       const removed = (product?.imageIds || []).filter((id) => !imageIds.includes(id));
       if (removed.length) await productService.deleteImages(removed);
+      if (product?.customFileId && product.customFileId !== customFileId) {
+        await productService.deleteImage(product.customFileId);
+      }
 
       onSaved?.();
     } catch (err) {
       if (uploadedIds.length) await productService.deleteImages(uploadedIds); // roll back
+      if (uploadedSampleId) await productService.deleteImage(uploadedSampleId);
       setSubmitError(typeof err === 'string' ? err : err?.message || 'Could not save the product.');
     } finally {
       setSaving(false);
@@ -411,6 +434,41 @@ export default function ProductForm({ open, product, categories = [], groups = [
             <Field label="Ships from" optional className="sm:col-span-2">
               <input value={form.deliveryFrom} onChange={on('deliveryFrom')} maxLength={150} placeholder="Lahore" className={inputCls()} />
             </Field>
+          </Section>
+
+          <Section title="Custom orders" subtitle="Let customers request a personalized version of this product." icon={Star} tone={7} delay={210}>
+            <div className="sm:col-span-2">
+              <Switch
+                checked={form.isCustom}
+                onChange={(isCustom) => setForm((current) => ({ ...current, isCustom }))}
+                label="Customizable"
+              />
+            </div>
+            {form.isCustom && (
+              <>
+                <Field label="Custom details" hint="Instructions shown to customers" className="sm:col-span-2">
+                  <textarea
+                    value={form.customDetails}
+                    onChange={on('customDetails')}
+                    rows={3}
+                    maxLength={1000}
+                    className={`${inputCls()} resize-y py-2`}
+                    placeholder="Describe the options or measurements customers can request."
+                  />
+                </Field>
+                <div className="sm:col-span-2">
+                  <ImageUploader
+                    items={sampleImages}
+                    onChange={setSampleImages}
+                    label="Sample image"
+                    hint="Optional example shown to customers."
+                    max={1}
+                    maxSizeMB={5}
+                    disabled={saving}
+                  />
+                </div>
+              </>
+            )}
           </Section>
 
           <section style={{ animationDelay: '240ms' }} className="group/sec animate-rise rounded-lg border border-border bg-surface-alt/40 p-4">
