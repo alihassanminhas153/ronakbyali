@@ -508,29 +508,28 @@ function ReviewsView({ me }) {
 
       {/* Hero */}
       <section
-        style={{ background: 'linear-gradient(120deg, var(--brown), var(--accent))' }}
-        className="group relative isolate flex flex-col items-center gap-5 overflow-hidden rounded-2xl p-5 text-center text-white sm:flex-row sm:gap-7 sm:p-7 sm:text-left"
+        className="group relative isolate flex flex-col items-center gap-5 overflow-hidden rounded-2xl border border-border bg-surface p-5 text-center text-text sm:flex-row sm:gap-7 sm:p-7 sm:text-left"
       >
-        <span aria-hidden="true" className="pointer-events-none absolute -right-12 -top-14 h-44 w-44 rounded-full bg-white/10 transition-transform duration-700 group-hover:scale-125" />
-        <span aria-hidden="true" className="pointer-events-none absolute -bottom-16 right-28 hidden h-32 w-32 animate-float rounded-full bg-white/[0.07] sm:block" />
-        <span aria-hidden="true" className="pointer-events-none absolute inset-x-0 bottom-0 h-1 origin-left scale-x-0 bg-white/60 transition-transform duration-500 group-hover:scale-x-100" />
+        <span aria-hidden="true" className="pointer-events-none absolute -right-12 -top-14 h-44 w-44 rounded-full bg-surface-alt transition-transform duration-700 group-hover:scale-125" />
+        <span aria-hidden="true" className="pointer-events-none absolute -bottom-16 right-28 hidden h-32 w-32 animate-float rounded-full bg-surface-alt/60 sm:block" />
+        <span aria-hidden="true" className="pointer-events-none absolute inset-x-0 bottom-0 h-1 origin-left scale-x-0 bg-accent transition-transform duration-500 group-hover:scale-x-100" />
 
         <div className="relative shrink-0">
-          <span aria-hidden="true" className="absolute inset-0 animate-ring rounded-full border-2 border-white/70" />
-          <div className="relative grid size-24 place-items-center rounded-full border-2 border-white/40 bg-white/15 text-white sm:size-28">
+          <span aria-hidden="true" className="absolute inset-0 animate-ring rounded-full border-2 border-accent" />
+          <div className="relative grid size-24 place-items-center rounded-full border-2 border-border bg-surface-alt text-text sm:size-28">
             <div className="text-center leading-none">
               <span className="font-display text-4xl font-bold">{counts.total ? counts.average.toFixed(1) : '–'}</span>
-              <Star size={16} className="mx-auto mt-1 fill-white" aria-hidden="true" />
+              <Star size={16} className="mx-auto mt-1 fill-accent" aria-hidden="true" />
             </div>
           </div>
         </div>
 
         <div className="relative min-w-0 flex-1">
-          <span className="block text-[11px] font-semibold uppercase tracking-[0.18em] text-white/70">Your reviews</span>
+          <span className="block text-[11px] font-semibold uppercase tracking-[0.18em] text-muted">Your reviews</span>
           <span className="heading mt-1 block text-2xl sm:text-3xl">
             {counts.total === 0 ? 'No reviews yet' : counts.total === 1 ? '1 review written' : `${counts.total} reviews written`}
           </span>
-          <p className="mt-2 text-sm text-white/80">
+          <p className="mt-2 text-sm text-muted">
             {counts.total === 0
               ? 'Tell other shoppers what you think. Open a product to write your first review.'
               : `Your average rating is ${counts.average.toFixed(1)} out of 5.`}
@@ -539,7 +538,7 @@ function ReviewsView({ me }) {
 
         <Link
           to={SHOP_PATH}
-          className="relative inline-flex shrink-0 items-center gap-2 rounded-full bg-white px-5 py-2.5 text-sm font-semibold !text-[color:var(--brown)] transition-transform duration-300 hover:scale-105 active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+          className="relative inline-flex shrink-0 items-center gap-2 rounded-full border border-border bg-surface-alt px-5 py-2.5 text-sm font-semibold text-text transition-transform duration-300 hover:scale-105 active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
         >
           <ShoppingBag size={16} aria-hidden="true" />
           Browse products

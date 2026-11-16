@@ -126,7 +126,7 @@ function ProductCard({
   const image = getMainImageUrl(product);
   const remaining = product.remaining == null ? null : Number(product.remaining);
   const hasRemaining = remaining !== null && Number.isFinite(remaining);
-  const outOfStock = product.status === 'outOfStock' || (hasRemaining && remaining <= 0);
+  const outOfStock = product.isCustom !== true && (product.status === 'outOfStock' || (hasRemaining && remaining <= 0));
   // prices: `price` is the final price, `originalPrice` the one before the discount
   const pricing = getEffectivePricing(product, sales);
   const finalPrice = pricing.price;
@@ -201,7 +201,7 @@ function ProductCard({
           </span>
         )}
 
-        {(outOfStock || (hasRemaining && remaining > 0)) && (
+        {product.isCustom !== true && (outOfStock || (hasRemaining && remaining > 0)) && (
           <span
             aria-label={outOfStock ? 'Out of stock' : `${remaining} left in stock`}
             className={`absolute right-2 top-2 inline-flex max-w-[54%] items-center justify-center truncate whitespace-nowrap rounded-full px-2 py-1 text-[10px] font-semibold uppercase tracking-wide shadow-sm sm:right-3 sm:top-3 sm:text-xs ${
@@ -277,7 +277,7 @@ function ProductCard({
         </div>
 
       <div className="relative z-20 mt-1.5 flex items-center gap-1.5 sm:mt-2">
-        {onAddToCart && (
+        {product.isCustom !== true && onAddToCart && (
           <button
             type="button"
             onClick={() => onAddToCart(product)}

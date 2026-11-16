@@ -249,7 +249,7 @@ export class ProductService {
 
     // ---------- Read: lists ----------
 
-    // filters: { category: 'Lawn', status: 'inStock' }. Empty values ignored.
+    // filters: { category: 'Lawn', status: 'inStock', isCustom: true }. Empty values ignored.
     async getProducts(filters = {}) {
         try {
             return await this._listAllRows(this._filterQueries(filters));
@@ -678,6 +678,7 @@ export class ProductService {
         const queries = [];
         Object.entries(filters || {}).forEach(([key, value]) => {
             if (value === undefined || value === null || value === '') return;
+            if (key === 'isCustom' && typeof value !== 'boolean') return;
             queries.push(Query.equal(key, value));
         });
         return queries;

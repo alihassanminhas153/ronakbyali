@@ -12,4 +12,6 @@ export {
   layoutService,
   reviewService,
   saleService,
+  customOrderService,
+  orderConfirmationService,
 } from '../../lib/appwrite';

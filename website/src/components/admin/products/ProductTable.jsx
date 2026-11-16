@@ -31,6 +31,9 @@ function CategoryChip({ name }) {
 }
 
 function StockBadge({ product }) {
+  if (product.isCustom) {
+    return <span className="text-sm font-medium text-muted">Made to order</span>;
+  }
   const remaining = Number(product.remaining) || 0;
   const total = Number(product.totalAvailable) || 0;
   const out = product.status === 'outOfStock' || remaining <= 0;

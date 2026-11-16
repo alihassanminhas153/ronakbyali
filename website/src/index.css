@@ -57,39 +57,61 @@
 }
 
 /* ---------- 3. Theme variables: LIGHT (default) ----------
-   Neutral base + one orange accent family. */
+   "Indigo Denim & Ecru Thread" palette (no orange anywhere). It is taken from
+   the products themselves: indigo denim cloth, ecru (cream) embroidery thread
+   and a tan top-stitch.
+     Indigo denim = brand / buttons          (--brown)
+     Washed denim = accent (links, active)   (--accent)
+     Ecru paper   = neutrals                 (--bg, --surface ...)
+     Tan thread   = tiny decorative touches  (--thread). Never for text.
+   NOTE: the token names --brown / --btn* are kept so no component needs editing;
+   they now hold NAVY DENIM. */
 :root {
   color-scheme: light;
 
   /* Neutrals */
-  --bg: #ffffff;
-  --surface: #faf9f8;
-  --surface-alt: #f1efed;
-  --border: #e5e2de;
-  --text: #262626;            /* dark gray text */
-  --text-muted: #6b6b6b;
+  --bg: #f8f6f1;              /* ecru paper */
+  --surface: #f0ece4;         /* raw cotton */
+  --surface-alt: #e5e0d5;
+  --border: #d5cebf;
+  --text: #161f2d;            /* indigo ink */
+  --text-muted: #586072;      /* slate grey (5.9:1 on --bg) */
 
-  /* Accent: orange + its shades */
-  --accent: #c2571a;          /* main orange: links, active states, highlights */
-  --accent-hover: #9c4313;    /* darker orange shade */
-  --accent-soft: color-mix(in srgb, var(--accent) 10%, var(--bg));  /* light orange tint for backgrounds */
+  /* Accent: washed denim blue */
+  --accent: #2c5a93;          /* links, active states, highlights (6.3:1 on --bg) */
+  --accent-hover: #214678;    /* darker denim */
+  --accent-soft: color-mix(in srgb, var(--accent) 10%, var(--bg));  /* light denim tint for backgrounds */
   --on-accent: #ffffff;
   --link: var(--accent);
 
-  /* Buttons: deep brown (dark shade of the orange family) */
-  --brown: #7a4a2b;
-  --brown-hover: #5a3419;
+  /* Buttons / brand: navy denim (legacy name "brown") */
+  --brown: #1b3050;           /* raw indigo denim */
+  --brown-hover: #11213a;
   --on-brown: #ffffff;
 
+  /* "By Ali" ink in the logo loader (HandwrittenLogo.jsx reads this) */
+  --logo-ink: #1b3050;
+
+  /* Tan top-stitch / ecru thread. DECORATIVE ONLY (underlines, dividers,
+     stitched borders, sparkles). Only 2.9:1 on --bg, so never use it for text.
+     Tailwind: bg-thread  border-thread  text-thread (icons only). */
+  --thread: #b88a4a;
+  --thread-soft: color-mix(in srgb, var(--thread) 16%, var(--bg));
+
   /* ---- Hue source ----
-     Hue (in degrees) of the accent colour your .ico icons are drawn in.
-     #c2571a is about 22deg. If you ever change the icon colour, change ONLY this. */
+     Hue (in degrees) the .ico icon FILES are drawn in (they are orange, 22deg).
+     Leave this at 22deg while the icon files are orange: all status colours
+     (amber, green, rose...) and icon rotations are measured from it.
+     The accent itself is blue (about 213deg), so --tone-hue-1 below turns the
+     orange icons blue:  213 - 22 = 191deg.
+     If you later redraw the icons in blue, set --accent-hue: 213deg and
+     --tone-hue-1: 0deg and re-check the other tone hues. */
   --accent-hue: 22deg;
 
   /* Eight steps for charts and labels; ICO filters use four selected hues. */
-  --tone-hue-1: 0deg;     /* accent orange (the icon colour itself) */
+  --tone-hue-1: 191deg;   /* orange icon file -> accent blue */
   --tone-hue-2: 32deg;    /* amber        */
-  --tone-hue-3: 190deg;   /* blue         */
+  --tone-hue-3: 165deg;   /* sky / cyan (was 190 = same blue as the accent) */
   --tone-hue-4: 336deg;   /* red / rose   */
   --tone-hue-5: 145deg;   /* teal         */
   --tone-hue-6: 230deg;   /* indigo       */
@@ -107,7 +129,7 @@
   --cta-1: var(--brown);
   --cta-2: var(--accent);
 
-  /* Status accents stay within the warm theme. */
+  /* Status accents. */
   --success: var(--accent-tone-7);
   --warning: var(--accent-tone-2);
   --error: #c0392b;
@@ -125,35 +147,35 @@
   /* ---- User role labels ---- */
   --role-owner: var(--accent-tone-8);
   --role-admin: var(--accent-tone-1);
-  --role-member: var(--accent-tone-3);
+  --role-member: var(--accent-tone-5);
   --role-guest: var(--text-muted);
   --rot-owner: var(--tone-hue-4);
   --rot-admin: var(--tone-hue-1);
-  --rot-member: var(--tone-hue-3);
+  --rot-member: var(--tone-hue-5);
   --rot-guest: var(--tone-hue-1);   /* guest icons are also desaturated, see .icon-guest */
 
   /* ---- Chart series (ordered so neighbouring series contrast well) ---- */
-  --chart-1: var(--accent-tone-1);   /* orange */
-  --chart-2: var(--accent-tone-3);   /* blue   */
-  --chart-3: var(--accent-tone-5);   /* teal   */
+  --chart-1: var(--accent-tone-1);   /* denim blue */
+  --chart-2: var(--accent-tone-5);   /* teal   */
+  --chart-3: var(--accent-tone-2);   /* amber  */
   --chart-4: var(--accent-tone-8);   /* purple */
-  --chart-5: var(--accent-tone-2);   /* amber  */
-  --chart-6: var(--accent-tone-6);   /* indigo */
-  --chart-7: var(--accent-tone-4);   /* rose   */
-  --chart-8: var(--accent-tone-7);   /* green  */
+  --chart-5: var(--accent-tone-4);   /* rose   */
+  --chart-6: var(--accent-tone-7);   /* green  */
+  --chart-7: var(--accent-tone-6);   /* indigo */
+  --chart-8: var(--accent-tone-3);   /* sky    */
   --chart-neutral: color-mix(in srgb, var(--text-muted) 65%, var(--bg));
   --chart-positive: var(--success);
   --chart-negative: var(--error);
 
   /* Matching icon rotations for legend icons next to a series */
   --chart-1-rot: var(--tone-hue-1);
-  --chart-2-rot: var(--tone-hue-3);
-  --chart-3-rot: var(--tone-hue-5);
+  --chart-2-rot: var(--tone-hue-5);
+  --chart-3-rot: var(--tone-hue-2);
   --chart-4-rot: var(--tone-hue-8);
-  --chart-5-rot: var(--tone-hue-2);
-  --chart-6-rot: var(--tone-hue-6);
-  --chart-7-rot: var(--tone-hue-4);
-  --chart-8-rot: var(--tone-hue-7);
+  --chart-5-rot: var(--tone-hue-4);
+  --chart-6-rot: var(--tone-hue-7);
+  --chart-7-rot: var(--tone-hue-6);
+  --chart-8-rot: var(--tone-hue-3);
 
   /* Chart chrome (axes, grid, tooltip). Tooltip inverts with the theme. */
   --chart-grid: color-mix(in srgb, var(--text-muted) 22%, transparent);
@@ -191,22 +213,24 @@
 .dark {
   color-scheme: dark;
 
-  --bg: #141414;
-  --surface: #1c1c1c;
-  --surface-alt: #262626;
-  --border: #333333;
-  --text: #f5f5f5;            /* white-type text */
-  --text-muted: #a3a3a3;
+  --bg: #0e131b;              /* midnight denim */
+  --surface: #161c26;
+  --surface-alt: #1e2632;
+  --border: #2c3544;
+  --text: #f4f1ea;            /* ecru white */
+  --text-muted: #a4abb8;
 
-  --accent: #f0803c;
-  --accent-hover: #ff9a5c;
+  --accent: #86abdc;          /* light denim for dark backgrounds */
+  --accent-hover: #a5c3ea;
   --accent-soft: color-mix(in srgb, var(--accent) 14%, var(--bg));
-  --on-accent: #141414;
+  --on-accent: #0e131b;
   --link: var(--accent);
 
-  --brown: #9a5f35;
-  --brown-hover: #b4743f;
+  --brown: #36598c;           /* lighter denim for dark mode buttons */
+  --brown-hover: #496fa6;
   --on-brown: #ffffff;
+  --logo-ink: #e3ebf7;
+  --thread: #d4b07a;          /* brighter thread on dark */
 
   --accent-tone-1: var(--accent);
   --accent-tone-2: hsl(calc(var(--accent-hue) + var(--tone-hue-2)) 78% 66%);
@@ -250,6 +274,8 @@
   --color-accent-tone-7: var(--accent-tone-7);
   --color-accent-tone-8: var(--accent-tone-8);
   --color-link: var(--link);
+  --color-thread: var(--thread);
+  --color-thread-soft: var(--thread-soft);
   --color-brown: var(--brown);
   --color-brown-hover: var(--brown-hover);
   --color-on-brown: var(--on-brown);
@@ -487,7 +513,7 @@
     text-decoration: none;
     transition: color 0.2s;
   }
-  a:hover { color: var(--accent-hover); }   /* darker orange on hover */
+  a:hover { color: var(--accent-hover); }   /* darker denim on hover */
 
   ::selection { background: var(--accent-soft); color: var(--text); }
 

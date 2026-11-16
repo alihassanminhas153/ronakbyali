@@ -34,6 +34,7 @@ export const PATHS = {
 
   // products
   products: `${P}/products`,
+  customize: (slug) => `${P}/customize/${e(slug)}`,
   productShort: (productId) => `${P}/${e(productId)}`,
   product: (category, group, productId) =>
     `${P}/${e(category)}/${e(group)}/${e(productId)}`,

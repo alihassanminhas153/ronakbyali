@@ -33,6 +33,7 @@ const defaultFilters = {
   category: null,
   group: null,
   status: null, // 'inStock' | 'outOfStock'
+  isCustom: null, // true | false | null (all)
   minPrice: null,
   maxPrice: null,
   sortBy: 'newest', // name-asc, name-desc, price-asc, price-desc, newest, order
@@ -64,6 +65,7 @@ const serviceFilters = (f) => {
   if (f.category) out.category = f.category;
   if (f.group) out.group = f.group;
   if (f.status) out.status = f.status;
+  if (typeof f.isCustom === 'boolean') out.isCustom = f.isCustom;
   return out;
 };
 

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useSearchParams } from 'react-router';
+import { useNavigate, useSearchParams } from 'react-router';
 import { useStore } from 'react-redux';
 import { PackageSearch, RotateCcw, Search, SearchX, SlidersHorizontal, X } from 'lucide-react';
 
@@ -24,8 +24,7 @@ import {
   setProductFilters,
 } from '../../../store/slices/productsSlice';
 import { selectSalesStatus } from '../../../store/slices/saleSlice';
-import { selectProfile } from '../../../store/slices/authSlice';
-import { openLoginModal } from '../../../store/slices/uiSlice';
+import { PATHS } from '../../../router/path';
 
 import {
   ProductCard,
@@ -44,7 +43,6 @@ import {
   isSet,
 } from '../../../components/shop/shopMeta';
 import Header from '../../../components/shared/header/Header';
-import CustomOrderDrawer from '../../../components/shop/CustomOrderDrawer';
 import ActionButton from '../../../ui/custom/button/ActionButton';
 import SearchSelect from '../../../ui/custom/input/SearchSelect';
 import useEntered from '../../../ui/custom/motion/useEntered';
@@ -100,6 +98,7 @@ function AppliedChip({ label, onRemove }) {
 export default function AllProducts({ pages = [] }) {
   const dispatch = useAppDispatch();
   const store = useStore();
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
   const products = useAppSelector(selectProductsList);
@@ -115,14 +114,12 @@ export default function AllProducts({ pages = [] }) {
   const cartBusy = useAppSelector(selectCartUpdating);
   const wishlistIds = useAppSelector(selectWishlistIds);
   const salesStatus = useAppSelector(selectSalesStatus);
-  const profile = useAppSelector(selectProfile);
   const categoryValues = categoryOptions.map((option) => option?.value ?? option?.label ?? '');
   const groupValues = groupOptions.map((option) => option?.value ?? option?.label ?? '');
 
   const [started, setStarted] = useState(false);
   const initialized = useRef(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [customProduct, setCustomProduct] = useState(null);
   const [term, setTerm] = useState(() => fromParams(searchParams)[K.search] ?? '');
   const entered = useEntered();
 
@@ -189,13 +186,7 @@ export default function AllProducts({ pages = [] }) {
   const addProductToCart = (product) =>
     dispatch(addToCart({ productId: product.$id, quantity: 1, toast: true }));
   const toggleProductWishlist = (product) => dispatch(toggleWishlist({ productId: product.$id }));
-  const customizeProduct = (product) => {
-    if (!profile) {
-      dispatch(openLoginModal());
-      return;
-    }
-    setCustomProduct(product);
-  };
+  const customizeProduct = (product) => navigate(PATHS.customize(product.slug));
 
   const clearFilters = () => {
     dispatch(resetProductFilters());
@@ -464,7 +455,6 @@ export default function AllProducts({ pages = [] }) {
           setDrawerOpen(false);
         }}
       />
-      <CustomOrderDrawer open={Boolean(customProduct)} onClose={() => setCustomProduct(null)} product={customProduct} />
         </div>
       </main>
     </div>

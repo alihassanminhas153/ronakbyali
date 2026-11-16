@@ -9,6 +9,8 @@ import settingsService from './settings';
 import layoutService from './layout';
 import reviewService from './review';
 import saleService from './sale';
+import customOrderService from './customOrder';
+import orderConfirmationService from './orderConfirmation';
 
 // `service` is the old name for the products service, kept so existing
 // imports like `import { service } from '.../appwrite'` keep working.
@@ -26,7 +28,9 @@ export {
     settingsService,
     layoutService,
     reviewService,
-    saleService
+    saleService,
+    customOrderService,
+    orderConfirmationService
 };
 
 // Constants for dropdowns, filters and checks in your UI.
@@ -49,5 +53,7 @@ export default {
     settingsService,
     layoutService,
     reviewService,
-    saleService
+    saleService,
+    customOrderService,
+    orderConfirmationService
 };

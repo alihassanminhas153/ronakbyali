@@ -68,6 +68,7 @@ import { paidAmountForOrder } from '../../../lib/orderMath';
 import { entityColorStep, toneColor } from '../../../lib/entityColors';
 import OrderTracker from '../../../components/admin/orders/OrderTracker';
 import productService from '../../../lib/appwrite/product';
+import customOrderService from '../../../lib/appwrite/customOrder';
 
 /* =====================================================================
    CONFIG
@@ -312,6 +313,11 @@ function OrderCard({ order, busy, username, index }) {
   const items = useMemo(() => parseOrderItems(order), [order]);
   const tracker = useAppSelector(selectTrackerByOrder(order.$id));
   const editable = canEditOrder(order);
+  const itemsEditable = editable && !order.isCustom;
+  const customSelections = order.isCustom ? customOrderService.parseSelections(order) : [];
+  const referenceFileIds = order.isCustom
+    ? [...new Set([...(Array.isArray(order.customFileIds) ? order.customFileIds : []), order.customFileId].filter(Boolean))]
+    : [];
   const meta = STATUS[order.status] || STATUS.pending;
 
   const [open, setOpen] = useState(false);
@@ -421,11 +427,24 @@ function OrderCard({ order, busy, username, index }) {
             <section className="rounded-xl border border-accent-tone-6/30 bg-accent-tone-6/5 p-4">
               <h3 className="text-sm font-semibold text-text">Your customization</h3>
               <p className="mt-1 whitespace-pre-line text-sm text-muted">{order.customDetails}</p>
-              {order.customFileId && (
-                <a href={productService.getImageUrl(order.customFileId)} target="_blank" rel="noopener noreferrer" className="mt-3 inline-block">
-                  <img src={productService.getImageUrl(order.customFileId)} alt="Your reference" className="size-20 rounded-md border border-border object-cover" />
-                </a>
+              {customSelections.length > 0 && (
+                <ul className="mt-3 space-y-1">
+                  {customSelections.map((selection) => (
+                    <li key={selection.id} className="flex justify-between gap-3 text-sm text-muted">
+                      <span>{selection.label}</span><span>{formatMoney(selection.price)}</span>
+                    </li>
+                  ))}
+                </ul>
               )}
+              {referenceFileIds.length > 0 && (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {referenceFileIds.map((id) => {
+                    const url = productService.getImageUrl(id);
+                    return <a key={id} href={url} target="_blank" rel="noopener noreferrer"><img src={url} alt="Your reference" loading="lazy" className="size-20 rounded-md border border-border object-cover" /></a>;
+                  })}
+                </div>
+              )}
+              <p className="mt-3 text-sm text-muted">Our team will contact you soon to confirm the details and payment.</p>
             </section>
           )}
 
@@ -445,7 +464,7 @@ function OrderCard({ order, busy, username, index }) {
                     </span>
                   </span>
 
-                  {editable ? (
+                  {itemsEditable ? (
                     <span className="flex shrink-0 items-center gap-2">
                       <span className="flex items-center overflow-hidden rounded-lg border border-border" role="group" aria-label={`Quantity of ${item.name}`}>
                         <button
@@ -573,9 +592,7 @@ function OrderCard({ order, busy, username, index }) {
                 <Pencil size={15} aria-hidden="true" />
                 Change delivery details
               </button>
-              <Link to={PATHS.products} className="btn btn-ghost !min-h-10 !px-4 !py-2 text-sm">
-                Add more products
-              </Link>
+              {!order.isCustom && <Link to={PATHS.products} className="btn btn-ghost !min-h-10 !px-4 !py-2 text-sm">Add more products</Link>}
               <button
                 type="button"
                 onClick={() => { setCancelError(''); setCancelOpen(true); }}
@@ -586,8 +603,9 @@ function OrderCard({ order, busy, username, index }) {
                 Cancel order
               </button>
               <p className="w-full text-xs text-muted">
-                You can change or cancel this order until it ships. To add products, put them in your cart and choose
-                “Add to order” at <Link to={PATHS.user.checkout(username)} className="underline">checkout</Link>.
+                {order.isCustom
+                  ? 'You can change the delivery details or cancel this request until it ships. Contact us if you need to change your customization.'
+                  : <>You can change or cancel this order until it ships. To add products, put them in your cart and choose “Add to order” at <Link to={PATHS.user.checkout(username)} className="underline">checkout</Link>.</>}
               </p>
             </div>
           )}
@@ -776,26 +794,25 @@ export default function Orders() {
 
       {/* Hero */}
       <section
-        style={{ background: 'linear-gradient(120deg, var(--brown), var(--accent))' }}
-        className="group relative isolate flex flex-col items-center gap-4 overflow-hidden rounded-2xl p-5 text-center text-white sm:flex-row sm:gap-6 sm:p-7 sm:text-left"
+        className="group relative isolate flex flex-col items-center gap-4 overflow-hidden rounded-2xl border border-border bg-surface p-5 text-center text-text sm:flex-row sm:gap-6 sm:p-7 sm:text-left"
       >
-        <span aria-hidden="true" className="pointer-events-none absolute -right-12 -top-14 h-44 w-44 rounded-full bg-white/10 transition-transform duration-700 group-hover:scale-125" />
-        <span aria-hidden="true" className="pointer-events-none absolute -bottom-16 right-28 hidden h-32 w-32 animate-float rounded-full bg-white/[0.07] sm:block" />
-        <span aria-hidden="true" className="pointer-events-none absolute inset-x-0 bottom-0 h-1 origin-left scale-x-0 bg-white/60 transition-transform duration-500 group-hover:scale-x-100" />
+        <span aria-hidden="true" className="pointer-events-none absolute -right-12 -top-14 h-44 w-44 rounded-full bg-surface-alt transition-transform duration-700 group-hover:scale-125" />
+        <span aria-hidden="true" className="pointer-events-none absolute -bottom-16 right-28 hidden h-32 w-32 animate-float rounded-full bg-surface-alt/60 sm:block" />
+        <span aria-hidden="true" className="pointer-events-none absolute inset-x-0 bottom-0 h-1 origin-left scale-x-0 bg-accent transition-transform duration-500 group-hover:scale-x-100" />
 
-        <div className="relative grid size-20 shrink-0 place-items-center rounded-full border-2 border-white/40 bg-white/15">
-          <span aria-hidden="true" className="absolute inset-0 animate-ring rounded-full border-2 border-white/70" />
+        <div className="relative grid size-20 shrink-0 place-items-center rounded-full border-2 border-border bg-surface-alt">
+          <span aria-hidden="true" className="absolute inset-0 animate-ring rounded-full border-2 border-accent" />
           <AppIcon name="list" entity="order" hueRotate={false} className="size-14 object-contain sm:size-16" />
         </div>
         <div className="relative min-w-0 flex-1">
-          <span className="block text-[11px] font-semibold uppercase tracking-[0.18em] text-white/70">Order history</span>
+          <span className="block text-[11px] font-semibold uppercase tracking-[0.18em] text-muted">Order history</span>
           <span className="heading mt-1 block min-h-[1.6em] truncate text-2xl sm:text-3xl">
             <Typewriter phrases={phrases} />
           </span>
         </div>
         <Link
           to={PATHS.products}
-          className="relative inline-flex shrink-0 items-center gap-2 rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-[color:var(--brown)] transition-transform duration-300 hover:scale-105 hover:text-[color:var(--brown)] active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+          className="relative inline-flex shrink-0 items-center gap-2 rounded-full border border-border bg-surface-alt px-5 py-2.5 text-sm font-semibold text-text transition-transform duration-300 hover:scale-105 hover:text-[color:var(--brown)] active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
         >
           <ShoppingBag size={16} aria-hidden="true" />
           Shop more

@@ -11,11 +11,15 @@ import {
   PAYMENT_STATUS,
   clearStaffWarning,
   fetchStaffCounts,
+  fetchStaffConfirmedOrders,
   fetchStaffOrderAnalytics,
   fetchStaffOrders,
   fetchTrackerDetails,
   searchStaffOrders,
   selectStaffCounts,
+  selectStaffConfirmedOrders,
+  selectStaffConfirmedOrdersError,
+  selectStaffConfirmedOrdersStatus,
   selectStaffError,
   selectStaffOrderAnalytics,
   selectStaffOrderAnalyticsError,
@@ -45,11 +49,15 @@ import CountUp from '../../../ui/custom/motion/CountUp';
 import Typewriter from '../../../ui/custom/motion/Typewriter';
 
 const PAGE = 10;
-const EMPTY = { term: '', status: '', paymentStatus: '', deliveryType: '', paymentMethod: '' };
+const EMPTY = { term: '', status: '', paymentStatus: '', deliveryType: '', paymentMethod: '', isCustom: null };
 
 const PAYMENT_OPTIONS = toOptions(PAYMENT_STATUS, PAYMENT_META);
 const DELIVERY_OPTIONS = toOptions(DELIVERY_TYPES, DELIVERY_LABEL);
 const METHOD_OPTIONS = toOptions(PAYMENT_METHODS, METHOD_LABEL);
+const TYPE_OPTIONS = [
+  { value: 'normal', label: 'Normal orders' },
+  { value: 'custom', label: 'Custom orders' },
+];
 
 // "just now", "25s ago", "4m ago" ... re-rendered every 10 seconds
 function useTimeAgo(date) {
@@ -78,7 +86,11 @@ export default function Orders() {
   const analyticsStatus = useSelector(selectStaffOrderAnalyticsStatus);
   const analyticsError = useSelector(selectStaffOrderAnalyticsError);
   const trackerDetails = useSelector(selectTrackerDetails);
+  const confirmedOrders = useSelector(selectStaffConfirmedOrders);
+  const confirmedStatus = useSelector(selectStaffConfirmedOrdersStatus);
+  const confirmedError = useSelector(selectStaffConfirmedOrdersError);
 
+  const [view, setView] = useState('orders');
   const [filters, setFilters] = useState(EMPTY);
   const [selectedId, setSelectedId] = useState(null);
   const [formOpen, setFormOpen] = useState(false);
@@ -94,7 +106,7 @@ export default function Orders() {
   const load = useCallback(
     (f, append = false) => {
       const term = f.term.trim();
-      if (term) return dispatch(searchStaffOrders({ term, status: f.status }));
+      if (term) return dispatch(searchStaffOrders({ term, status: f.status, isCustom: f.isCustom }));
       return dispatch(
         fetchStaffOrders({
           limit: PAGE,
@@ -103,6 +115,7 @@ export default function Orders() {
           paymentStatus: f.paymentStatus,
           deliveryType: f.deliveryType,
           paymentMethod: f.paymentMethod,
+          isCustom: f.isCustom,
         })
       );
     },
@@ -134,7 +147,8 @@ export default function Orders() {
         (o) =>
           (!filters.paymentStatus || o.paymentStatus === filters.paymentStatus) &&
           (!filters.deliveryType || o.deliveryType === filters.deliveryType) &&
-          (!filters.paymentMethod || o.paymentMethod === filters.paymentMethod)
+          (!filters.paymentMethod || o.paymentMethod === filters.paymentMethod) &&
+          (filters.isCustom === null || Boolean(o.isCustom) === filters.isCustom)
       ),
     [rows, filters]
   );
@@ -148,10 +162,29 @@ export default function Orders() {
   const refresh = async () => {
     setRefreshing(true);
     try {
-      await Promise.all([load(filters), dispatch(fetchStaffCounts()), dispatch(fetchStaffOrderAnalytics())]);
+      if (view === 'confirmed') {
+        await Promise.all([
+          dispatch(fetchStaffConfirmedOrders({ limit: 100, offset: 0 })),
+          dispatch(fetchStaffOrders({ status: 'confirmed', limit: 100, offset: 0 })),
+        ]);
+      } else {
+        await Promise.all([load(filters), dispatch(fetchStaffCounts()), dispatch(fetchStaffOrderAnalytics())]);
+      }
     } finally {
       setRefreshing(false);
     }
+  };
+
+  const openConfirmedOrders = async () => {
+    setView('confirmed');
+    await Promise.all([
+      dispatch(fetchStaffConfirmedOrders({ limit: 100, offset: 0 })),
+      dispatch(fetchStaffOrders({ status: 'confirmed', limit: 100, offset: 0 })),
+    ]);
+  };
+  const openOrders = () => {
+    setView('orders');
+    load(filters);
   };
 
   const openOrder = (order) => {
@@ -167,7 +200,7 @@ export default function Orders() {
 
   const loading = status === 'loading';
   const searching = Boolean(filters.term.trim());
-  const filtered = Boolean(searching || filters.status || filters.paymentStatus || filters.deliveryType || filters.paymentMethod);
+  const filtered = Boolean(searching || filters.status || filters.paymentStatus || filters.deliveryType || filters.paymentMethod || filters.isCustom !== null);
   const hasMore = !searching && rows.length < total;
   const visibleOrders = searching ? orders.slice(0, visibleSearch) : orders;
   const busy = refreshing || loading || analyticsStatus === 'loading';
@@ -228,50 +261,53 @@ export default function Orders() {
         )}
       />
 
+      <Tabs
+        tabs={[
+          { id: 'orders', label: 'Orders', icon: ListOrdered },
+          { id: 'confirmed', label: 'Confirmed orders', badge: confirmedOrders.length || undefined },
+        ]}
+        value={view}
+        onChange={(selected) => selected === 'confirmed' ? openConfirmedOrders() : openOrders()}
+      />
+
+      {view === 'orders' ? (
+      <>
       {/* Big pending button (same block as "Add product") */}
       <button
         type="button"
         onClick={() => applyFilters({ status: 'pending' })}
-        style={{ background: 'linear-gradient(120deg, var(--brown), var(--accent))' }}
-        className="group relative isolate flex w-full items-center gap-4 overflow-hidden rounded-2xl p-5 text-left text-white transition-all duration-300 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.99] sm:gap-6 sm:p-7"
+        className="group relative isolate flex w-full items-center gap-4 overflow-hidden rounded-2xl border border-border bg-surface p-5 text-left text-text transition-all duration-300 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.99] sm:gap-6 sm:p-7"
       >
         {/* decorative shapes */}
-        <span aria-hidden="true" className="pointer-events-none absolute -right-12 -top-14 h-44 w-44 rounded-full bg-white/10 transition-transform duration-700 group-hover:scale-125" />
-        <span aria-hidden="true" className="pointer-events-none absolute -bottom-16 right-28 hidden h-32 w-32 animate-float rounded-full bg-white/[0.07] sm:block" />
-        <span aria-hidden="true" className="pointer-events-none absolute inset-x-0 bottom-0 h-1 origin-left scale-x-0 bg-white/60 transition-transform duration-500 group-hover:scale-x-100" />
+        <span aria-hidden="true" className="pointer-events-none absolute -right-12 -top-14 h-44 w-44 rounded-full bg-surface-alt transition-transform duration-700 group-hover:scale-125" />
+        <span aria-hidden="true" className="pointer-events-none absolute -bottom-16 right-28 hidden h-32 w-32 animate-float rounded-full bg-surface-alt/60 sm:block" />
+        <span aria-hidden="true" className="pointer-events-none absolute inset-x-0 bottom-0 h-1 origin-left scale-x-0 bg-accent transition-transform duration-500 group-hover:scale-x-100" />
 
         <span className="relative grid h-14 w-14 shrink-0 place-items-center sm:h-16 sm:w-16">
-          <span aria-hidden="true" className="absolute inset-0 animate-ring rounded-2xl border-2 border-white/70" />
-          <span className="grid h-full w-full place-items-center rounded-2xl border border-white/25 bg-white/15 transition-transform duration-500 ease-out group-hover:-rotate-6 group-hover:scale-105">
+          <span aria-hidden="true" className="absolute inset-0 animate-ring rounded-2xl border-2 border-accent" />
+          <span className="grid h-full w-full place-items-center rounded-2xl border border-border bg-surface-alt transition-transform duration-500 ease-out group-hover:-rotate-6 group-hover:scale-105">
             <AppIcon name="list" entity="order" hueRotate={false} className="size-10 object-contain sm:size-12" />
           </span>
         </span>
 
         <span className="relative min-w-0 flex-1">
-          <span className="block text-[11px] font-semibold uppercase tracking-[0.18em] text-white/70">Order desk</span>
+          <span className="block text-[11px] font-semibold uppercase tracking-[0.18em] text-muted">Order desk</span>
           <span className="heading mt-1 block min-h-[1.6em] truncate text-xl sm:text-3xl">
             <Typewriter key={pending} phrases={phrases} />
           </span>
-          <span className="mt-0.5 hidden text-sm text-white/75 sm:block">Change the status, add tracking and keep the customer informed.</span>
+          <span className="mt-0.5 hidden text-sm text-muted sm:block">Change the status, add tracking and keep the customer informed.</span>
         </span>
 
-        <span className="relative hidden shrink-0 items-center gap-2 rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-[color:var(--brown)] transition-transform duration-300 group-hover:scale-105 sm:inline-flex">
+        <span className="relative hidden shrink-0 items-center gap-2 rounded-full border border-border bg-surface-alt px-5 py-2.5 text-sm font-semibold text-text transition-transform duration-300 group-hover:scale-105 sm:inline-flex">
           Review pending
           <ArrowRight size={16} className="group-hover:animate-nudge" />
         </span>
       </button>
 
-      <OrderAnalytics
-        orders={analyticsOrders}
-        status={analyticsStatus}
-        error={analyticsError}
-        onRetry={() => dispatch(fetchStaffOrderAnalytics())}
-      />
-
       <Tabs iconOnly tabs={tabs} value={filters.status || 'all'} onChange={(id) => applyFilters({ status: id === 'all' ? '' : id })} />
-      
+
       <TabPanel key={filters.status || 'all'} className="space-y-6">
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_12rem_12rem_12rem]">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_12rem_12rem_12rem_12rem]">
           <SearchInput
             size="sm"
             value={filters.term}
@@ -306,6 +342,15 @@ export default function Orders() {
             options={METHOD_OPTIONS}
             value={filters.paymentMethod}
             onChange={(value) => applyFilters({ paymentMethod: value || '' })}
+            clearable
+          />
+          <SelectInput
+            size="sm"
+            aria-label="Filter by order type"
+            placeholder="All order types"
+            options={TYPE_OPTIONS}
+            value={filters.isCustom === true ? 'custom' : filters.isCustom === false ? 'normal' : ''}
+            onChange={(value) => applyFilters({ isCustom: value ? value === 'custom' : null })}
             clearable
           />
         </div>
@@ -345,6 +390,56 @@ export default function Orders() {
           </>
         )}
       </TabPanel>
+      </>
+      ) : (
+        <section className="overflow-hidden rounded-xl border border-border bg-surface">
+          <div className="border-b border-border p-4">
+            <h2 className="font-display text-xl font-semibold text-text">Confirmed orders</h2>
+            <p className="mt-1 text-sm text-muted">Confirmation records for normal and customized orders.</p>
+          </div>
+          {confirmedStatus === 'failed' ? (
+            <p role="alert" className="p-5 text-sm text-error">{confirmedError || 'Could not load confirmed orders.'}</p>
+          ) : confirmedStatus === 'loading' ? (
+            <p role="status" className="p-5 text-sm text-muted">Loading confirmed orders…</p>
+          ) : confirmedOrders.length === 0 ? (
+            <p className="p-8 text-center text-sm text-muted">No confirmed orders yet.</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[680px] text-left text-sm">
+                <thead className="bg-surface-alt text-xs text-muted">
+                  <tr><th className="px-4 py-3 font-medium">Order</th><th className="px-4 py-3 font-medium">Customer</th><th className="px-4 py-3 font-medium">Total</th><th className="px-4 py-3 font-medium">Contact</th><th className="px-4 py-3 font-medium">Confirmed</th></tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {confirmedOrders.map((confirmation) => {
+                    const matchingOrder = rows.find((row) => row.$id === confirmation.orderId);
+                    return (
+                      <tr key={confirmation.$id}>
+                        <td className="px-4 py-3">
+                          <button type="button" onClick={() => matchingOrder && openOrder(matchingOrder)} disabled={!matchingOrder} className="font-semibold text-text hover:text-accent disabled:cursor-default">
+                            {confirmation.orderNumber || 'Order'}
+                          </button>
+                          {confirmation.isCustom && <span className="ml-2 rounded-full bg-accent-tone-6/10 px-2 py-0.5 text-xs font-medium text-accent-tone-6">Custom</span>}
+                        </td>
+                        <td className="px-4 py-3 text-text">{matchingOrder?.customerName || '—'}</td>
+                        <td className="px-4 py-3 tabular-nums text-text">{`Rs ${Number(confirmation.total || 0).toLocaleString('en-PK')}`}</td>
+                        <td className="px-4 py-3 capitalize text-muted">{confirmation.contactMethod || '—'}</td>
+                        <td className="px-4 py-3 text-muted">{confirmation.confirmedAt ? new Date(confirmation.confirmedAt).toLocaleString() : '—'}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
+      )}
+
+      <OrderAnalytics
+        orders={analyticsOrders}
+        status={analyticsStatus}
+        error={analyticsError}
+        onRetry={() => dispatch(fetchStaffOrderAnalytics())}
+      />
 
       {formKey > 0 && (
         <OrderForm key={formKey} open={formOpen} orderId={selectedId} onClose={() => setFormOpen(false)} />

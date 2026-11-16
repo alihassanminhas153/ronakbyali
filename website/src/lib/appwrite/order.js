@@ -5,6 +5,7 @@ import cartService from './cart';
 import wishlistService from './wishlist';
 import productService from './product';
 import trackerService from './tracker';
+import orderConfirmationService from './orderConfirmation';
 import { paidAmountForOrder } from '../orderMath';
 
 // The statuses below are the real enum values of ronakbyali_orders.status.
@@ -86,7 +87,7 @@ const DETAIL_LABELS = {
 //   deliveryCharges, discount, total, advanceAmount, codAmount,
 //   status, paymentMethod, paymentStatus, deliveryType, deliveryTime,
 //   estimatedDelivery, customerName, customerEmail, customerPhone,
-//   city, address, notes, trackingId, adminNotes
+//   city, address, notes, trackingId, adminNotes, customSelections, customFileIds
 export class OrderService {
     client = new Client();
     table;
@@ -210,7 +211,7 @@ export class OrderService {
     //            paymentMethod, deliveryType, deliveryTime, estimatedDelivery,
     //            deliveryCharges, discount, advanceAmount, notes }
     // Returns the order row, or false (the reason is in this.lastError).
-    async placeOrder({ profile, items, form = {} }) {
+    async placeOrder({ profile, items, form = {}, custom = false }) {
         this.lastError = null;
         try {
             if (!profile?.$id) return this._fail('Please sign in to place an order.');
@@ -246,13 +247,15 @@ export class OrderService {
                     isCustom: true,
                     customDetails: String(form.customDetails || '').trim().slice(0, 1000),
                     customFileId: form.customFileId || null,
+                    customSelections: form.customSelections || '[]',
+                    customFileIds: Array.isArray(form.customFileIds) ? form.customFileIds : [],
                 } : {}),
             };
 
             const order = await this._createWithUniqueNumber(profile.$id, data);
             if (!order) return this._fail('Could not place your order. Please try again.');
 
-            await this._afterOrder({ profile, order, items: cleanItems });
+            await this._afterOrder({ profile, order, items: cleanItems, skipCart: custom });
             return order;
         } catch (error) {
             console.error(error.message);
@@ -285,17 +288,18 @@ export class OrderService {
     }
 
     // Problems here are logged but never undo the order itself.
-    async _afterOrder({ profile, order, items }) {
+    async _afterOrder({ profile, order, items, skipCart = false }) {
         const productIds = [...new Set(items.map((i) => i.productId))];
-        await Promise.allSettled([
+        const tasks = [
             (async () => {
                 await userService.applyOrderToProfile({ profile, order });
                 await this.syncUserTotalSpent(profile.$id);
             })(),
             trackerService.createForOrder({ order, by: 'customer' }), // timeline starts with "Order placed"
-            cartService.markPurchased({ userId: profile.$id, productIds }),
             wishlistService.markPurchased({ userId: profile.$id, productIds }),
-        ]);
+        ];
+        if (!skipCart) tasks.push(cartService.markPurchased({ userId: profile.$id, productIds }));
+        await Promise.allSettled(tasks);
     }
 
     // =====================================================================
@@ -397,6 +401,7 @@ export class OrderService {
             if (!profile?.$id) return this._fail('Please sign in first.');
             const order = await this._getEditable(profile.$id, orderId);
             if (!order) return false;
+            if (order.isCustom) return this._fail('This is a customized order. Please contact us to change it.');
 
             const incoming = this._cleanItems(items);
             if (!incoming.length) return this._fail('Your cart is empty.');
@@ -424,6 +429,7 @@ export class OrderService {
         try {
             const order = await this._getEditable(userId, orderId);
             if (!order) return false;
+            if (order.isCustom) return this._fail('This is a customized order. Please contact us to change it.');
 
             const items = this.parseItems(order);
             const line = items.find((i) => this.itemKey(i) === itemKey);
@@ -478,7 +484,12 @@ export class OrderService {
             const order = await this._getEditable(userId, orderId);
             if (!order) return false;
             const saved = await this._userUpdate(orderId, { status: 'cancelled' });
-            if (saved) await this._syncProfileCounts(order, order.status, 'cancelled');
+            if (saved) {
+                await Promise.allSettled([
+                    this._syncProfileCounts(order, order.status, 'cancelled'),
+                    this._syncCustomOrderStatus(saved, 'cancelled'),
+                ]);
+            }
             return saved;
         } catch (error) {
             console.error(error.message);
@@ -573,10 +584,13 @@ export class OrderService {
     }
 
     // Staff search over order number, name, phone, email, username, tracking id.
-    async searchOrders({ term, status } = {}) {
+    async searchOrders({ term, status, isCustom } = {}) {
         try {
             const trimmed = (term || '').trim().toLowerCase();
-            const rows = await this._getAllRows(status ? [Query.equal('status', status)] : []);
+            const queries = [];
+            if (status) queries.push(Query.equal('status', status));
+            if (typeof isCustom === 'boolean') queries.push(Query.equal('isCustom', isCustom));
+            const rows = await this._getAllRows(queries);
             if (!trimmed) return rows;
             return rows.filter((r) =>
                 [r.orderNumber, r.customerName, r.customerPhone, r.customerEmail, r.username, r.trackingId].some((v) =>
@@ -616,7 +630,7 @@ export class OrderService {
     // The staff member's account needs update permission on the products table
     // for the stock part. If the stock cannot be updated the status still
     // changes, and this.lastError says which products need fixing by hand.
-    async updateStatus(rowId, status, { adjustStock = true } = {}) {
+    async updateStatus(rowId, status, { adjustStock = true, confirmation = {} } = {}) {
         this.lastError = null;
         try {
             if (!ORDER_STATUS.includes(status)) return this._fail('Unknown order status.');
@@ -634,14 +648,29 @@ export class OrderService {
 
             // Tracker: every status change becomes one timeline step. Customer totals are reconciled from payments.
             const [title, note] = STATUS_UPDATES[status] || [`Status: ${status}`, ''];
-            await Promise.allSettled([
+            const sideEffects = await Promise.allSettled([
                 trackerService.addUpdate(rowId, { title, note, status, by: 'staff' }, { order }),
                 this._syncProfileCounts(order, order.status, status),
+                status === 'confirmed'
+                    ? orderConfirmationService.createForOrder({
+                        order: updated,
+                        contactMethod: confirmation.contactMethod,
+                        paymentProtocol: confirmation.paymentProtocol,
+                        notes: confirmation.notes,
+                        confirmedBy: confirmation.confirmedBy,
+                    })
+                    : Promise.resolve(true),
+                this._syncCustomOrderStatus(updated, status),
             ]);
+            if (status === 'confirmed' && (sideEffects[2].status === 'rejected' || sideEffects[2].value === false)) {
+                this.lastError = 'Order status changed, but its confirmation record could not be saved.';
+            } else if (order.isCustom && (sideEffects[3].status === 'rejected' || sideEffects[3].value === false)) {
+                this.lastError = 'Order status changed, but its custom request status could not be synchronized.';
+            }
 
             const was = STOCK_TAKEN_STATUSES.includes(order.status);
             const now = STOCK_TAKEN_STATUSES.includes(status);
-            if (adjustStock && was !== now) {
+            if (!order.isCustom && adjustStock && was !== now) {
                 const sign = now ? 1 : -1;
                 const failed = [];
                 for (const item of this.parseItems(order)) {
@@ -656,6 +685,29 @@ export class OrderService {
         } catch (error) {
             console.error(error.message);
             return this._fail('Could not change the status.');
+        }
+    }
+
+    async _syncCustomOrderStatus(order, status) {
+        if (!order?.isCustom) return true;
+        const customStatus = {
+            pending: 'requested',
+            confirmed: 'confirmed',
+            processing: 'in_progress',
+            shipped: 'ready',
+            delivered: 'ready',
+            cancelled: 'cancelled',
+            returned: 'cancelled',
+        }[status];
+        if (!customStatus) return true;
+        try {
+            const { default: customOrderService } = await import('./customOrder');
+            const custom = await customOrderService.getByOrderId(order.$id);
+            if (custom === false) return false;
+            return custom ? customOrderService.updateCustomOrder(custom.$id, { status: customStatus }) : true;
+        } catch (error) {
+            console.error(error.message);
+            return false;
         }
     }
 
@@ -808,7 +860,14 @@ export class OrderService {
                 tableId: this.tableId,
                 rowId,
             });
-            await trackerService.deleteForOrder(rowId);
+            const related = await Promise.allSettled([
+                trackerService.deleteForOrder(rowId),
+                orderConfirmationService.deleteForOrder(rowId),
+                import('./customOrder').then(({ default: service }) => service.deleteForOrder(rowId)),
+            ]);
+            if (related.some((result) => result.status === 'rejected' || result.value === false)) {
+                this.lastError = 'The order was deleted, but some related details could not be removed.';
+            }
             if (order?.userId) await this.syncUserTotalSpent(order.userId);
             return true;
         } catch (error) {

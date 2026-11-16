@@ -30,6 +30,10 @@ const vars = {
 
     ronakByAliSales: String(import.meta.env.RONAK_BY_ALI_SALES_TABLE_ID),
 
+    ronakByAliCustomOrders: String(import.meta.env.RONAK_BY_ALI_CUSTOM_ORDERS_TABLE_ID),
+
+    ronakByAliOrderConfirmations: String(import.meta.env.RONAK_BY_ALI_ORDER_CONFIRMATIONS_TABLE_ID),
+
     // Appwrite Function that sets user labels + role (Settings > Team access)
     // ALSO the notifier one
     ronakByAliNotifierFunction: String(import.meta.env.RONAK_BY_ALI_NOTIFIER_FUNCTION),

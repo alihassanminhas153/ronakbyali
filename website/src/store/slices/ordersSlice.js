@@ -15,12 +15,15 @@
 //   dispatch(searchStaffOrders({ term: 'RBA-7K', status: '' }));
 //   dispatch(fetchStaffCounts());
 //   dispatch(updateOrderStatus({ orderId, status: 'shipped' }));
+//   dispatch(placeCustomOrder({ product, quantity, selectedIds, form, files }));
+//   dispatch(fetchStaffCustomOrders({ status: 'requested' }));
+//   dispatch(fetchStaffConfirmedOrders({ isCustom: true }));
 //   dispatch(updateOrderPayment({ orderId, paymentStatus: 'paid' }));
 //   dispatch(setOrderTracking({ orderId, trackingId }));
 //   dispatch(setOrderAdminNotes({ orderId, adminNotes }));
 //   const rows = useSelector(selectStaffOrders);
-import { createAsyncThunk, createEntityAdapter, createSlice } from '@reduxjs/toolkit';
-import { orderService, settingsService } from './services';
+import { createAsyncThunk, createEntityAdapter, createSelector, createSlice } from '@reduxjs/toolkit';
+import { customOrderService, orderConfirmationService, orderService, settingsService } from './services';
 import trackerService from '../../lib/appwrite/tracker';
 import { LOGIN_REQUIRED, fail, getUserId, stripToast } from './utils';
 import { isSessionEnded, refreshProfile } from './authSlice';
@@ -42,6 +45,8 @@ export { ORDER_STATUS, PAYMENT_METHODS, PAYMENT_STATUS, DELIVERY_TYPES, USER_EDI
 const byNewest = (a, b) => (b.$createdAt || '').localeCompare(a.$createdAt || '');
 const adapter = createEntityAdapter({ selectId: (o) => o.$id, sortComparer: byNewest });
 const staffAdapter = createEntityAdapter({ selectId: (o) => o.$id, sortComparer: byNewest });
+const customOrderAdapter = createEntityAdapter({ selectId: (o) => o.$id, sortComparer: byNewest });
+const confirmationAdapter = createEntityAdapter({ selectId: (row) => row.$id, sortComparer: byNewest });
 // Tracker rows are looked up by the ORDER's id (the tracker row id equals the order id).
 const trackerAdapter = createEntityAdapter({ selectId: (t) => t.orderId });
 
@@ -55,7 +60,7 @@ const initialState = adapter.getInitialState({
   placeStatus: 'idle',
   placeError: null,
   lastPlacedOrder: null,
-  lastPlacedKind: null, // 'new' | 'added'
+  lastPlacedKind: null, // 'new' | 'added' | 'custom'
   openIds: [], // my orders that can still be changed
   openStatus: 'idle',
   updating: false, // a customer change is in progress
@@ -74,6 +79,18 @@ const initialState = adapter.getInitialState({
     analytics: [],
     analyticsStatus: 'idle',
     analyticsError: null,
+    custom: customOrderAdapter.getInitialState({
+      total: 0,
+      status: 'idle',
+      error: null,
+      updating: false,
+      updateError: null,
+    }),
+    confirmations: confirmationAdapter.getInitialState({
+      total: 0,
+      status: 'idle',
+      error: null,
+    }),
   }),
 });
 
@@ -103,6 +120,7 @@ const stockProblem = (lines, already = []) => {
   for (const l of lines) {
     const p = l.product;
     if (!p) continue;
+    if (p.isCustom === true) continue;
     const remaining = p.remaining == null ? null : Number(p.remaining);
     if (p.status === 'outOfStock' || (remaining != null && remaining <= 0)) {
       return `${p.name} is out of stock. Remove it from your cart to continue.`;
@@ -145,6 +163,9 @@ export const placeOrder = createAsyncThunk('orders/place', async (arg, { getStat
 
   const lines = state.cart.lines;
   if (!lines.length) return fail(rejectWithValue, 'Your cart is empty.', arg);
+  if (lines.some((line) => line.product?.isCustom === true)) {
+    return fail(rejectWithValue, 'Custom products must be ordered through the Customize form.', arg);
+  }
   const problem = stockProblem(lines);
   if (problem) return fail(rejectWithValue, problem, arg);
 
@@ -190,6 +211,7 @@ export const placeDirectOrder = createAsyncThunk('orders/placeDirect', async (ar
   if (!product?.$id || !Number.isInteger(Number(quantity)) || Number(quantity) < 1) {
     return fail(rejectWithValue, 'Choose a valid product quantity.', arg);
   }
+  if (product.isCustom === true) return fail(rejectWithValue, 'Use the Customize form for this product.', arg);
   const paymentType = form.paymentType === 'advance' ? 'advance' : 'cod';
   const deliveryType = form.deliveryType || 'regular';
   if (!DELIVERY_TYPES.includes(deliveryType)) {
@@ -231,6 +253,26 @@ export const placeDirectOrder = createAsyncThunk('orders/placeDirect', async (ar
   return order;
 });
 
+export const placeCustomOrder = createAsyncThunk('orders/placeCustom', async (arg, { getState, dispatch, rejectWithValue }) => {
+  const { product, quantity, selectedIds, form = {}, files = [] } = stripToast(arg);
+  const state = getState();
+  const profile = state.auth.profile;
+  if (!profile) return needLogin(dispatch, rejectWithValue);
+  if (product?.isCustom !== true) return fail(rejectWithValue, 'This product is not available for customization.', arg);
+  const order = await customOrderService.placeCustomOrder({
+    profile,
+    product,
+    quantity,
+    selectedIds,
+    form,
+    files,
+    sales: Object.values(state.sales.entities || {}),
+  });
+  if (!order) return fail(rejectWithValue, customOrderService.lastError || 'Could not place your customization request.', arg);
+  await Promise.all([dispatch(refreshProfile()), dispatch(refreshMyProfile()), dispatch(fetchWishlist())]);
+  return order;
+});
+
 // "Add these products to my earlier order" (only works until that order ships).
 export const addCartToOrder = createAsyncThunk('orders/addCart', async (arg, { getState, dispatch, rejectWithValue }) => {
   const { orderId } = stripToast(arg);
@@ -240,6 +282,9 @@ export const addCartToOrder = createAsyncThunk('orders/addCart', async (arg, { g
 
   const lines = state.cart.lines;
   if (!lines.length) return fail(rejectWithValue, 'Your cart is empty.', arg);
+  if (lines.some((line) => line.product?.isCustom === true)) {
+    return fail(rejectWithValue, 'Custom products must be ordered through the Customize form.', arg);
+  }
 
   const current = await loadOrder(state, orderId);
   if (!current) return fail(rejectWithValue, 'We could not find that order.', arg);
@@ -350,9 +395,9 @@ export const fetchStaffOrders = createAsyncThunk('orders/staffFetch', async (arg
 });
 
 export const searchStaffOrders = createAsyncThunk('orders/staffSearch', async (arg, { getState, rejectWithValue }) => {
-  const { term, status } = stripToast(arg);
+  const { term, status, isCustom } = stripToast(arg);
   if (notStaff(getState().auth.profile)) return rejectWithValue('You do not have access to all orders.');
-  const rows = await orderService.searchOrders({ term, status });
+  const rows = await orderService.searchOrders({ term, status, isCustom });
   if (!rows) return fail(rejectWithValue, 'Could not search orders.', arg);
   return { rows, total: rows.length };
 });
@@ -370,6 +415,32 @@ export const fetchStaffOrderAnalytics = createAsyncThunk('orders/staffAnalytics'
   const rows = await orderService.getOrdersSince(from);
   if (!rows) return fail(rejectWithValue, orderService.lastError || 'Could not load order analytics.', arg);
   return rows;
+});
+
+export const fetchStaffCustomOrders = createAsyncThunk('orders/staffCustomFetch', async (arg, { getState, rejectWithValue }) => {
+  const { orderId, limit = 50, offset = 0, status } = stripToast(arg);
+  if (notStaff(getState().auth.profile)) return rejectWithValue('You do not have access to custom orders.');
+  const result = orderId
+    ? await customOrderService.getByOrderId(orderId)
+    : await customOrderService.getCustomOrders({ limit, offset, status });
+  if (result === false) return fail(rejectWithValue, customOrderService.lastError || 'Could not load custom orders.', arg);
+  if (orderId) return { rows: result ? [result] : [], total: result ? 1 : 0, offset: 0 };
+  return { rows: result.rows || [], total: result.total || 0, offset };
+});
+
+export const updateStaffCustomOrder = createAsyncThunk('orders/staffCustomUpdate', async (arg, { getState, rejectWithValue }) => {
+  if (notStaff(getState().auth.profile)) return rejectWithValue('You do not have access to custom orders.');
+  const { rowId, patch } = stripToast(arg);
+  const result = await customOrderService.updateCustomOrder(rowId, patch);
+  if (!result) return fail(rejectWithValue, customOrderService.lastError || 'Could not update the custom order.', arg);
+  return result;
+});
+
+export const fetchStaffConfirmedOrders = createAsyncThunk('orders/staffConfirmations', async (arg, { getState, rejectWithValue }) => {
+  if (notStaff(getState().auth.profile)) return rejectWithValue('You do not have access to confirmed orders.');
+  const result = await orderConfirmationService.list(stripToast(arg));
+  if (!result) return fail(rejectWithValue, orderConfirmationService.lastError || 'Could not load confirmed orders.', arg);
+  return result;
 });
 
 /* ---------- staff: tracker (courier link + timeline) ---------- */
@@ -456,7 +527,7 @@ const afterStatus = (a, dispatch) => Promise.all([refreshTimeline(a, dispatch), 
 
 export const updateOrderStatus = staffThunk(
   'orders/staffStatus',
-  ({ orderId, status }) => orderService.updateStatus(orderId, status),
+  ({ orderId, status, confirmation }) => orderService.updateStatus(orderId, status, { confirmation }),
   'Could not change the status.',
   afterStatus
 );
@@ -537,6 +608,22 @@ const ordersSlice = createSlice({
         state.total += 1;
       })
       .addCase(placeDirectOrder.rejected, (state, action) => {
+        state.placeStatus = 'failed';
+        if (action.payload !== LOGIN_REQUIRED) state.placeError = action.payload || action.error?.message;
+      })
+      .addCase(placeCustomOrder.pending, (state) => {
+        state.placeStatus = 'loading';
+        state.placeError = null;
+      })
+      .addCase(placeCustomOrder.fulfilled, (state, action) => {
+        state.placeStatus = 'succeeded';
+        state.lastPlacedOrder = action.payload;
+        state.lastPlacedKind = 'custom';
+        adapter.upsertOne(state, action.payload);
+        if (!state.openIds.includes(action.payload.$id)) state.openIds.unshift(action.payload.$id);
+        state.total += 1;
+      })
+      .addCase(placeCustomOrder.rejected, (state, action) => {
         state.placeStatus = 'failed';
         if (action.payload !== LOGIN_REQUIRED) state.placeError = action.payload || action.error?.message;
       })
@@ -659,6 +746,46 @@ const ordersSlice = createSlice({
       .addCase(fetchStaffOrderAnalytics.rejected, (state, action) => {
         state.staff.analyticsStatus = 'failed';
         state.staff.analyticsError = action.payload || action.error?.message;
+      })
+      .addCase(fetchStaffCustomOrders.pending, (state) => {
+        state.staff.custom.status = 'loading';
+        state.staff.custom.error = null;
+      })
+      .addCase(fetchStaffCustomOrders.fulfilled, (state, action) => {
+        const { rows, total, offset } = action.payload;
+        if (offset > 0) customOrderAdapter.upsertMany(state.staff.custom, rows);
+        else customOrderAdapter.setAll(state.staff.custom, rows);
+        state.staff.custom.total = total;
+        state.staff.custom.status = 'succeeded';
+      })
+      .addCase(fetchStaffCustomOrders.rejected, (state, action) => {
+        state.staff.custom.status = 'failed';
+        state.staff.custom.error = action.payload || action.error?.message;
+      })
+      .addCase(updateStaffCustomOrder.pending, (state) => {
+        state.staff.custom.updating = true;
+        state.staff.custom.updateError = null;
+      })
+      .addCase(updateStaffCustomOrder.fulfilled, (state, action) => {
+        state.staff.custom.updating = false;
+        customOrderAdapter.upsertOne(state.staff.custom, action.payload);
+      })
+      .addCase(updateStaffCustomOrder.rejected, (state, action) => {
+        state.staff.custom.updating = false;
+        state.staff.custom.updateError = action.payload || action.error?.message;
+      })
+      .addCase(fetchStaffConfirmedOrders.pending, (state) => {
+        state.staff.confirmations.status = 'loading';
+        state.staff.confirmations.error = null;
+      })
+      .addCase(fetchStaffConfirmedOrders.fulfilled, (state, action) => {
+        confirmationAdapter.setAll(state.staff.confirmations, action.payload.rows);
+        state.staff.confirmations.total = action.payload.total;
+        state.staff.confirmations.status = 'succeeded';
+      })
+      .addCase(fetchStaffConfirmedOrders.rejected, (state, action) => {
+        state.staff.confirmations.status = 'failed';
+        state.staff.confirmations.error = action.payload || action.error?.message;
       });
 
     staffEdits.forEach((thunk) => {
@@ -731,6 +858,8 @@ export default ordersSlice.reducer;
 
 const sel = adapter.getSelectors((s) => s.orders);
 const staffSel = staffAdapter.getSelectors((s) => s.orders.staff);
+const customOrderSel = customOrderAdapter.getSelectors((s) => s.orders.staff.custom);
+const confirmationSel = confirmationAdapter.getSelectors((s) => s.orders.staff.confirmations);
 
 export const selectMyOrders = sel.selectAll;
 export const selectOrderById = (id) => (s) => sel.selectById(s, id) ?? null;
@@ -764,6 +893,20 @@ export const selectStaffOrderAnalytics = (s) => s.orders.staff.analytics;
 export const selectStaffOrderAnalyticsStatus = (s) => s.orders.staff.analyticsStatus;
 export const selectStaffOrderAnalyticsError = (s) => s.orders.staff.analyticsError;
 export const selectStaffOrderById = (id) => (s) => s.orders.staff.entities[id] ?? null;
+export const selectStaffCustomOrders = customOrderSel.selectAll;
+export const selectStaffCustomOrdersTotal = (s) => s.orders.staff.custom.total;
+export const selectStaffCustomOrdersStatus = (s) => s.orders.staff.custom.status;
+export const selectStaffCustomOrdersError = (s) => s.orders.staff.custom.error;
+export const selectStaffCustomOrdersUpdating = (s) => s.orders.staff.custom.updating;
+export const selectStaffCustomOrdersUpdateError = (s) => s.orders.staff.custom.updateError;
+export const selectCustomOrderForOrder = (orderId) => createSelector(
+  [customOrderSel.selectAll],
+  (rows) => rows.find((row) => row.orderId === orderId) ?? null,
+);
+export const selectStaffConfirmedOrders = confirmationSel.selectAll;
+export const selectStaffConfirmedOrdersTotal = (s) => s.orders.staff.confirmations.total;
+export const selectStaffConfirmedOrdersStatus = (s) => s.orders.staff.confirmations.status;
+export const selectStaffConfirmedOrdersError = (s) => s.orders.staff.confirmations.error;
 
 // Tracker (courier link + timeline, newest update first)
 export const selectTrackerByOrder = (id) => (s) => s.orders.tracker.entities[id] ?? null;

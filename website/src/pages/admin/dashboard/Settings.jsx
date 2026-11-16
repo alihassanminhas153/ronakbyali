@@ -41,18 +41,17 @@ function Settings() {
       />
 
       <section
-        style={{ background: 'linear-gradient(120deg, var(--brown), var(--accent))' }}
-        className="group relative isolate flex min-h-28 items-center gap-4 overflow-hidden rounded-2xl p-4 text-white shadow-soft sm:gap-6 sm:p-6"
+        className="group relative isolate flex min-h-28 items-center gap-4 overflow-hidden rounded-2xl border border-border bg-surface p-4 text-text shadow-soft sm:gap-6 sm:p-6"
       >
-        <span aria-hidden="true" className="pointer-events-none absolute -right-10 -top-14 size-44 rounded-full bg-white/10 transition-transform duration-700 group-hover:scale-125" />
-        <span aria-hidden="true" className="pointer-events-none absolute -bottom-16 right-40 hidden size-32 rounded-full bg-white/[0.07] sm:block" />
-        <span className="relative grid size-14 shrink-0 place-items-center rounded-2xl border border-white/25 bg-white/15 sm:size-16">
+        <span aria-hidden="true" className="pointer-events-none absolute -right-10 -top-14 size-44 rounded-full bg-surface-alt transition-transform duration-700 group-hover:scale-125" />
+        <span aria-hidden="true" className="pointer-events-none absolute -bottom-16 right-40 hidden size-32 rounded-full bg-surface-alt/60 sm:block" />
+        <span className="relative grid size-14 shrink-0 place-items-center rounded-2xl border border-border bg-surface-alt sm:size-16">
           <Ico name="settings_gear" hueRotate={false} className="size-9 sm:size-10" />
         </span>
         <div className="relative min-w-0">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/70">Account center</p>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted">Account center</p>
           <p className="heading mt-1 text-xl sm:text-2xl">{tabs.find((t) => t.id === active)?.label || 'Profile'} settings</p>
-          <p className="mt-1 hidden text-sm text-white/75 sm:block">Your details and preferences, together in one place.</p>
+          <p className="mt-1 hidden text-sm text-muted sm:block">Your details and preferences, together in one place.</p>
         </div>
       </section>
 

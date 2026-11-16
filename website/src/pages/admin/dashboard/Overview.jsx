@@ -114,19 +114,18 @@ export default function Overview() {
 
       {/* Needs attention */}
       <section
-        style={{ background: 'linear-gradient(120deg, var(--brown), var(--accent))' }}
-        className="animate-rise relative isolate overflow-hidden rounded-2xl p-5 text-white sm:p-7"
+        className="animate-rise relative isolate overflow-hidden rounded-2xl border border-border bg-surface p-5 text-text sm:p-7"
       >
         {/* decorative shapes */}
-        <span aria-hidden="true" className="pointer-events-none absolute -right-12 -top-14 h-44 w-44 rounded-full bg-white/10" />
-        <span aria-hidden="true" className="pointer-events-none absolute -bottom-16 right-28 hidden h-32 w-32 animate-float rounded-full bg-white/[0.07] sm:block" />
+        <span aria-hidden="true" className="pointer-events-none absolute -right-12 -top-14 h-44 w-44 rounded-full bg-surface-alt" />
+        <span aria-hidden="true" className="pointer-events-none absolute -bottom-16 right-28 hidden h-32 w-32 animate-float rounded-full bg-surface-alt/60 sm:block" />
 
         <div className="relative flex items-center gap-4 sm:gap-6">
           <span className="relative grid h-14 w-14 shrink-0 place-items-center sm:h-16 sm:w-16">
             {attention.length > 0 && (
-              <span aria-hidden="true" className="absolute inset-0 animate-ring rounded-2xl border-2 border-white/70" />
+              <span aria-hidden="true" className="absolute inset-0 animate-ring rounded-2xl border-2 border-accent" />
             )}
-            <span className="grid h-full w-full place-items-center rounded-2xl border border-white/25 bg-white/15">
+            <span className="grid h-full w-full place-items-center rounded-2xl border border-border bg-surface-alt">
               {attention.length ? (
                 <AppIcon name="alert" entity="alert" hueRotate={false} className="size-10 object-contain sm:size-12" />
               ) : (
@@ -136,7 +135,7 @@ export default function Overview() {
           </span>
 
           <div className="min-w-0 flex-1">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/70">Needs attention</p>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted">Needs attention</p>
             <p className="heading mt-1 min-h-[1.6em] truncate text-xl sm:text-3xl">
               {firstLoad ? 'Checking your store…' : <Typewriter phrases={heroPhrases} />}
             </p>
@@ -149,9 +148,9 @@ export default function Overview() {
               <Link
                 key={a.key}
                 to={link(a.to)}
-                className="group inline-flex min-h-9 items-center gap-2 rounded-full bg-white px-3.5 text-sm font-semibold text-[color:var(--brown)] transition-transform duration-300 hover:scale-105 active:scale-95"
+                className="group inline-flex min-h-9 items-center gap-2 rounded-full border border-border bg-surface-alt px-3.5 text-sm font-semibold text-text transition-transform duration-300 hover:scale-105 active:scale-95"
               >
-                <span className="grid h-5 min-w-5 place-items-center rounded-full bg-[color:var(--brown)] px-1 text-[11px] font-semibold tabular-nums text-white">
+                <span className="grid h-5 min-w-5 place-items-center rounded-full bg-accent px-1 text-[11px] font-semibold tabular-nums text-on-accent">
                   {a.count}
                 </span>
                 {a.text.replace(/^\d+\s/, '')}

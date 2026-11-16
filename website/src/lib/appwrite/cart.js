@@ -107,6 +107,8 @@ export class CartService {
 
     async addItem({ profile, productId, quantity = 1, variant = null }) {
         try {
+            const product = await productService.getProduct(productId);
+            if (!product || product.isCustom === true) return false;
             const cart = await this.getOrCreateCart({ profile });
             if (!cart) return false;
 

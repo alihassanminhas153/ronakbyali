@@ -5,11 +5,14 @@
 //   const subtotal = useAppSelector(selectCartSubtotal);
 //   // guests: the thunk opens the login modal and does not call the service
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
-import { cartService, settingsService } from './services';
+import { cartService } from './services';
 import { LOGIN_REQUIRED, fail, getUserId, stripToast } from './utils';
 import { isSessionEnded } from './authSlice';
 import { openLoginModal } from './uiSlice';
 import { getEffectivePricing } from '../../lib/saleMath';
+import { getDeliveryChargesForLines } from '../../lib/orderDelivery';
+
+export { getDeliveryChargesForLines };
 
 const initialState = {
   lines: [], // [{ productId, quantity, variant, product }]
@@ -33,17 +36,6 @@ export const getProductCheckoutPrice = (product, paymentType = 'cod', sales = []
       : price;
   }
   return pricing.price;
-};
-
-export const getDeliveryChargesForLines = async (lines, subtotal) => {
-  if (!lines.length) return 0;
-  if (lines.length && lines.every((line) => line.product?.deliveryCharges != null)) {
-    return lines.reduce(
-      (total, line) => total + (Number(line.product.deliveryCharges) || 0) * (Number(line.quantity) || 0),
-      0
-    );
-  }
-  return settingsService.getDeliveryCharges(subtotal);
 };
 
 export const fetchCart = createAsyncThunk('cart/fetch', async (arg, { getState, rejectWithValue }) => {

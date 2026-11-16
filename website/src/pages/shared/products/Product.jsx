@@ -46,8 +46,6 @@ import reviewService from "../../../lib/appwrite/review";
 import { getEffectivePricing } from "../../../lib/saleMath";
 import ProductCheckoutDrawer from "./ProductCheckoutDrawer";
 import { loadDraft } from "../../../lib/checkoutDraft";
-import { openLoginModal } from "../../../store/slices/uiSlice";
-import CustomOrderDrawer from "../../../components/shop/CustomOrderDrawer";
 
 /* ------------------------------------------------------------------ */
 /* helpers                                                             */
@@ -461,7 +459,6 @@ function Details({ product }) {
   const [checkoutMounted, setCheckoutMounted] = useState(false);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [checkoutSession, setCheckoutSession] = useState(0);
-  const [customOpen, setCustomOpen] = useState(false);
   const closeTimer = useRef(null);
   const checkoutTrigger = useRef(null);
   const reopened = useRef(false);
@@ -485,7 +482,7 @@ function Details({ product }) {
     : 0;
 
   const remaining = product.remaining == null ? null : Number(product.remaining);
-  const inStock = product.status !== "outOfStock" && (remaining == null || remaining > 0);
+  const inStock = product.isCustom === true || (product.status !== "outOfStock" && (remaining == null || remaining > 0));
   // Units still available after what is already in this person's cart.
   const room = remaining != null ? Math.max(0, remaining - inCart) : MAX_QTY_WITHOUT_LIMIT;
   const maxQty = Math.max(1, room);
@@ -514,13 +511,7 @@ function Details({ product }) {
 
   // Optimistic: the heart flips at once and rolls back if saving fails.
   const handleWish = () => dispatch(toggleWishlist({ productId: product.$id }));
-  const openCustomOrder = () => {
-    if (!account && !authProfile) {
-      dispatch(openLoginModal());
-      return;
-    }
-    setCustomOpen(true);
-  };
+  const openCustomOrder = () => navigate(PATHS.customize(product.slug));
 
   const openCheckout = () => {
     checkoutTrigger.current = document.activeElement;
@@ -609,7 +600,9 @@ function Details({ product }) {
               : "text-success"
         }`}
       >
-        {!inStock
+        {product.isCustom === true
+          ? "Made to order"
+          : !inStock
           ? "Out of stock"
           : stockCount
             ? `${lowStock ? "Only " : ""}${stockCount} left in stock`
@@ -617,6 +610,12 @@ function Details({ product }) {
       </p>
 
       {/* buy box */}
+      {product.isCustom === true ? (
+        <button type="button" onClick={openCustomOrder} className="mt-4 h-12 w-full rounded-md bg-accent px-6 font-semibold text-on-accent transition hover:bg-accent-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent">
+          Customize
+        </button>
+      ) : (
+      <>
       <div className="mt-4 flex flex-wrap items-stretch gap-3">
         <div
           className="flex items-center rounded-md border border-border bg-surface"
@@ -671,11 +670,6 @@ function Details({ product }) {
               {!inStock ? "Out of stock" : atLimit ? "Maximum in your cart" : updating ? "Adding..." : added ? "Added to cart" : "Add to cart"}
             </span>
           </button>
-          {product.isCustom === true && (
-            <button type="button" onClick={openCustomOrder} className="h-11 min-w-0 flex-1 rounded-md border border-border bg-surface px-2 text-sm font-semibold text-text transition hover:border-accent hover:text-accent sm:h-12 sm:px-4">
-              Customize
-            </button>
-          )}
         </div>
 
       </div>
@@ -688,13 +682,15 @@ function Details({ product }) {
       >
         Buy now
       </button>
+      </>
+      )}
 
-      {inCart > 0 && (
+      {product.isCustom !== true && inCart > 0 && (
         <p className="mt-3 text-sm text-muted">
           {inCart} in your cart
         </p>
       )}
-      {cartError && (
+      {product.isCustom !== true && cartError && (
         <p role="alert" className="mt-3 text-sm text-error">
           {cartError}
         </p>
@@ -765,7 +761,6 @@ function Details({ product }) {
         quantity={qty}
         account={account || authProfile}
       />
-      <CustomOrderDrawer open={customOpen} onClose={() => setCustomOpen(false)} product={product} />
     </section>
   );
 }

@@ -13,6 +13,15 @@ const textOrNull = (v) => {
   const t = str(v).trim();
   return t ? t : null;
 };
+const parseCustomOptions = (value) => {
+  if (Array.isArray(value)) return value;
+  try {
+    const parsed = JSON.parse(value || '[]');
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+};
 
 export const slugify = (text) =>
   String(text || '')
@@ -36,6 +45,7 @@ export function toForm(p) {
     isCustom: Boolean(p?.isCustom),
     customDetails: str(p?.customDetails),
     customFileId: str(p?.customFileId),
+    customOptions: parseCustomOptions(p?.customOptions),
 
     originalPrice: str(p?.originalPrice),
     discountPercentage: str(p?.discountPercentage ?? 0),
@@ -110,5 +120,6 @@ export function toPayload(f) {
     isCustom: Boolean(f.isCustom),
     customDetails: f.isCustom ? textOrNull(f.customDetails) : null,
     customFileId: f.isCustom ? textOrNull(f.customFileId) : null,
+    customOptions: f.isCustom ? JSON.stringify(Array.isArray(f.customOptions) ? f.customOptions : []) : null,
   };
 }

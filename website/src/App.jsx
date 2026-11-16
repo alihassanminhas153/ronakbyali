@@ -27,6 +27,7 @@ import ToastViewport from "./ui/custom/toast/ToastViewport";
 import Home from "./pages/shared/structure/Home";
 import AllProducts from "./pages/shared/products/AllProducts";
 import Product from "./pages/shared/products/Product";
+import CustomizeCheckout from "./pages/shared/products/CustomizeCheckout";
 import Signin from "./pages/shared/account/Signin";
 import Signup from "./pages/shared/account/Signup";
 import AuthCallback from "./pages/shared/account/AuthCallback";
@@ -173,6 +174,7 @@ export default function App() {
           </Route>
 
           <Route element={<PlainLayout pages={SITE_PAGES} showOffers />}>
+            <Route path="customize/:slug" element={<CustomizeCheckout />} />
             <Route path=":category/:group/:productId" element={<Product />} />
           </Route>
 

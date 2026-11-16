@@ -5,6 +5,7 @@ import { Boxes, FileText, ImagePlus, Star, Truck, Wallet, X, Image as ImageIcon 
 import { addProduct, updateProduct } from '../../../store/slices/productsSlice';
 import { fetchSales, selectSaleOptions, selectSalesList } from '../../../store/slices/saleSlice';
 import productService from '../../../lib/appwrite/product';
+import ActionButton from '../../../ui/custom/button/ActionButton';
 import SearchSelect from '../../../ui/custom/input/SearchSelect';
 import SelectInput from '../../../ui/custom/input/SelectInput';
 import ImageUploader from '../../../ui/custom/input/ImageUploader';
@@ -19,6 +20,12 @@ const inputCls = (err) =>
   `w-full rounded-md border bg-surface px-3 text-sm text-text transition-colors placeholder:text-muted/70 focus:border-accent-tone-1 ${
     err ? 'border-error' : 'border-border hover:border-accent-tone-1/50'
   }`;
+const optionDraft = () => ({
+  id: `draft-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+  label: '',
+  price: '',
+});
+const optionId = () => globalThis.crypto?.randomUUID?.() || `c-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 
 function Field({ label, hint, error, optional, children, className = '', as: Tag = 'label' }) {
   return (
@@ -121,14 +128,22 @@ function TagsField({ value, onChange }) {
 /* ---------- the drawer ---------- */
 
 // props: open, product (null = add), categories[], groups[], onClose, onSaved
-export default function ProductForm({ open, product, categories = [], groups = [], onClose, onSaved }) {
+export default function ProductForm({ open, product, categories = [], groups = [], onClose, onSaved, mode = 'normal' }) {
   const dispatch = useDispatch();
   const sales = useSelector(selectSalesList);
   const allSaleOptions = useSelector(selectSaleOptions);
   const editing = Boolean(product);
+  const customMode = mode === 'custom';
   const fileInput = useRef(null);
+  const optionRowRef = useRef(null);
 
   const [form, setForm] = useState(() => toForm(product));
+  const [customOptions, setCustomOptions] = useState(() => toForm(product).customOptions);
+  const [optionDrafts, setOptionDrafts] = useState(() => [optionDraft()]);
+  const [optionErrors, setOptionErrors] = useState({});
+  const [optionListError, setOptionListError] = useState('');
+  const [editingOptionId, setEditingOptionId] = useState(null);
+  const [optionEdit, setOptionEdit] = useState({ label: '', price: '' });
   const [slugTouched, setSlugTouched] = useState(editing);
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
@@ -220,6 +235,70 @@ export default function ProductForm({ open, product, categories = [], groups = [
   const sold = Number(form.sold) || 0;
   const remaining = Math.max(0, total - sold);
 
+  const validateOption = (labelValue, priceValue, skipId = null) => {
+    const label = String(labelValue || '').trim();
+    const price = priceValue === '' ? Number.NaN : Number(priceValue);
+    if (!label) return { label: 'Enter a customization name.' };
+    if (label.length > 60) return { label: 'Use 60 characters or fewer.' };
+    if (customOptions.some((item) => item.id !== skipId && item.label.trim().toLowerCase() === label.toLowerCase())) {
+      return { label: 'Customization names must be unique.' };
+    }
+    if (!Number.isFinite(price) || price < 0 || price > 1000000) {
+      return { price: 'Enter a price from Rs 0 to Rs 1,000,000.' };
+    }
+    return {};
+  };
+
+  const updateDraft = (id, key, value) => {
+    setOptionDrafts((rows) => rows.map((row) => row.id === id ? { ...row, [key]: value } : row));
+    setOptionErrors((current) => ({ ...current, [id]: undefined }));
+    setOptionListError('');
+  };
+
+  const addCustomization = (event, draft) => {
+    event.preventDefault();
+    if (customOptions.length >= 20) {
+      setOptionListError('You can add up to 20 customizations.');
+      return;
+    }
+    const found = validateOption(draft.label, draft.price);
+    if (Object.keys(found).length) {
+      setOptionErrors((current) => ({ ...current, [draft.id]: found }));
+      return;
+    }
+    setCustomOptions((items) => [...items, {
+      id: optionId(),
+      label: draft.label.trim(),
+      price: Number(draft.price),
+    }]);
+    setOptionDrafts((rows) => rows.filter((row) => row.id !== draft.id));
+    setOptionErrors((current) => ({ ...current, [draft.id]: undefined }));
+    setOptionListError('');
+  };
+
+  const addOptionRow = () => {
+    if (customOptions.length + optionDrafts.length >= 20) {
+      setOptionListError('You can add up to 20 customizations.');
+      return;
+    }
+    setOptionDrafts((rows) => [...rows, optionDraft()]);
+    setOptionListError('');
+  };
+
+  const saveOptionEdit = (event) => {
+    event.preventDefault();
+    const found = validateOption(optionEdit.label, optionEdit.price, editingOptionId);
+    if (Object.keys(found).length) {
+      setOptionErrors((current) => ({ ...current, [editingOptionId]: found }));
+      return;
+    }
+    setCustomOptions((items) => items.map((item) => item.id === editingOptionId
+      ? { ...item, label: optionEdit.label.trim(), price: Number(optionEdit.price) }
+      : item));
+    setEditingOptionId(null);
+    setOptionErrors((current) => ({ ...current, [editingOptionId]: undefined }));
+  };
+
   const addFiles = (list) => {
     const picked = Array.from(list || []).filter((f) => f.type.startsWith('image/'));
     setImages((cur) => [...cur, ...picked.map((file) => {
@@ -235,10 +314,15 @@ export default function ProductForm({ open, product, categories = [], groups = [
 
   const submit = async (e) => {
     e.preventDefault();
-    const found = validate(form);
+    const formForValidation = customMode ? { ...form, totalAvailable: '0', sold: '0' } : { ...form, isCustom: false };
+    const found = validate(formForValidation);
+    const partialOptions = optionDrafts.some((row) => row.label.trim() || row.price !== '');
+    if (customMode && customOptions.length === 0) found.customOptions = 'Add at least one customization.';
+    if (customMode && partialOptions) found.customOptions = 'Add or remove the unfinished customization row.';
     setErrors(found);
     if (Object.keys(found).length) {
       setSubmitError('Please fix the highlighted fields.');
+      if (found.customOptions) optionRowRef.current?.focus();
       return;
     }
     setSaving(true);
@@ -261,7 +345,7 @@ export default function ProductForm({ open, product, categories = [], groups = [
       const imageIds = images.map((i) => (i.file ? uploadedIds[next++] : i.id)); // keeps the admin's order
 
       let customFileId = null;
-      if (form.isCustom && sampleImages[0]) {
+      if (customMode && sampleImages[0]) {
         if (sampleImages[0].kind === 'new') {
           const uploaded = await productService.uploadImage(sampleImages[0].file);
           if (!uploaded) throw new Error('Sample image upload failed.');
@@ -273,7 +357,19 @@ export default function ProductForm({ open, product, categories = [], groups = [
       }
 
       // 3. save the row (service fills priceFormat, remaining and status)
-      const data = productService.prepareProductData({ ...toPayload(form), slug, imageIds, customFileId });
+      const payload = {
+        ...toPayload({ ...form, isCustom: customMode, customOptions }),
+        slug,
+        imageIds,
+        customFileId: customMode ? customFileId : null,
+      };
+      if (customMode) {
+        delete payload.totalAvailable;
+        delete payload.sold;
+        delete payload.remaining;
+        payload.status = 'inStock';
+      }
+      const data = productService.prepareProductData(payload);
       if (editing) await dispatch(updateProduct([product.$id, data])).unwrap();
       else await dispatch(addProduct([data])).unwrap();
 
@@ -323,14 +419,16 @@ export default function ProductForm({ open, product, categories = [], groups = [
         noValidate
         role="dialog"
         aria-modal="true"
-        aria-label={editing ? 'Edit product' : 'Add product'}
+        aria-label={editing ? `Edit ${customMode ? 'custom product' : 'product'}` : `Add ${customMode ? 'custom product' : 'product'}`}
         className={`absolute right-0 top-0 flex h-full w-full max-w-2xl flex-col border-l border-border bg-bg shadow-soft transition-transform duration-[350ms] ease-[cubic-bezier(0.22,0.8,0.2,1)] ${
           shown ? 'translate-x-0' : 'translate-x-full'
         }`}
       >
         <header className="flex items-center justify-between gap-3 border-b border-border px-4 py-3 sm:px-6">
           <div className="min-w-0">
-            <h2 className="heading truncate text-text">{editing ? 'Edit product' : 'Add product'}</h2>
+            <h2 className="heading truncate text-text">
+              {editing ? `Edit ${customMode ? 'custom product' : 'product'}` : `Add ${customMode ? 'custom product' : 'product'}`}
+            </h2>
             <p className="truncate text-xs text-muted">{editing ? product.name : 'Fill in the details, then save.'}</p>
           </div>
           <button type="button" onClick={onClose} disabled={saving} aria-label="Close" className="grid h-10 w-10 place-items-center rounded-md text-muted transition-colors hover:bg-surface-alt hover:text-text">
@@ -399,7 +497,7 @@ export default function ProductForm({ open, product, categories = [], groups = [
                 size="md"
               />
             </div>
-            <Field label="Original price (Rs)" error={errors.originalPrice}>{num('originalPrice', { placeholder: '3000' })}</Field>
+            <Field label={`${customMode ? 'Starting' : 'Original'} price (Rs)`} error={errors.originalPrice}>{num('originalPrice', { placeholder: '3000' })}</Field>
             <Field label="Discount %" error={errors.discountPercentage}>{num('discountPercentage', { max: 100, placeholder: '0', disabled: Boolean(form.saleId) })}</Field>
             <Field label="Discount name" optional>
               <input value={form.discountName} onChange={on('discountName')} maxLength={100} placeholder="Eid sale" disabled={Boolean(form.saleId)} className={inputCls()} />
@@ -412,19 +510,21 @@ export default function ProductForm({ open, product, categories = [], groups = [
             <Field label="Cash on delivery price (Rs)" optional error={errors.priceCOD}>{num('priceCOD')}</Field>
           </Section>
 
-          <Section title="Stock" subtitle="Remaining and stock status update automatically." icon={Boxes} tone={2} delay={120}>
-            <Field label="Total available" error={errors.totalAvailable}>{num('totalAvailable', { step: 1, placeholder: '0' })}</Field>
-            <Field label="Sold" error={errors.sold}>{num('sold', { step: 1, placeholder: '0' })}</Field>
-            <div className="flex items-center justify-between rounded-md bg-surface px-3 py-2.5 text-sm sm:col-span-2">
-              <span className="text-muted">Remaining</span>
-              <span className="flex items-center gap-2">
-                <b className="text-text tabular-nums">{remaining}</b>
-                <span className={`rounded-full px-2 py-0.5 text-xs transition-colors ${remaining > 0 ? 'bg-accent-tone-2/10 text-accent-tone-2' : 'bg-accent-tone-4/10 text-accent-tone-4'}`}>
-                  {remaining > 0 ? 'In stock' : 'Out of stock'}
+          {!customMode && (
+            <Section title="Stock" subtitle="Remaining and stock status update automatically." icon={Boxes} tone={2} delay={120}>
+              <Field label="Total available" error={errors.totalAvailable}>{num('totalAvailable', { step: 1, placeholder: '0' })}</Field>
+              <Field label="Sold" error={errors.sold}>{num('sold', { step: 1, placeholder: '0' })}</Field>
+              <div className="flex items-center justify-between rounded-md bg-surface px-3 py-2.5 text-sm sm:col-span-2">
+                <span className="text-muted">Remaining</span>
+                <span className="flex items-center gap-2">
+                  <b className="text-text tabular-nums">{remaining}</b>
+                  <span className={`rounded-full px-2 py-0.5 text-xs transition-colors ${remaining > 0 ? 'bg-accent-tone-2/10 text-accent-tone-2' : 'bg-accent-tone-4/10 text-accent-tone-4'}`}>
+                    {remaining > 0 ? 'In stock' : 'Out of stock'}
+                  </span>
                 </span>
-              </span>
-            </div>
-          </Section>
+              </div>
+            </Section>
+          )}
 
           <Section title="Delivery" subtitle="Charges, time and where it ships from." icon={Truck} tone={5} delay={180}>
             <Field label="Delivery charges (Rs)" error={errors.deliveryCharges}>{num('deliveryCharges', { placeholder: '0' })}</Field>
@@ -436,40 +536,125 @@ export default function ProductForm({ open, product, categories = [], groups = [
             </Field>
           </Section>
 
-          <Section title="Custom orders" subtitle="Let customers request a personalized version of this product." icon={Star} tone={7} delay={210}>
-            <div className="sm:col-span-2">
-              <Switch
-                checked={form.isCustom}
-                onChange={(isCustom) => setForm((current) => ({ ...current, isCustom }))}
-                label="Customizable"
-              />
-            </div>
-            {form.isCustom && (
-              <>
-                <Field label="Custom details" hint="Instructions shown to customers" className="sm:col-span-2">
-                  <textarea
-                    value={form.customDetails}
-                    onChange={on('customDetails')}
-                    rows={3}
-                    maxLength={1000}
-                    className={`${inputCls()} resize-y py-2`}
-                    placeholder="Describe the options or measurements customers can request."
-                  />
-                </Field>
-                <div className="sm:col-span-2">
-                  <ImageUploader
-                    items={sampleImages}
-                    onChange={setSampleImages}
-                    label="Sample image"
-                    hint="Optional example shown to customers."
-                    max={1}
-                    maxSizeMB={5}
-                    disabled={saving}
-                  />
+          {customMode && (
+            <Section title="Customizations" subtitle="Give customers clear choices and prices for their made-to-order product." icon={Star} tone={7} delay={210}>
+              <Field label="Instructions for the customer" hint={`${form.customDetails.length}/1000`} className="sm:col-span-2">
+                <textarea
+                  value={form.customDetails}
+                  onChange={on('customDetails')}
+                  rows={3}
+                  maxLength={1000}
+                  className={`${inputCls()} resize-y py-2`}
+                  placeholder="What should customers send, which sizes are needed, and what are the deadlines?"
+                />
+              </Field>
+              <div ref={optionRowRef} tabIndex={-1} className="space-y-3 sm:col-span-2">
+                <div>
+                  <h4 className="text-sm font-semibold text-text">What can be customized</h4>
+                  <p className="text-xs text-muted">Each option price is added to the starting price for every item.</p>
                 </div>
-              </>
-            )}
-          </Section>
+                <div className="space-y-2">
+                  {customOptions.map((option) => editingOptionId === option.id ? (
+                    <div key={option.id} className="grid gap-2 rounded-md border border-accent/40 bg-surface p-3">
+                      <input
+                        aria-label="Customization name"
+                        value={optionEdit.label}
+                        maxLength={60}
+                        onChange={(event) => setOptionEdit((current) => ({ ...current, label: event.target.value }))}
+                        className={inputCls(optionErrors[option.id]?.label)}
+                      />
+                      {optionErrors[option.id]?.label && <p className="text-xs text-error">{optionErrors[option.id].label}</p>}
+                      <div className="grid grid-cols-1 gap-2 min-[481px]:grid-cols-[minmax(0,1fr)_auto_auto]">
+                        <input
+                          aria-label="Customization price in rupees"
+                          type="number"
+                          min="0"
+                          max="1000000"
+                          step="1"
+                          value={optionEdit.price}
+                          onChange={(event) => setOptionEdit((current) => ({ ...current, price: event.target.value }))}
+                          className={inputCls(optionErrors[option.id]?.price)}
+                        />
+                        {optionErrors[option.id]?.price && <p className="text-xs text-error">{optionErrors[option.id].price}</p>}
+                        <ActionButton type="button" onClick={saveOptionEdit}>Save</ActionButton>
+                        <ActionButton type="button" variant="secondary" onClick={() => { setEditingOptionId(null); setOptionErrors((current) => ({ ...current, [option.id]: undefined })); }}>Cancel</ActionButton>
+                      </div>
+                    </div>
+                  ) : (
+                    <div key={option.id} className="flex items-center gap-2 rounded-md border border-border bg-surface px-3 py-2">
+                      <button
+                        type="button"
+                        onClick={() => { setEditingOptionId(option.id); setOptionEdit({ label: option.label, price: String(option.price) }); }}
+                        className="min-w-0 flex-1 truncate text-left text-sm font-medium text-text hover:text-accent"
+                      >
+                        {option.label} · + Rs {option.price.toLocaleString('en-PK')}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setCustomOptions((items) => items.filter((item) => item.id !== option.id))}
+                        aria-label={`Remove ${option.label}`}
+                        className="grid size-8 shrink-0 place-items-center rounded text-muted hover:bg-error/10 hover:text-error"
+                      >
+                        <X size={15} aria-hidden="true" />
+                      </button>
+                    </div>
+                  ))}
+                  {optionDrafts.map((draft) => (
+                    <div key={draft.id} className="grid grid-cols-1 items-start gap-2 min-[481px]:grid-cols-[minmax(0,1fr)_8rem_auto]">
+                      <label className="block">
+                        <span className="sr-only">Customization name</span>
+                        <input
+                          value={draft.label}
+                          maxLength={60}
+                          onChange={(event) => updateDraft(draft.id, 'label', event.target.value)}
+                          placeholder="e.g. Embroidery"
+                          aria-invalid={Boolean(optionErrors[draft.id]?.label)}
+                          className={inputCls(optionErrors[draft.id]?.label)}
+                        />
+                        {optionErrors[draft.id]?.label && <span className="mt-1 block text-xs text-error">{optionErrors[draft.id].label}</span>}
+                      </label>
+                      <label className="block">
+                        <span className="sr-only">Customization price in rupees</span>
+                        <input
+                          value={draft.price}
+                          onChange={(event) => updateDraft(draft.id, 'price', event.target.value)}
+                          type="number"
+                          min="0"
+                          max="1000000"
+                          step="1"
+                          placeholder="PKR"
+                          aria-invalid={Boolean(optionErrors[draft.id]?.price)}
+                          className={inputCls(optionErrors[draft.id]?.price)}
+                        />
+                        {optionErrors[draft.id]?.price && <span className="mt-1 block text-xs text-error">{optionErrors[draft.id].price}</span>}
+                      </label>
+                      <ActionButton type="button" onClick={(event) => addCustomization(event, draft)}>Add</ActionButton>
+                    </div>
+                  ))}
+                </div>
+                <button
+                  type="button"
+                  onClick={addOptionRow}
+                  disabled={customOptions.length + optionDrafts.length >= 20}
+                  className="w-full rounded-md border border-dashed border-border px-3 py-2.5 text-sm font-medium text-muted transition-colors hover:border-accent hover:text-accent disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  Add more
+                </button>
+                {(optionListError || errors.customOptions) && <p role="alert" className="text-xs text-error">{optionListError || errors.customOptions}</p>}
+              </div>
+              <div className="sm:col-span-2">
+                <ImageUploader
+                  items={sampleImages}
+                  onChange={setSampleImages}
+                  label="Sample image"
+                  hint="Optional example shown to customers."
+                  max={1}
+                  maxSizeMB={5}
+                  disabled={saving}
+                />
+              </div>
+            </Section>
+          )}
 
           <section style={{ animationDelay: '240ms' }} className="group/sec animate-rise rounded-lg border border-border bg-surface-alt/40 p-4">
             <SectionHead icon={ImageIcon} tone={6} title="Images" subtitle="The first image is the main one. Tap the star on an image to make it main." />
@@ -534,4 +719,8 @@ export default function ProductForm({ open, product, categories = [], groups = [
       </form>
     </div>
   );
+}
+
+export function CustomProductForm(props) {
+  return <ProductForm {...props} mode="custom" />;
 }

@@ -24,6 +24,7 @@ import {
   CategoriesTab,
   CreationCharts,
   PricingTab,
+  CustomProductForm,
   ProductForm,
   ProductTable,
   SORT_OPTIONS,
@@ -36,11 +37,17 @@ import ActionButton from '../../../ui/custom/button/ActionButton';
 import SearchInput from '../../../ui/custom/input/SearchInput';
 import SelectInput from '../../../ui/custom/input/SelectInput';
 import ConfirmDialog from '../../../ui/custom/modal/ConfirmDialog';
+import Modal from '../../../ui/custom/modal/Modal';
 import Tabs, { TabPanel } from '../../../ui/custom/tabs/Tabs';
 import CountUp from '../../../ui/custom/motion/CountUp';
 import Typewriter from '../../../ui/custom/motion/Typewriter';
+import { OrderFormArt, ProductsArt } from '../../../ui/art';
 
 const CTA_PHRASES = ['Add a new product', 'Upload product images', 'Set price and stock'];
+const TYPE_OPTIONS = [
+  { value: 'normal', label: 'Normal products' },
+  { value: 'custom', label: 'Custom products' },
+];
 
 // "just now", "25s ago", "4m ago" ... re-rendered every 10 seconds
 function useTimeAgo(date) {
@@ -70,7 +77,9 @@ export default function Products() {
   const analytics = useProductAnalytics();
 
   const [tab, setTab] = useState('products');
+  const [chooserOpen, setChooserOpen] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
+  const [formMode, setFormMode] = useState('new');
   const [salesOpen, setSalesOpen] = useState(false);
   const [formKey, setFormKey] = useState(0); // new key = fresh form; 0 = never opened
   const [editing, setEditing] = useState(null); // null = add
@@ -118,13 +127,17 @@ export default function Products() {
     }
   };
 
-  const openAdd = () => {
+  const openAdd = () => setChooserOpen(true);
+  const chooseAddType = (mode) => {
     setEditing(null);
+    setFormMode(mode);
     setFormKey((k) => k + 1);
     setFormOpen(true);
+    setChooserOpen(false);
   };
   const openEdit = (product) => {
     setEditing(product);
+    setFormMode(product.isCustom ? 'custom' : 'new');
     setFormKey((k) => k + 1);
     setFormOpen(true);
   };
@@ -169,7 +182,7 @@ export default function Products() {
   }, [analytics.loading]);
 
   const loading = status === 'loading';
-  const filtered = Boolean(filters.category || filters.status || filters.searchTerm);
+  const filtered = Boolean(filters.category || filters.status || filters.isCustom !== null || filters.searchTerm);
   const busy = refreshing || loading || analytics.loading;
 
   const tabs = [
@@ -217,26 +230,25 @@ export default function Products() {
         <button
           type="button"
           onClick={openAdd}
-          style={{ background: 'linear-gradient(120deg, var(--brown), var(--accent))' }}
-          className="group relative isolate flex w-full items-center gap-4 overflow-hidden rounded-2xl p-5 text-left text-white transition-all duration-300 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.99] sm:gap-6 sm:p-7"
+          className="group relative isolate flex w-full items-center gap-4 overflow-hidden rounded-2xl border border-border bg-surface p-5 text-left text-text transition-all duration-300 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.99] sm:gap-6 sm:p-7"
         >
-          <span aria-hidden="true" className="pointer-events-none absolute -right-12 -top-14 h-44 w-44 rounded-full bg-white/10 transition-transform duration-700 group-hover:scale-125" />
-          <span aria-hidden="true" className="pointer-events-none absolute -bottom-16 right-28 hidden h-32 w-32 animate-float rounded-full bg-white/[0.07] sm:block" />
-          <span aria-hidden="true" className="pointer-events-none absolute inset-x-0 bottom-0 h-1 origin-left scale-x-0 bg-white/60 transition-transform duration-500 group-hover:scale-x-100" />
+          <span aria-hidden="true" className="pointer-events-none absolute -right-12 -top-14 h-44 w-44 rounded-full bg-surface-alt transition-transform duration-700 group-hover:scale-125" />
+          <span aria-hidden="true" className="pointer-events-none absolute -bottom-16 right-28 hidden h-32 w-32 animate-float rounded-full bg-surface-alt/60 sm:block" />
+          <span aria-hidden="true" className="pointer-events-none absolute inset-x-0 bottom-0 h-1 origin-left scale-x-0 bg-accent transition-transform duration-500 group-hover:scale-x-100" />
           <span className="relative grid h-14 w-14 shrink-0 place-items-center sm:h-16 sm:w-16">
-            <span aria-hidden="true" className="absolute inset-0 animate-ring rounded-2xl border-2 border-white/70" />
-            <span className="grid h-full w-full place-items-center rounded-2xl border border-white/25 bg-white/15 transition-transform duration-500 ease-out group-hover:rotate-90 group-hover:scale-105">
+            <span aria-hidden="true" className="absolute inset-0 animate-ring rounded-2xl border-2 border-accent" />
+            <span className="grid h-full w-full place-items-center rounded-2xl border border-border bg-surface-alt transition-transform duration-500 ease-out group-hover:rotate-90 group-hover:scale-105">
               <AppIcon name="boxes" entity="product" hueRotate={false} className="size-10 object-contain sm:size-12" />
             </span>
           </span>
           <span className="relative min-w-0 flex-1">
-            <span className="block text-[11px] font-semibold uppercase tracking-[0.18em] text-white/70">New product</span>
+            <span className="block text-[11px] font-semibold uppercase tracking-[0.18em] text-muted">New product</span>
             <span className="heading mt-1 block min-h-[1.6em] truncate text-xl sm:text-3xl">
               <Typewriter phrases={CTA_PHRASES} />
             </span>
-            <span className="mt-0.5 hidden text-sm text-white/75 sm:block">Fill in the details once and it goes live in your store.</span>
+            <span className="mt-0.5 hidden text-sm text-muted sm:block">Fill in the details once and it goes live in your store.</span>
           </span>
-          <span className="relative hidden shrink-0 items-center gap-2 rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-[color:var(--brown)] transition-transform duration-300 group-hover:scale-105 sm:inline-flex">
+          <span className="relative hidden shrink-0 items-center gap-2 rounded-full border border-border bg-surface-alt px-5 py-2.5 text-sm font-semibold text-text transition-transform duration-300 group-hover:scale-105 sm:inline-flex">
             Add product
             <ArrowRight size={16} className="group-hover:animate-nudge" />
           </span>
@@ -250,7 +262,7 @@ export default function Products() {
 
       {tab === 'products' && (
         <TabPanel key="products" className="space-y-6">
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_12rem_12rem_12rem]">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_12rem_12rem_12rem_12rem]">
             <SearchInput
               size="sm"
               value={filters.searchTerm}
@@ -277,6 +289,15 @@ export default function Products() {
               options={STATUS_OPTIONS}
               value={filters.status || ''}
               onChange={(value) => applyFilters({ status: value || null })}
+              clearable
+            />
+            <SelectInput
+              size="sm"
+              aria-label="Filter by product type"
+              placeholder="All product types"
+              options={TYPE_OPTIONS}
+              value={filters.isCustom === true ? 'custom' : filters.isCustom === false ? 'normal' : ''}
+              onChange={(value) => applyFilters({ isCustom: value ? value === 'custom' : null })}
               clearable
             />
             <SelectInput
@@ -338,15 +359,59 @@ export default function Products() {
       )}
 
       {formKey > 0 && (
-        <ProductForm
-          key={formKey}
-          open={formOpen}
-          product={editing}
-          categories={categories}
-          groups={groups}
-          onClose={() => setFormOpen(false)}
-          onSaved={onSaved}
-        />
+        formMode === 'custom' ? (
+          <CustomProductForm
+            key={formKey}
+            open={formOpen}
+            product={editing}
+            categories={categories}
+            groups={groups}
+            onClose={() => setFormOpen(false)}
+            onSaved={onSaved}
+          />
+        ) : (
+          <ProductForm
+            key={formKey}
+            open={formOpen}
+            product={editing}
+            mode="new"
+            categories={categories}
+            groups={groups}
+            onClose={() => setFormOpen(false)}
+            onSaved={onSaved}
+          />
+        )
+      )}
+
+      {chooserOpen && (
+        <Modal
+          open={chooserOpen}
+          onClose={() => setChooserOpen(false)}
+          title="What do you want to add?"
+          description="Choose the type of product you want to create."
+          layer="z-[60]"
+        >
+            <div className="grid gap-3 sm:grid-cols-2">
+              <button
+                type="button"
+                onClick={() => chooseAddType('new')}
+                className="group rounded-xl border border-border bg-surface p-4 text-left transition-colors hover:border-accent hover:bg-surface-alt focus-visible:outline-2 focus-visible:outline-accent"
+              >
+                <ProductsArt className="mx-auto mb-3 h-28 w-full" decorative />
+                <span className="block font-semibold text-text">New product</span>
+                <span className="mt-1 block text-sm text-muted">A normal product with stock.</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => chooseAddType('custom')}
+                className="group rounded-xl border border-border bg-surface p-4 text-left transition-colors hover:border-accent hover:bg-surface-alt focus-visible:outline-2 focus-visible:outline-accent"
+              >
+                <OrderFormArt className="mx-auto mb-3 h-28 w-full" decorative />
+                <span className="block font-semibold text-text">Custom product</span>
+                <span className="mt-1 block text-sm text-muted">Made to order; customers pick the customizations.</span>
+              </button>
+            </div>
+        </Modal>
       )}
 
       <SalesDrawer open={salesOpen} onClose={() => setSalesOpen(false)} />
