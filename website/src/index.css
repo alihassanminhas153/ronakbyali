@@ -226,8 +226,8 @@
   --on-accent: #0e131b;
   --link: var(--accent);
 
-  --brown: #2e1e00;           /* lighter denim for dark mode buttons */
-  --brown-hover: #382503;
+  --brown: #36598c;           /* lighter denim for dark mode buttons */
+  --brown-hover: #496fa6;
   --on-brown: #ffffff;
   --logo-ink: #e3ebf7;
   --thread: #d4b07a;          /* brighter thread on dark */

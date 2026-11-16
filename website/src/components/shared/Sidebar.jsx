@@ -31,7 +31,7 @@ const userLinks = (u) => [
   { to: PATHS.user.overview(u), label: 'Overview', icon: LayoutDashboard, end: true },
   { to: PATHS.user.profile(u), label: 'Profile', icon: UserRound },
   { to: PATHS.user.orders(u), label: 'Orders', icon: Package },
-  { to: PATHS.user.confirmOrder(u), label: 'Confirm order', icon: BadgeCheck },
+  { to: PATHS.user.confirmOrder(u), label: 'Confirm orders', icon: BadgeCheck },
   { to: PATHS.user.cart(u), label: 'Cart', icon: ShoppingCart },
   { to: PATHS.user.wishlist(u), label: 'Wishlist', icon: Heart },
   { to: PATHS.user.reviews(u), label: 'Reviews', icon: Star },

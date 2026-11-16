@@ -76,8 +76,9 @@ const SLIDE_ANIM_MS = 1200; // how long a slide animation takes
 const HEADING_WIDTH_FILL = 0.96; // 1 = edge to edge; the widest phrase fills this share of the row
 const HEADING_MAX_HEIGHT = 0.6; // heading may never be taller than this share of the hero
 // Image box height as a share of the hero (phone / tablet / desktop)
-// Phones: centred and lifted a little above the bottom edge. From sm up: sits on the bottom edge as before.
-const IMAGE_HEIGHT = "bottom-[14%] h-[74%] sm:bottom-0 sm:h-[94%] lg:h-[98%]";
+// Phones: the box fills the hero and each slide is padded equally top and bottom (see Slide),
+// so the image sits in the vertical centre. From sm up: sits on the bottom edge as before.
+const IMAGE_HEIGHT = "top-0 h-full sm:top-auto sm:bottom-0 sm:h-[94%] lg:h-[98%]";
 
 /* The layout injects the header. Set --header-h on your layout wrapper
    (e.g. style={{ "--header-h": "4rem" }}) so the hero is exactly 100dvh minus it.
@@ -271,7 +272,7 @@ function Slide({ src, alt, status, rising }) {
   return (
     <div
       aria-hidden={status !== "active"}
-      className="absolute inset-0 px-2"
+      className="absolute inset-0 px-2 py-[12dvh] sm:py-0"
       style={{
         transform: SLIDE_POSITION[status],
         // moving slides animate; parked / waiting slides jump instantly (they are off screen)
@@ -285,7 +286,7 @@ function Slide({ src, alt, status, rising }) {
         alt={alt}
         decoding="async"
         draggable={false}
-        className="h-full w-full object-contain object-bottom select-none"
+        className="h-full w-full object-contain object-center select-none sm:object-bottom"
       />
     </div>
   );
@@ -310,15 +311,18 @@ const LEFT_CURVES = [
 const RIGHT_CURVES = [
   { d: "M 480 200 C 270 170 150 330 210 470 C 260 580 400 600 480 540", float: "10s" },
   { d: "M 480 310 C 380 280 320 350 345 430 C 365 490 430 510 490 480", float: "8s" },
-  { d: "M 470 640 C 360 620 290 690 330 760 C 350 800 430 820 480 800", float: "12s" },
+  { d: "M 470 640 C 360 620 290 690 330 760 C 350 800 430 820 480 800", float: "12s", deskOnly: true }, // hidden on phones (the label and dots live down there)
 ];
 
 const CURVES_CSS = `
-.hc-float { transform-box: fill-box; transform-origin: 50% 50%; animation: hc-float var(--hc-dur, 9s) ease-in-out infinite alternate; }
+.hc-path { stroke-opacity: 0.035; }                 /* phones: very faint */
+@media (min-width: 640px) { .hc-path { stroke-opacity: 0.08; } }
+.hc-float { animation: hc-float var(--hc-dur, 9s) ease-in-out infinite alternate; }
 .hc-paused .hc-float { animation-play-state: paused; }
+@media (max-width: 639px) { .hc-desk { display: none; } }
 @keyframes hc-float {
-  0%   { transform: translate3d(0, 0, 0) rotate(0deg); }
-  100% { transform: translate3d(0, -22px, 0) rotate(2.5deg); }
+  0%   { transform: translate3d(0, 0, 0); }
+  100% { transform: translate3d(0, -22px, 0); }
 }
 @media (prefers-reduced-motion: reduce) { .hc-float { animation: none; } }
 `;
@@ -330,7 +334,7 @@ function CurveSide({ curves, side, ready, visible, instant }) {
       aria-hidden="true"
       viewBox="0 0 400 800"
       preserveAspectRatio={left ? "xMinYMid slice" : "xMaxYMid slice"}
-      className={`pointer-events-none absolute top-0 -z-10 h-full w-[40%] text-text opacity-[0.08] sm:w-[30%] lg:w-[26%] ${
+      className={`pointer-events-none absolute top-0 -z-10 h-full w-[34%] overflow-hidden text-text sm:w-[30%] lg:w-[26%] ${
         left ? "left-0" : "right-0"
       } ${visible ? "" : "hc-paused"}`}
       fill="none"
@@ -338,8 +342,13 @@ function CurveSide({ curves, side, ready, visible, instant }) {
       strokeLinejoin="round"
     >
       {curves.map((c, i) => (
-        <g key={c.d} className={ready && !instant ? "hc-float" : ""} style={{ "--hc-dur": c.float }}>
+        <g
+          key={c.d}
+          className={`${ready && !instant ? "hc-float" : ""} ${c.deskOnly ? "hc-desk" : ""}`}
+          style={{ "--hc-dur": c.float }}
+        >
           <path
+            className="hc-path"
             d={c.d}
             pathLength="1"
             stroke="currentColor"
@@ -427,6 +436,8 @@ export default function Home() {
     <>
       <Loader visible={!ready} onWritten={onLogoWritten} />
 
+      {/* overflow-x-clip: nothing on the page can push it sideways (clip, unlike hidden, keeps sticky working) */}
+      <div className="w-full max-w-full overflow-x-clip">
       <section
         ref={sectionRef}
         aria-labelledby="hero-title"
@@ -446,7 +457,7 @@ export default function Home() {
           {/* Soft ground shadow. It is static, so the moving images carry no shadow filter. */}
           <div
             aria-hidden="true"
-            className="absolute inset-x-[22%] bottom-0 h-8 rounded-[50%] bg-[radial-gradient(closest-side,var(--card-shadow),transparent)] opacity-70"
+            className="absolute inset-x-[22%] bottom-0 hidden h-8 rounded-[50%] sm:block bg-[radial-gradient(closest-side,var(--card-shadow),transparent)] opacity-70"
           />
           {images.map((image, i) => (
             <Slide key={image.url} src={image.url} alt={image.name} status={statuses[i]} rising={intro && i === 0} />
@@ -529,6 +540,7 @@ export default function Home() {
 
       {/* Footer: contact details, links and the big jelly RONAK */}
       <Footer />
+      </div>
     </>
   );
 }
