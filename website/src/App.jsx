@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useState } from "react";
 import { Routes, Route, useLocation, useParams } from "react-router";
 import { useDispatch, useSelector } from "react-redux";
 
@@ -100,6 +100,10 @@ export default function App() {
     const route = pathname.replace(/\/+$/, "") || "/";
     const pageTitle = STATIC_PAGE_TITLES[route];
     if (pageTitle) document.title = `${pageTitle} | Ronak By Ali`;
+  }, [pathname]);
+
+  useLayoutEffect(() => {
+    window.scrollTo(0, 0);
   }, [pathname]);
 
   useEffect(() => {
