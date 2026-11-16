@@ -21,9 +21,12 @@
 
 import { memo, useState } from 'react';
 import { Link } from 'react-router';
+import { useSelector } from 'react-redux';
 import { Check, Clock, Heart, ImageOff, MessageSquare, ShoppingCart, Star, Tag } from 'lucide-react';
 
 import productService from '../../lib/appwrite/product';
+import { getEffectivePricing } from '../../lib/saleMath';
+import { selectSalesList } from '../../store/slices/saleSlice';
 import { getMainImageUrl } from '../../store/slices/productsSlice';
 import { PATHS } from '../../router/path';
 import useEntered from '../../ui/custom/motion/useEntered';
@@ -116,6 +119,7 @@ function ProductCard({
 }) {
   const entered = useEntered((index % PAGE_SIZE) * 40);
   const [imgFailed, setImgFailed] = useState(false);
+  const sales = useSelector(selectSalesList);
   if (!product) return null;
 
   const image = getMainImageUrl(product);
@@ -123,12 +127,13 @@ function ProductCard({
   const hasRemaining = remaining !== null && Number.isFinite(remaining);
   const outOfStock = product.status === 'outOfStock' || (hasRemaining && remaining <= 0);
   // prices: `price` is the final price, `originalPrice` the one before the discount
-  const finalPrice = Number(product.price) || 0;
-  const originalPrice = Number(product.originalPrice) || 0;
+  const pricing = getEffectivePricing(product, sales);
+  const finalPrice = pricing.price;
+  const originalPrice = pricing.originalPrice;
   const hasDrop = originalPrice > finalPrice && finalPrice > 0;
   const percent =
-    Number(product.discountPercentage) > 0
-      ? Math.round(Number(product.discountPercentage))
+    pricing.discountPercentage > 0
+      ? Math.round(pricing.discountPercentage)
       : hasDrop
         ? Math.round((1 - finalPrice / originalPrice) * 100)
         : 0;
@@ -190,7 +195,7 @@ function ProductCard({
           <span className="absolute left-2 top-2 inline-flex max-w-[44%] items-center gap-1 rounded-full bg-accent px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-on-accent shadow-sm transition-transform duration-300 group-hover/card:scale-105 sm:left-3 sm:top-3 sm:px-2.5 sm:text-xs">
             <Tag size={12} className="shrink-0" aria-hidden="true" />
             <span className="truncate">
-              {product.discountName ? product.discountName : percent > 0 ? `${percent}% off` : 'Offer'}
+              {pricing.sale?.name || pricing.discountName || (percent > 0 ? `${percent}% off` : 'Offer')}
             </span>
           </span>
         )}
@@ -250,7 +255,7 @@ function ProductCard({
               </div>
             )}
             <p className="break-words text-lg font-semibold leading-tight tabular-nums text-text sm:text-xl">
-              {product.priceFormat || money(finalPrice)}
+              {pricing.sale ? money(finalPrice) : product.priceFormat || money(finalPrice)}
             </p>
           </div>
           </div>

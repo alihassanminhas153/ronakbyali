@@ -8,9 +8,10 @@
 //              (new email) and then places the order.
 // Logged in  : saved customer details are filled in and can be edited.
 import { useEffect, useState } from "react";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 
 import { getDeliveryChargesForLines, getProductCheckoutPrice } from "../../../store/slices/cartSlice";
+import { selectSalesList } from "../../../store/slices/saleSlice";
 import { fetchMyOrders, placeDirectOrder } from "../../../store/slices/ordersSlice";
 import { placeGuestOrder } from "../../../store/slices/checkoutThunks";
 import { continueWithGoogle } from "../../../store/slices/authSlice";
@@ -44,6 +45,7 @@ const initialForm = (account, product) => {
 
 export default function ProductCheckoutDrawer({ mounted, open, onClose, onPlaced, product, quantity, account }) {
   const dispatch = useDispatch();
+  const sales = useSelector(selectSalesList);
   const isGuest = !account;
 
   const [form, setForm] = useState(() => initialForm(account, product));
@@ -58,7 +60,7 @@ export default function ProductCheckoutDrawer({ mounted, open, onClose, onPlaced
   const [deliveryLoading, setDeliveryLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
-  const checkoutUnitPrice = getProductCheckoutPrice(product, form.paymentType);
+  const checkoutUnitPrice = getProductCheckoutPrice(product, form.paymentType, sales);
   const subtotal = checkoutUnitPrice * quantity;
   const originalSubtotal = Math.max(Number(product.originalPrice) || 0, checkoutUnitPrice) * quantity;
   const discountSavings = Math.max(0, originalSubtotal - subtotal);
@@ -257,7 +259,7 @@ export default function ProductCheckoutDrawer({ mounted, open, onClose, onPlaced
               <div className="grid gap-2 sm:grid-cols-2" role="radiogroup" aria-label="Payment method">
                 {["cod", "advance"].map((method) => {
                   const selected = form.paymentType === method;
-                  const methodPrice = getProductCheckoutPrice(product, method);
+                  const methodPrice = getProductCheckoutPrice(product, method, sales);
                   return (
                     <label key={method} className={choiceClass(selected)}>
                       <input

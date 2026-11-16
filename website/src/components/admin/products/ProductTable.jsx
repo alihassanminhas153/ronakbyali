@@ -1,8 +1,11 @@
 import { ImageOff, Pencil, Star, Trash2 } from 'lucide-react';
 import productService from '../../../lib/appwrite/product';
+import { getEffectivePricing, getSaleStatus } from '../../../lib/saleMath';
+import { selectSalesList } from '../../../store/slices/saleSlice';
 import Tooltip from '../../../ui/custom/tooltip/Tooltip';
 import { colorFor, tint } from '../../../ui/graphs/utils';
 import { entityColorStep, toneColor } from '../../../lib/entityColors';
+import { useSelector } from 'react-redux';
 
 // props: products[], busyId, onEdit(product), onDelete(product), onToggleFeatured(product)
 const rs = (n) => productService.formatPrice(n);
@@ -46,17 +49,37 @@ function StockBadge({ product }) {
   );
 }
 
-function Price({ product }) {
-  const discounted = Number(product.discountPercentage) > 0 && Number(product.originalPrice) > Number(product.price);
+function Price({ pricing }) {
+  const discounted = pricing.discountPercentage > 0 && pricing.originalPrice > pricing.price;
+  const percentage = Math.round(pricing.discountPercentage || (
+    discounted ? ((pricing.originalPrice - pricing.price) / pricing.originalPrice) * 100 : 0
+  ));
   return (
     <div className="whitespace-nowrap">
-      <p className="text-sm font-medium text-text tabular-nums">{product.priceFormat || rs(product.price)}</p>
+      <p className="text-sm font-medium text-text tabular-nums">{rs(pricing.price)}</p>
       {discounted && (
         <p className="text-xs text-muted">
-          <s>{rs(product.originalPrice)}</s> <span className="text-accent-tone-4">-{product.discountPercentage}%</span>
+          <s>{rs(pricing.originalPrice)}</s> <span className="text-accent-tone-4">-{percentage}%</span>
         </p>
       )}
     </div>
+  );
+}
+
+function Sale({ product, sales }) {
+  const sale = sales.find((item) => item.$id === product.saleId);
+  if (!sale) return <span className="text-sm text-muted">—</span>;
+  const status = getSaleStatus(sale);
+  const tones = {
+    active: 'bg-success/10 text-success',
+    upcoming: 'bg-warning/10 text-warning',
+    ended: 'bg-surface-alt text-muted',
+  };
+  return (
+    <span className="inline-flex max-w-full flex-col items-start gap-1">
+      <span className="max-w-40 truncate text-sm text-text" title={sale.name}>{sale.name}</span>
+      <span className={`rounded-full px-2 py-0.5 text-[11px] font-medium capitalize ${tones[status]}`}>{status}</span>
+    </span>
   );
 }
 
@@ -92,6 +115,7 @@ function Actions({ product, busy, onEdit, onDelete, onToggleFeatured }) {
 }
 
 export default function ProductTable({ products = [], busyId, onEdit, onDelete, onToggleFeatured }) {
+  const sales = useSelector(selectSalesList);
   const actions = { onEdit, onDelete, onToggleFeatured };
   const rise = (i) => ({ animationDelay: `${Math.min(i, 12) * 35}ms` });
 
@@ -106,7 +130,8 @@ export default function ProductTable({ products = [], busyId, onEdit, onDelete, 
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-medium text-text">{p.name}</p>
                 <div className="mt-0.5 flex flex-wrap items-center gap-1.5"><CategoryChip name={p.category} />{p.group && <span className="truncate text-xs text-muted">{p.group}</span>}</div>
-                <div className="mt-1.5"><Price product={p} /></div>
+                <div className="mt-1.5"><Price pricing={getEffectivePricing(p, sales)} /></div>
+                <div className="mt-1.5"><Sale product={p} sales={sales} /></div>
               </div>
             </div>
             <div className="mt-3 flex items-end justify-between gap-3 border-t border-border pt-3">
@@ -125,6 +150,7 @@ export default function ProductTable({ products = [], busyId, onEdit, onDelete, 
               <th className="px-4 py-3 font-medium">Product</th>
               <th className="px-4 py-3 font-medium">Category</th>
               <th className="px-4 py-3 font-medium">Price</th>
+              <th className="px-4 py-3 font-medium">Sale</th>
               <th className="px-4 py-3 font-medium">Stock</th>
               <th className="px-4 py-3 text-right font-medium">Actions</th>
             </tr>
@@ -145,7 +171,8 @@ export default function ProductTable({ products = [], busyId, onEdit, onDelete, 
                   <CategoryChip name={p.category} />
                   {p.group && <span className="mt-1 block text-xs text-muted">{p.group}</span>}
                 </td>
-                <td className="px-4 py-3"><Price product={p} /></td>
+                <td className="px-4 py-3"><Price pricing={getEffectivePricing(p, sales)} /></td>
+                <td className="px-4 py-3"><Sale product={p} sales={sales} /></td>
                 <td className="px-4 py-3"><StockBadge product={p} /></td>
                 <td className="px-4 py-3"><div className="flex justify-end"><Actions product={p} busy={busyId === p.$id} {...actions} /></div></td>
               </tr>

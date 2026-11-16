@@ -13,6 +13,7 @@
 // This file only depends on lib/appwrite/product.js (no services.js / utils.js).
 import { createAsyncThunk, createEntityAdapter, createSelector, createSlice, isAnyOf } from '@reduxjs/toolkit';
 import productService from '../../lib/appwrite/product';
+import { selectSalesList } from './saleSlice';
 
 const isRow = (v) => Boolean(v) && typeof v === 'object' && typeof v.$id === 'string';
 
@@ -70,7 +71,9 @@ const serviceFilters = (f) => {
 
 export const fetchProducts = createAsyncThunk('products/fetchList', async (arg, { getState, rejectWithValue }) => {
   const { append = false } = arg || {};
-  const { filters, list } = getState().products;
+  const state = getState();
+  const { filters, list } = state.products;
+  const sales = selectSalesList(state);
   const query = {
     filters: serviceFilters(filters),
     minPrice: filters.minPrice ?? undefined,
@@ -78,6 +81,7 @@ export const fetchProducts = createAsyncThunk('products/fetchList', async (arg, 
     sortBy: filters.sortBy,
     limit: list.limit,
     offset: append ? list.ids.length : 0,
+    sales,
   };
   const term = filters.searchTerm.trim();
   const result = term
@@ -121,8 +125,8 @@ export const fetchCategories = createAsyncThunk('products/fetchCategories', asyn
 export const fetchGroups = createAsyncThunk('products/fetchGroups', async (filters) => (await productService.listGroups(filters)) || {});
 export const fetchCategoriesWithSample = createAsyncThunk('products/fetchCategoriesWithSample', async () => (await productService.listCategoriesWithSample()) ?? null);
 export const fetchGroupsWithSample = createAsyncThunk('products/fetchGroupsWithSample', async (filters) => (await productService.listGroupsWithSample(filters)) ?? null);
-export const fetchPriceRange = createAsyncThunk('products/fetchPriceRange', async (filters) => {
-  const range = await productService.getPriceRange(filters);
+export const fetchPriceRange = createAsyncThunk('products/fetchPriceRange', async (filters, { getState }) => {
+  const range = await productService.getPriceRange(filters, selectSalesList(getState()));
   return { min: range?.min ?? 0, max: range?.max ?? 0 };
 });
 

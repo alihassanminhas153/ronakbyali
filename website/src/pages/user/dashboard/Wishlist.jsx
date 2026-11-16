@@ -45,6 +45,8 @@ import SearchInput from '../../../ui/custom/input/SearchInput';
 import SelectInput from '../../../ui/custom/input/SelectInput';
 import { formatMoney } from '../../../components/user/profile/profileMeta';
 import { entityColorStep, toneColor } from '../../../lib/entityColors';
+import { getEffectivePricing } from '../../../lib/saleMath';
+import { selectSalesList } from '../../../store/slices/saleSlice';
 
 /* ---------- config ---------- */
 
@@ -84,7 +86,10 @@ const isOut = (p) => {
   const remaining = p.remaining == null ? null : Number(p.remaining);
   return p.status === 'outOfStock' || (remaining != null && remaining <= 0);
 };
-const isSale = (p) => (Number(p.originalPrice) || 0) > (Number(p.price) || 0);
+const isSale = (p, sales) => {
+  const pricing = getEffectivePricing(p, sales);
+  return pricing.originalPrice > pricing.price;
+};
 
 /* ---------- small pieces (same look as Profile) ---------- */
 
@@ -136,11 +141,12 @@ function StatTile({ icon: Icon, label, color, children, tooltip }) {
 
 /* ---------- one saved product ---------- */
 
-function WishCard({ product: p, inCart, cartBusy, onRemove, onAdd, index }) {
+function WishCard({ product: p, sales, inCart, cartBusy, onRemove, onAdd, index }) {
   const entered = useEntered();
   const out = isOut(p);
-  const price = Number(p.price) || 0;
-  const original = Number(p.originalPrice) || 0;
+  const pricing = getEffectivePricing(p, sales);
+  const price = pricing.price;
+  const original = pricing.originalPrice;
   const sale = original > price;
   const off = sale ? Math.round(((original - price) / original) * 100) : 0;
   const rating = Number(p.ratingAverage) || 0;
@@ -176,7 +182,7 @@ function WishCard({ product: p, inCart, cartBusy, onRemove, onAdd, index }) {
           {sale && !out && (
             <span className="inline-flex items-center gap-1 rounded-full bg-accent-tone-3 px-2.5 py-1 text-[11px] font-semibold text-white">
               <Tag size={12} aria-hidden="true" />
-              {off}% off
+              {pricing.sale?.name || `${off}% off`}
             </span>
           )}
         </div>
@@ -198,7 +204,7 @@ function WishCard({ product: p, inCart, cartBusy, onRemove, onAdd, index }) {
         <p className="truncate text-xs text-muted">{p.category}</p>
 
         <div className="mt-1.5 flex flex-wrap items-baseline gap-x-2">
-          <span className="font-display text-lg font-semibold tabular-nums text-text">{p.priceFormat || formatMoney(price)}</span>
+          <span className="font-display text-lg font-semibold tabular-nums text-text">{pricing.sale ? formatMoney(price) : p.priceFormat || formatMoney(price)}</span>
           {sale && <span className="text-xs tabular-nums text-muted line-through">{formatMoney(original)}</span>}
         </div>
 
@@ -246,6 +252,7 @@ export default function Wishlist() {
   const entered = useEntered();
 
   const ids = useAppSelector(selectWishlistIds);
+  const sales = useAppSelector(selectSalesList);
   const products = useAppSelector(selectWishlistProducts);
   const status = useAppSelector(selectWishlistStatus);
   const error = useAppSelector(selectWishlistError);
@@ -289,10 +296,10 @@ export default function Wishlist() {
     return {
       out,
       inStock: items.length - out,
-      sale: items.filter(isSale).length,
+      sale: items.filter((product) => isSale(product, sales)).length,
       inCart: items.filter((p) => inCartIds.has(p.$id)).length,
     };
-  }, [items, inCartIds]);
+  }, [items, inCartIds, sales]);
 
   const categories = useMemo(() => [...new Set(items.map((p) => p.category).filter(Boolean))].sort(), [items]);
 
@@ -303,17 +310,17 @@ export default function Wishlist() {
     const rows = items.filter((p) => {
       if (filter === 'in' && isOut(p)) return false;
       if (filter === 'out' && !isOut(p)) return false;
-      if (filter === 'sale' && !isSale(p)) return false;
+      if (filter === 'sale' && !isSale(p, sales)) return false;
       if (category && p.category !== category) return false;
       if (term && !`${p.name} ${p.category} ${p.group || ''}`.toLowerCase().includes(term)) return false;
       return true;
     });
-    if (sort === 'low') return [...rows].sort((a, b) => (Number(a.price) || 0) - (Number(b.price) || 0));
-    if (sort === 'high') return [...rows].sort((a, b) => (Number(b.price) || 0) - (Number(a.price) || 0));
+    if (sort === 'low') return [...rows].sort((a, b) => getEffectivePricing(a, sales).price - getEffectivePricing(b, sales).price);
+    if (sort === 'high') return [...rows].sort((a, b) => getEffectivePricing(b, sales).price - getEffectivePricing(a, sales).price);
     if (sort === 'name') return [...rows].sort((a, b) => String(a.name).localeCompare(String(b.name)));
     // "recent": the order of ids is the order they were saved, newest last
     return [...rows].sort((a, b) => ids.indexOf(b.$id) - ids.indexOf(a.$id));
-  }, [items, ids, filter, category, query, sort]);
+  }, [items, ids, filter, category, query, sort, sales]);
 
   const phrases = useMemo(
     () => [
@@ -531,6 +538,7 @@ export default function Wishlist() {
                   <WishCard
                     key={p.$id}
                     product={p}
+                    sales={sales}
                     index={i}
                     inCart={inCartIds.has(p.$id)}
                     cartBusy={cartBusy}

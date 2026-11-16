@@ -2,5 +2,6 @@
 export { SORT_OPTIONS, STATUS_OPTIONS } from './productFields';
 export { default as ProductForm } from './ProductForm';
 export { default as ProductTable } from './ProductTable';
+export { default as SalesDrawer } from './SalesDrawer';
 export { default as useProductAnalytics } from './useProductAnalytics';
 export { CreationCharts, StockTab, CategoriesTab, PricingTab } from './ProductAnalytics';

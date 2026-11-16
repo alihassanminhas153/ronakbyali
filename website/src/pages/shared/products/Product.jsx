@@ -39,8 +39,10 @@ import {
   selectIsWished,
 } from "../../../store/slices/wishlistSlice";
 import { selectMe } from "../../../store/slices/userSlice";
+import { selectSalesList } from "../../../store/slices/saleSlice";
 import userService from "../../../lib/appwrite/user";
 import reviewService from "../../../lib/appwrite/review";
+import { getEffectivePricing } from "../../../lib/saleMath";
 import ProductCheckoutDrawer from "./ProductCheckoutDrawer";
 import { loadDraft } from "../../../lib/checkoutDraft";
 
@@ -449,6 +451,7 @@ function ProductRating({ product }) {
 function Details({ product }) {
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const sales = useSelector(selectSalesList);
   const [qty, setQty] = useState(1);
   const [added, setAdded] = useState(false);
   const [cartError, setCartError] = useState(null);
@@ -469,10 +472,13 @@ function Details({ product }) {
     .filter((l) => l.productId === product.$id)
     .reduce((n, l) => n + (Number(l.quantity) || 0), 0);
 
-  const price = Number(product.price) || 0;
-  const original = Number(product.originalPrice) || 0;
+  const pricing = getEffectivePricing(product, sales);
+  const price = pricing.price;
+  const original = pricing.originalPrice;
   const hasDiscount = original > price;
-  const percent = hasDiscount ? Math.round(((original - price) / original) * 100) : 0;
+  const percent = hasDiscount
+    ? Math.round(pricing.discountPercentage || ((original - price) / original) * 100)
+    : 0;
 
   const remaining = product.remaining == null ? null : Number(product.remaining);
   const inStock = product.status !== "outOfStock" && (remaining == null || remaining > 0);
@@ -557,7 +563,7 @@ function Details({ product }) {
       {/* price */}
       <div className="mt-4 flex flex-wrap items-baseline gap-x-3 gap-y-1">
         <span className="text-3xl font-semibold tabular-nums text-text">
-          {product.priceFormat || money(price)}
+          {pricing.sale ? money(price) : product.priceFormat || money(price)}
         </span>
         {hasDiscount && (
           <>
@@ -567,6 +573,11 @@ function Details({ product }) {
             <span className="rounded bg-accent px-2 py-0.5 text-sm font-semibold text-on-accent">
               {percent}% off
             </span>
+            {pricing.sale?.name && (
+              <span className="rounded bg-accent-soft px-2 py-0.5 text-sm font-medium text-accent">
+                {pricing.sale.name}
+              </span>
+            )}
           </>
         )}
       </div>
@@ -973,6 +984,7 @@ function uniqueReviews(rows) {
 /* ------------------------------------------------------------------ */
 
 function Related({ items }) {
+  const sales = useSelector(selectSalesList);
   const uniqueItems = [...new Map(items.map((item) => [item.$id, item])).values()];
   return (
     <section className="mt-16" aria-labelledby="related-heading">
@@ -983,33 +995,36 @@ function Related({ items }) {
         More from this category
       </h2>
       <ul className="mt-6 grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-4">
-        {uniqueItems.map((p) => (
-          <li key={p.$id} className="h-full">
-            <Link
-              to={PATHS.product(p.category, p.group, p.slug)}
-              className="group/card flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-surface shadow-soft transition-all duration-300 ease-out hover:-translate-y-1 hover:border-accent/50 hover:shadow-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent motion-reduce:transition-none"
-            >
-              <div className="aspect-[3/4] overflow-hidden bg-surface-alt">
-                {getMainImageUrl(p) && (
-                  <img
-                    src={getMainImageUrl(p)}
-                    alt=""
-                    loading="lazy"
-                    className="h-full w-full object-cover transition-transform duration-500 ease-out group-hover/card:scale-105 motion-reduce:transition-none"
-                  />
-                )}
-              </div>
-              <div className="flex flex-1 flex-col gap-1 p-3 sm:p-4">
-                <p className="line-clamp-2 min-h-[2.5rem] font-medium leading-snug text-text transition-colors duration-200 group-hover/card:text-accent">
-                  {p.name}
-                </p>
-                <p className="mt-auto pt-2 text-sm font-semibold tabular-nums text-text">
-                  {p.priceFormat || money(p.price)}
-                </p>
-              </div>
-            </Link>
-          </li>
-        ))}
+        {uniqueItems.map((p) => {
+          const pricing = getEffectivePricing(p, sales);
+          return (
+            <li key={p.$id} className="h-full">
+              <Link
+                to={PATHS.product(p.category, p.group, p.slug)}
+                className="group/card flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-surface shadow-soft transition-all duration-300 ease-out hover:-translate-y-1 hover:border-accent/50 hover:shadow-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent motion-reduce:transition-none"
+              >
+                <div className="aspect-[3/4] overflow-hidden bg-surface-alt">
+                  {getMainImageUrl(p) && (
+                    <img
+                      src={getMainImageUrl(p)}
+                      alt=""
+                      loading="lazy"
+                      className="h-full w-full object-cover transition-transform duration-500 ease-out group-hover/card:scale-105 motion-reduce:transition-none"
+                    />
+                  )}
+                </div>
+                <div className="flex flex-1 flex-col gap-1 p-3 sm:p-4">
+                  <p className="line-clamp-2 min-h-[2.5rem] font-medium leading-snug text-text transition-colors duration-200 group-hover/card:text-accent">
+                    {p.name}
+                  </p>
+                  <p className="mt-auto pt-2 text-sm font-semibold tabular-nums text-text">
+                    {pricing.sale ? money(pricing.price) : p.priceFormat || money(pricing.price)}
+                  </p>
+                </div>
+              </Link>
+            </li>
+          );
+        })}
       </ul>
     </section>
   );

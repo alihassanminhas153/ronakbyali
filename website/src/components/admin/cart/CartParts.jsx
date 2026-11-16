@@ -203,7 +203,7 @@ export function ProductDemandTable({ rows }) {
                   )}
                 </td>
                 <td className="px-4 py-3 text-right text-sm tabular-nums text-text">{d.wishes || <span className="text-muted">—</span>}</td>
-                <td className="whitespace-nowrap px-4 py-3 text-right text-sm font-medium tabular-nums text-text">{d.product ? money(d.product.price) : '—'}</td>
+                <td className="whitespace-nowrap px-4 py-3 text-right text-sm font-medium tabular-nums text-text">{d.product ? money(d.price) : '—'}</td>
               </tr>
             ))}
           </tbody>

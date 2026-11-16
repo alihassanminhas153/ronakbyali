@@ -81,11 +81,11 @@ const initialState = adapter.getInitialState({
 
 export const canEditOrder = (order) => !!order && USER_EDITABLE_STATUSES.includes(order.status);
 
-const linesToItems = (lines, paymentType = 'cod') =>
+const linesToItems = (lines, paymentType = 'cod', sales = []) =>
   lines.map((l) => ({
     productId: l.productId,
     name: l.product?.name,
-    price: getProductCheckoutPrice(l.product, paymentType),
+    price: getProductCheckoutPrice(l.product, paymentType, sales),
     quantity: l.quantity,
     fileId: l.product?.imageIds?.[0] ?? null,
     variant: l.variant,
@@ -150,7 +150,7 @@ export const placeOrder = createAsyncThunk('orders/place', async (arg, { getStat
 
   const paymentType = form.paymentType === 'advance' ? 'advance' : 'cod';
   const deliveryType = form.deliveryType === 'pickup' ? 'pickup' : 'regular';
-  const items = linesToItems(lines, paymentType);
+  const items = linesToItems(lines, paymentType, Object.values(state.sales.entities || {}));
   const subtotal = subtotalOf(items);
   let deliveryCharges = 0;
   if (deliveryType !== 'pickup') {
@@ -200,7 +200,7 @@ export const placeDirectOrder = createAsyncThunk('orders/placeDirect', async (ar
   const problem = stockProblem(lines);
   if (problem) return fail(rejectWithValue, problem, arg);
 
-  const items = linesToItems(lines, paymentType);
+  const items = linesToItems(lines, paymentType, Object.values(state.sales.entities || {}));
   const subtotal = subtotalOf(items);
   let charge = 0;
   if (deliveryType !== 'pickup') {
@@ -251,7 +251,7 @@ export const addCartToOrder = createAsyncThunk('orders/addCart', async (arg, { g
   const problem = stockProblem(lines, existing);
   if (problem) return fail(rejectWithValue, problem, arg);
 
-  const items = linesToItems(lines);
+  const items = linesToItems(lines, 'cod', Object.values(state.sales.entities || {}));
   const combinedSubtotal = subtotalOf(orderService.mergeItems(existing, orderService._cleanItems(items)));
   const deliveryCharges = await chargesFor(current, combinedSubtotal);
 

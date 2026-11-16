@@ -11,4 +11,5 @@ export {
   settingsService,
   layoutService,
   reviewService,
+  saleService,
 } from '../../lib/appwrite';

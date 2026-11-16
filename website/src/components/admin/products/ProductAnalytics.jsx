@@ -7,6 +7,9 @@ import {
   colorFor, compact, countByDay, groupBy, monthlySeries, topWithOthers,
 } from '../../../ui/graphs';
 import { formatCardMoney } from '../../../ui/graphs/CardMoney';
+import { useSelector } from 'react-redux';
+import { selectSalesList } from '../../../store/slices/saleSlice';
+import { getEffectivePricing } from '../../../lib/saleMath';
 
 const sum = (rows, key) => rows.reduce((s, r) => s + (Number(r[key]) || 0), 0);
 const grid = 'grid gap-4 lg:grid-cols-2';
@@ -85,14 +88,16 @@ export function CategoriesTab({ rows }) {
 }
 
 export function PricingTab({ rows }) {
-  const prices = rows.map((r) => Number(r.price) || 0);
-  const avg = prices.length ? sum(rows, 'price') / prices.length : 0;
-  const discounted = rows.filter((r) => Number(r.discountPercentage) > 0);
-  const withCost = rows.filter((r) => Number(r.costPrice) > 0 && Number(r.price) > 0);
+  const sales = useSelector(selectSalesList);
+  const priced = rows.map((row) => ({ ...row, pricing: getEffectivePricing(row, sales) }));
+  const prices = priced.map((r) => r.pricing.price);
+  const avg = prices.length ? prices.reduce((total, price) => total + price, 0) / prices.length : 0;
+  const discounted = priced.filter((r) => r.pricing.discountPercentage > 0);
+  const withCost = priced.filter((r) => Number(r.costPrice) > 0 && r.pricing.price > 0);
   const margin = withCost.length
-    ? (withCost.reduce((s, r) => s + (r.price - r.costPrice) / r.price, 0) / withCost.length) * 100
+    ? (withCost.reduce((s, r) => s + (r.pricing.price - r.costPrice) / r.pricing.price, 0) / withCost.length) * 100
     : null;
-  const stockValue = rows.reduce((s, r) => s + (Number(r.price) || 0) * (Number(r.remaining) || 0), 0);
+  const stockValue = priced.reduce((s, r) => s + r.pricing.price * (Number(r.remaining) || 0), 0);
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
@@ -115,7 +120,7 @@ export function PricingTab({ rows }) {
         </ChartCard>
         <ChartCard title="Biggest discounts" subtitle="Highest discount percentage" icon={Percent} tone={4} delay={80}>
           <BarChart
-            data={[...discounted].sort((a, b) => b.discountPercentage - a.discountPercentage).slice(0, 8).map((r) => ({ label: r.name, value: r.discountPercentage }))}
+            data={[...discounted].sort((a, b) => b.pricing.discountPercentage - a.pricing.discountPercentage).slice(0, 8).map((r) => ({ label: r.pricing.sale?.name || r.name, value: r.pricing.discountPercentage }))}
             format={(n) => `${n}%`}
             empty="No discounted products."
           />

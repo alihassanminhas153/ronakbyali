@@ -25,6 +25,7 @@ import { PATHS } from "../../../router/path";
 import { LOGIN_REQUIRED } from "../../../store/slices/utils";
 import { validateDetails } from "../../../lib/checkoutDraft";
 import TextInput from "../../../ui/custom/input/TextInput";
+import { selectSalesList } from "../../../store/slices/saleSlice";
 
 const money = (v) => `Rs ${Number(v || 0).toLocaleString("en-PK")}`;
 const PAYMENT_OPTIONS = [
@@ -39,6 +40,7 @@ export default function Checkout() {
 
   const profile = useSelector((s) => s.auth.profile);
   const lines = useSelector(selectCartLines);
+  const sales = useSelector(selectSalesList);
   const count = useSelector(selectCartCount);
   const cartStatus = useSelector(selectCartStatus);
   const openOrders = useSelector(selectOpenOrders);
@@ -94,11 +96,11 @@ export default function Checkout() {
   }, [merging, target]);
 
   const subtotal = lines.reduce(
-    (sum, line) => sum + getProductCheckoutPrice(line.product, paymentType) * (Number(line.quantity) || 0),
+    (sum, line) => sum + getProductCheckoutPrice(line.product, paymentType, sales) * (Number(line.quantity) || 0),
     0,
   );
   const originalSubtotal = lines.reduce((sum, line) => {
-    const price = getProductCheckoutPrice(line.product, paymentType);
+    const price = getProductCheckoutPrice(line.product, paymentType, sales);
     const originalPrice = Number(line.product.originalPrice) || 0;
     return sum + Math.max(price, originalPrice) * (Number(line.quantity) || 0);
   }, 0);
@@ -249,7 +251,7 @@ export default function Checkout() {
                     }}
                     title={label}
                     detail={money(lines.reduce(
-                      (sum, line) => sum + getProductCheckoutPrice(line.product, value) * (Number(line.quantity) || 0),
+                      (sum, line) => sum + getProductCheckoutPrice(line.product, value, sales) * (Number(line.quantity) || 0),
                       0,
                     ))}
                   />
@@ -290,7 +292,7 @@ export default function Checkout() {
           <dl className="divide-y divide-border border-y border-border text-sm">
             {lines.map((line) => {
               const quantity = Number(line.quantity) || 0;
-              const price = getProductCheckoutPrice(line.product, paymentType);
+              const price = getProductCheckoutPrice(line.product, paymentType, sales);
               return (
                 <div key={`${line.productId}:${line.variant ?? ""}`} className="flex justify-between gap-4 py-2.5">
                   <dt className="min-w-0 text-muted">{line.product.name} × {quantity}</dt>

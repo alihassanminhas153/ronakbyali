@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router';
 import { useStore } from 'react-redux';
 import { PackageSearch, RotateCcw, Search, SearchX, SlidersHorizontal, X } from 'lucide-react';
@@ -23,6 +23,7 @@ import {
   selectProductsTotal,
   setProductFilters,
 } from '../../../store/slices/productsSlice';
+import { selectSalesStatus } from '../../../store/slices/saleSlice';
 
 import {
   ProductCard,
@@ -110,27 +111,34 @@ export default function AllProducts({ pages = [] }) {
   const cartLines = useAppSelector(selectCartLines);
   const cartBusy = useAppSelector(selectCartUpdating);
   const wishlistIds = useAppSelector(selectWishlistIds);
+  const salesStatus = useAppSelector(selectSalesStatus);
   const categoryValues = categoryOptions.map((option) => option?.value ?? option?.label ?? '');
   const groupValues = groupOptions.map((option) => option?.value ?? option?.label ?? '');
 
   const [started, setStarted] = useState(false);
+  const initialized = useRef(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [term, setTerm] = useState(() => fromParams(searchParams)[K.search] ?? '');
   const entered = useEntered();
 
   // Open: start from the URL, not from whatever filters the last page left behind.
   useEffect(() => {
+    if (!initialized.current) {
+      const initial = fromParams(searchParams);
+      dispatch(resetProductFilters());
+      dispatch(setProductFilters(initial));
+      initialized.current = true;
+    }
+    if (salesStatus === 'idle' || salesStatus === 'loading') return undefined;
     const initial = fromParams(searchParams);
-    dispatch(resetProductFilters());
-    dispatch(setProductFilters(initial));
     dispatch(fetchProducts());
     dispatch(fetchCategories());
     dispatch(fetchGroups(initial.category ? { category: initial.category } : {}));
     dispatch(fetchPriceRange({}));
     setStarted(true);
-    // The URL is only read once, on open. Later changes go the other way (filters -> URL).
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dispatch]);
+  // The URL is read only once; this waits for the app-level sales request.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dispatch, salesStatus]);
 
   const loading = status === 'loading';
   const failed = status === 'failed';

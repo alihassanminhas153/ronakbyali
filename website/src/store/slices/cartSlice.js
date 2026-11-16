@@ -9,6 +9,7 @@ import { cartService, settingsService } from './services';
 import { LOGIN_REQUIRED, fail, getUserId, stripToast } from './utils';
 import { isSessionEnded } from './authSlice';
 import { openLoginModal } from './uiSlice';
+import { getEffectivePricing } from '../../lib/saleMath';
 
 const initialState = {
   lines: [], // [{ productId, quantity, variant, product }]
@@ -21,12 +22,17 @@ const initialState = {
   error: null,
 };
 
-export const getProductCheckoutPrice = (product, paymentType = 'cod') => {
+export const getProductCheckoutPrice = (product, paymentType = 'cod', sales = []) => {
   const field = paymentType === 'advance' ? 'priceAdvance' : 'priceCOD';
   const methodPrice = product?.[field];
-  return methodPrice != null && Number.isFinite(Number(methodPrice))
-    ? Number(methodPrice)
-    : Number(product?.price) || 0;
+  const pricing = getEffectivePricing(product, sales);
+  if (methodPrice != null && Number.isFinite(Number(methodPrice))) {
+    const price = Number(methodPrice);
+    return pricing.sale
+      ? Math.round(price * (1 - pricing.discountPercentage / 100))
+      : price;
+  }
+  return pricing.price;
 };
 
 export const getDeliveryChargesForLines = async (lines, subtotal) => {
@@ -43,12 +49,17 @@ export const getDeliveryChargesForLines = async (lines, subtotal) => {
 export const fetchCart = createAsyncThunk('cart/fetch', async (arg, { getState, rejectWithValue }) => {
   const userId = getUserId(getState().auth.profile);
   if (!userId) return rejectWithValue(LOGIN_REQUIRED, { toast: false });
-  const data = await cartService.getCartWithProducts({ userId });
+  const sales = Object.values(getState().sales.entities || {});
+  const data = await cartService.getCartWithProducts({ userId, sales });
   if (!data) return fail(rejectWithValue, 'Could not load your cart.', arg);
-  const subtotal = Number(data.subtotal) || 0;
-  const charges = await getDeliveryChargesForLines(data.lines || [], subtotal);
+  const lines = data.lines || [];
+  const subtotal = lines.reduce(
+    (sum, line) => sum + getEffectivePricing(line.product, sales).price * (Number(line.quantity) || 0),
+    0
+  );
+  const charges = await getDeliveryChargesForLines(lines, subtotal);
   return {
-    lines: data.lines || [],
+    lines,
     subtotal,
     deliveryCharges: charges === false ? 0 : Number(charges) || 0,
   };
@@ -143,9 +154,12 @@ export default cartSlice.reducer;
 
 export const selectCartLines = (s) => s.cart.lines;
 export const selectCartCount = (s) => s.cart.itemCount;
-export const selectCartSubtotal = (s) => s.cart.subtotal;
+export const selectCartSubtotal = (s) => s.cart.lines.reduce(
+  (sum, line) => sum + getEffectivePricing(line.product, Object.values(s.sales.entities || {})).price * (Number(line.quantity) || 0),
+  0
+);
 export const selectCartDeliveryCharges = (s) => s.cart.deliveryCharges;
-export const selectCartTotal = (s) => s.cart.total;
+export const selectCartTotal = (s) => selectCartSubtotal(s) + s.cart.deliveryCharges;
 export const selectCartStatus = (s) => s.cart.status;
 export const selectCartUpdating = (s) => s.cart.updating;
 export const selectCartError = (s) => s.cart.error;

@@ -5,6 +5,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { initAuth } from "./store/slices/authSlice";
 import { fetchCart } from "./store/slices/cartSlice";
 import { fetchWishlist } from "./store/slices/wishlistSlice";
+import { fetchSales, selectSalesStatus } from "./store/slices/saleSlice";
 
 // layouts & guards
 import MainLayout from "./layouts/MainLayout";
@@ -79,6 +80,7 @@ const STATIC_PAGE_TITLES = {
 export default function App() {
   const dispatch = useDispatch();
   const profileId = useSelector((s) => s.auth.profile?.$id);
+  const salesStatus = useSelector(selectSalesStatus);
   const { pathname } = useLocation();
   const [isNavigating, setIsNavigating] = useState(false);
 
@@ -106,14 +108,21 @@ export default function App() {
     dispatch(initAuth());
   }, [dispatch]);
 
-  // Once a user is signed in, load their cart and wishlist so the cart badge,
-  // the heart buttons and the product page know what they already have.
-  // Logging out clears both slices (isSessionEnded), so nothing to do here for that.
+  useEffect(() => {
+    dispatch(fetchSales());
+  }, [dispatch]);
+
+  // Load wishlist data as soon as the signed-in profile is available.
   useEffect(() => {
     if (!profileId) return;
-    dispatch(fetchCart());
     dispatch(fetchWishlist());
   }, [dispatch, profileId]);
+
+  // Wait for sale dates before refreshing cart prices and delivery totals.
+  useEffect(() => {
+    if (!profileId || salesStatus === "idle" || salesStatus === "loading") return;
+    dispatch(fetchCart());
+  }, [dispatch, profileId, salesStatus]);
 
   return (
     <>

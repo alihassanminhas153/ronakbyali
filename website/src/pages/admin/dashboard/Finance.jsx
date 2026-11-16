@@ -1,6 +1,7 @@
 import PanelPageTitle from '../../../ui/custom/PanelPageTitle';
 import AppIcon from '../../../ui/custom/AppIcon';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useSelector } from 'react-redux';
 import { ArrowRight, Boxes, CalendarDays, Download, Heart, LayoutList, PackagePlus, PieChart, Plus, RefreshCw, TrendingUp, Trophy, LineChart as LineIcon } from 'lucide-react';
 
 import {
@@ -19,6 +20,7 @@ import ConfirmDialog from '../../../ui/custom/modal/ConfirmDialog';
 import Tabs, { TabPanel } from '../../../ui/custom/tabs/Tabs';
 import CountUp from '../../../ui/custom/motion/CountUp';
 import Typewriter from '../../../ui/custom/motion/Typewriter';
+import { selectSalesList } from '../../../store/slices/saleSlice';
 
 const CTA_PHRASES = ['Record an investment', 'Add an expense', 'Log a withdrawal', 'Add other income'];
 const SORTS = ['Newest', 'Oldest', 'Highest amount', 'Lowest amount'];
@@ -45,6 +47,7 @@ function useTimeAgo(date) {
 // Admin > Finance   (/team/:username/finance)
 export default function Finance() {
   const data = useFinanceData();
+  const sales = useSelector(selectSalesList);
   const { ledger, products, loading, error, reload, reloadLedger } = data;
 
   const [tab, setTab] = useState('ledger');
@@ -80,8 +83,8 @@ export default function Finance() {
 
   const { orders, carts, wishlists } = data;
   const m = useMemo(
-    () => buildFinance({ orders, products, carts, wishlists, ledger }, period),
-    [orders, products, carts, wishlists, ledger, period]
+    () => buildFinance({ orders, products, carts, wishlists, ledger, sales }, period),
+    [orders, products, carts, wishlists, ledger, sales, period]
   );
   const categories = useMemo(() => [...new Set(ledger.map((e) => e.category).filter(Boolean))].sort(), [ledger]);
 

@@ -340,7 +340,7 @@ export function ProfitTab({ m, onChanged }) {
                   <Thumb product={p} />
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-medium text-text">{p.name}</p>
-                    <p className="truncate text-xs text-muted">Sells for {rs(p.price)}</p>
+                    <p className="truncate text-xs text-muted">Sells for {rs(p.effectivePrice ?? p.price)}</p>
                   </div>
                   <CostEditor product={p} onSaved={onChanged} />
                 </li>

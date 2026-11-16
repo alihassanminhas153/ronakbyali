@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useAppSelector } from '../../../store/slices/hooks';
 
 import cartService from '../../../lib/appwrite/cart';
 import wishlistService from '../../../lib/appwrite/wishlist';
@@ -6,6 +7,8 @@ import productService from '../../../lib/appwrite/product';
 import { toneVar } from '../../../ui/graphs/utils';
 import { entityColorStep } from '../../../lib/entityColors';
 import { money } from '../orders/orderMeta';
+import { selectSalesList } from '../../../store/slices/saleSlice';
+import { getEffectivePricing } from '../../../lib/saleMath';
 
 const PAGE = 100;
 const MAX_ROWS = 1000; // per table
@@ -65,6 +68,7 @@ const AGE_BUCKETS = [
 // Loads every cart and wishlist row (up to 1000 each) plus the CURRENT product rows,
 // then works out everything the page shows.
 export default function useCartWishlist() {
+  const sales = useAppSelector(selectSalesList);
   const [raw, setRaw] = useState({ carts: [], wishes: [], products: {} });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -105,7 +109,8 @@ export default function useCartWishlist() {
           .map((i) => {
             const product = products[i.productId] || null;
             const quantity = Number(i.quantity) || 0;
-            return { ...i, quantity, product, price: Number(product?.price) || 0, stock: stockOf(product, quantity) };
+            const price = product ? getEffectivePricing(product, sales).price : 0;
+            return { ...i, quantity, product, price, stock: stockOf(product, quantity) };
           })
           .filter((l) => l.quantity > 0);
         return {
@@ -149,7 +154,11 @@ export default function useCartWishlist() {
     };
     carts.forEach((e) => e.lines.forEach((l) => { const d = touch(l.productId); d.cartQty += l.quantity; d.carts += 1; }));
     wishes.forEach((e) => e.lines.forEach((l) => { touch(l.productId).wishes += 1; }));
-    const demand = [...map.values()].map((d) => ({ ...d, stock: stockOf(d.product, d.cartQty) }));
+    const demand = [...map.values()].map((d) => ({
+      ...d,
+      price: d.product ? getEffectivePricing(d.product, sales).price : 0,
+      stock: stockOf(d.product, d.cartQty),
+    }));
 
     // ---- headline numbers
     const value = carts.reduce((n, e) => n + e.value, 0);
@@ -244,7 +253,7 @@ export default function useCartWishlist() {
         activityRows: [...raw.carts, ...raw.wishes], // for the calendar (date of last change)
       },
     };
-  }, [raw]);
+  }, [raw, sales]);
 
   return { ...derived, loading, error, loadedAt, reload: load };
 }

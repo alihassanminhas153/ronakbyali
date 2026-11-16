@@ -36,7 +36,7 @@ export const isExpired = (alert) => alertState(alert) === 'expired';
 // NOTE: Appwrite only lets signed-in users write to this table, so guests keep their
 // "seen" state in this browser only, and their impressions are not counted.
 
-const EDITABLE = ['title', 'message', 'type', 'status', 'popup', 'link', 'buttonText', 'priority', 'userId', 'startsAt', 'endsAt'];
+const EDITABLE = ['title', 'message', 'type', 'status', 'popup', 'link', 'buttonText', 'priority', 'userId', 'startsAt', 'endsAt', 'pages', 'saleId'];
 const SETTABLE_STATUS = [ALERT_STATUS.ACTIVE, ALERT_STATUS.INACTIVE]; // "expired" is never set by hand
 const SEEN_KEY = 'rba_seen_alerts';
 const SEEN_CAP = 200;
@@ -398,9 +398,16 @@ export class AlertService {
         ['title', 'message', 'link', 'buttonText', 'userId'].forEach((k) => {
             if (typeof out[k] === 'string') out[k] = out[k].trim();
         });
-        ['link', 'userId', 'startsAt', 'endsAt'].forEach((k) => {
+        ['link', 'userId', 'startsAt', 'endsAt', 'saleId'].forEach((k) => {
             if (k in out && out[k] === '') out[k] = null;
         });
+        if ('pages' in out) {
+            const allowedPages = ['all', 'home', 'products', 'product'];
+            out.pages = Array.isArray(out.pages)
+                ? [...new Set(out.pages.filter((page) => allowedPages.includes(page)))]
+                : [];
+            if (out.pages.includes('all')) out.pages = ['all'];
+        }
         if ('buttonText' in out && !out.buttonText) out.buttonText = 'Got it';
         if ('priority' in out) out.priority = Math.trunc(Number(out.priority)) || 0;
         if ('popup' in out) out.popup = Boolean(out.popup);

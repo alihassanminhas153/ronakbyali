@@ -40,6 +40,8 @@ import Typewriter from '../../../ui/custom/motion/Typewriter';
 import useEntered from '../../../ui/custom/motion/useEntered';
 import { formatInt, formatMoney } from '../../../components/admin/users/userFields';
 import { paidAmountForOrder } from '../../../lib/orderMath';
+import { getEffectivePricing } from '../../../lib/saleMath';
+import { selectSalesList } from '../../../store/slices/saleSlice';
 
 /*
  * Route segments are relative to the user dashboard (this page is its index
@@ -161,6 +163,7 @@ function OverviewView({ me }) {
   const ordersTotal = useAppSelector(selectMyOrdersTotal);
   const ordersStatus = useAppSelector(selectMyOrdersStatus);
   const cartLines = useAppSelector(selectCartLines);
+  const sales = useAppSelector(selectSalesList);
   const cartCount = useAppSelector(selectCartCount);
   const cartSubtotal = useAppSelector(selectCartSubtotal);
   const cartStatus = useAppSelector(selectCartStatus);
@@ -446,7 +449,7 @@ function OverviewView({ me }) {
             data={cartLines.slice(0, 5).map((l) => ({
               label: l.product?.name || 'Item',
               value: Number(l.quantity) || 0,
-              hint: formatMoney((Number(l.product?.price) || 0) * (Number(l.quantity) || 0)),
+              hint: formatMoney(getEffectivePricing(l.product, sales).price * (Number(l.quantity) || 0)),
             }))}
             empty="Your cart is empty."
           />
@@ -465,7 +468,7 @@ function OverviewView({ me }) {
               {wishProducts.slice(0, 4).map((p, i) => (
                 <li key={p.$id} style={{ animationDelay: `${i * 40}ms` }} className="animate-rise flex items-center gap-3 py-2">
                   <p className="min-w-0 flex-1 truncate text-sm font-medium text-text">{p.name}</p>
-                  <p className="text-sm font-medium tabular-nums text-text">{formatMoney(p.price)}</p>
+                  <p className="text-sm font-medium tabular-nums text-text">{formatMoney(getEffectivePricing(p, sales).price)}</p>
                 </li>
               ))}
             </ul>

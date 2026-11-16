@@ -1,6 +1,7 @@
 import { countByDay, groupBy } from '../../../ui/graphs/utils';
 import { paidAmountForOrder } from '../../../lib/orderMath';
 import { STOCK_CATEGORY } from './financeSchema';
+import { getEffectivePricing } from '../../../lib/saleMath';
 
 // All the money maths in one place (pure functions, no Appwrite calls).
 //
@@ -37,7 +38,7 @@ const monthKey = (d) => {
   return `${x.getFullYear()}-${x.getMonth()}`;
 };
 
-export function buildFinance({ orders = [], products = [], carts = [], wishlists = [], ledger = [] }, periodId = '30d') {
+export function buildFinance({ orders = [], products = [], carts = [], wishlists = [], ledger = [], sales = [] }, periodId = '30d') {
   const period = PERIODS.find((p) => p.id === periodId) || PERIODS[1];
   const from = period.days ? Date.now() - period.days * DAY : 0;
   const inRange = (iso) => !from || new Date(iso).getTime() >= from;
@@ -96,7 +97,9 @@ export function buildFinance({ orders = [], products = [], carts = [], wishlists
   const productProfit = [...perProduct.values()]
     .map((r) => ({ ...r, profit: r.revenue - r.cost, margin: r.revenue ? ((r.revenue - r.cost) / r.revenue) * 100 : 0 }))
     .sort((a, b) => b.profit - a.profit);
-  const noCostProducts = products.filter((p) => !(num(p.costPrice) > 0));
+  const noCostProducts = products
+    .filter((p) => !(num(p.costPrice) > 0))
+    .map((p) => ({ ...p, effectivePrice: getEffectivePricing(p, sales).price }));
 
   /* ---------- last 12 months ---------- */
   const months = [];
@@ -127,7 +130,7 @@ export function buildFinance({ orders = [], products = [], carts = [], wishlists
   const inStock = products.filter((p) => num(p.remaining) > 0);
   const outOfStock = products.filter((p) => !(num(p.remaining) > 0));
   const stockCost = sum(inStock, (p) => num(p.remaining) * num(p.costPrice));
-  const stockRetail = sum(inStock, (p) => num(p.remaining) * num(p.price));
+  const stockRetail = sum(inStock, (p) => num(p.remaining) * getEffectivePricing(p, sales).price);
 
   /* ---------- demand (carts + wishlists) ---------- */
   const cartMap = new Map();
@@ -144,8 +147,17 @@ export function buildFinance({ orders = [], products = [], carts = [], wishlists
   wishlists.forEach((w) => (w.productIds || []).forEach((id) => wishMap.set(id, (wishMap.get(id) || 0) + 1)));
 
   const nameOf = (id) => byId.get(id)?.name || 'Removed product';
-  const cartLines = [...cartMap.entries()].map(([id, m]) => ({ id, name: nameOf(id), ...m, product: byId.get(id) }));
-  const cartValue = sum(cartLines, (l) => l.qty * num(l.product?.price));
+  const cartLines = [...cartMap.entries()].map(([id, m]) => {
+    const product = byId.get(id);
+    return {
+      id,
+      name: nameOf(id),
+      ...m,
+      product,
+      effectivePrice: product ? getEffectivePricing(product, sales).price : 0,
+    };
+  });
+  const cartValue = sum(cartLines, (l) => l.qty * l.effectivePrice);
   const wishLines = [...wishMap.entries()].map(([id, count]) => ({ id, name: nameOf(id), count, product: byId.get(id) }));
   const wanted = products
     .filter((p) => !(num(p.remaining) > 0))
@@ -162,13 +174,19 @@ export function buildFinance({ orders = [], products = [], carts = [], wishlists
     ordersByStatus: groupBy(ordersNow, (o) => o.status),
     orderValues: soldNow.map((s) => s.revenue),
     ordersHeat: countByDay(orders.filter((o) => !LOST_STATUSES.includes(o.status))),
-    inventory: { inStock, outOfStock, stockCost, stockRetail, valueByCategory: groupBy(inStock, (p) => p.category, (p) => num(p.remaining) * num(p.price)) },
+    inventory: {
+      inStock: inStock.map((p) => ({ ...p, effectivePrice: getEffectivePricing(p, sales).price })),
+      outOfStock,
+      stockCost,
+      stockRetail,
+      valueByCategory: groupBy(inStock, (p) => p.category, (p) => num(p.remaining) * getEffectivePricing(p, sales).price),
+    },
     demand: {
       cartsWithItems: carts.filter((c) => num(c.itemCount) > 0).length,
       cartValue, wishTotal: sum(wishlists, (w) => (w.productIds || []).length),
       topCarted: [...cartLines].sort((a, b) => b.carts - a.carts),
       topWished: [...wishLines].sort((a, b) => b.count - a.count),
-      cartValueByCategory: groupBy(cartLines, (l) => l.product?.category, (l) => l.qty * num(l.product?.price)),
+      cartValueByCategory: groupBy(cartLines, (l) => l.product?.category, (l) => l.qty * l.effectivePrice),
       wanted,
       heat: countByDay([...carts, ...wishlists].filter((r) => (r.itemCount || 0) > 0), (r) => r.$updatedAt),
     },

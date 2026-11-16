@@ -38,6 +38,8 @@ import {
   selectCartError,
 } from '../../../store/slices/cartSlice';
 import { getMainImageUrl } from '../../../store/slices/productsSlice';
+import { selectSalesList } from '../../../store/slices/saleSlice';
+import { getEffectivePricing } from '../../../lib/saleMath';
 import { PATHS } from '../../../router/path';
 
 import ConfirmDialog from '../../../ui/custom/modal/ConfirmDialog';
@@ -129,7 +131,7 @@ function Row({ label, value, strong }) {
 
 /* ---------- one cart line ---------- */
 
-function CartLine({ line, busy, onQty, onRemove, index }) {
+function CartLine({ line, price, busy, onQty, onRemove, index }) {
   const entered = useEntered();
   const p = line.product;
   const qty = Number(line.quantity) || 0;
@@ -162,11 +164,11 @@ function CartLine({ line, busy, onQty, onRemove, index }) {
             </p>
           </div>
           <p className="shrink-0 font-display text-lg font-semibold tabular-nums text-text">
-            {formatMoney((Number(p.price) || 0) * qty)}
+            {formatMoney(price * qty)}
           </p>
         </div>
 
-        <p className="mt-0.5 text-xs tabular-nums text-muted">{formatMoney(p.price)} each</p>
+        <p className="mt-0.5 text-xs tabular-nums text-muted">{formatMoney(price)} each</p>
 
         {out && <p className="mt-1 text-xs font-medium text-error">Out of stock. Remove it to continue.</p>}
         {over && <p className="mt-1 text-xs font-medium text-warning">Only {remaining} available. Lower the quantity.</p>}
@@ -217,6 +219,7 @@ export default function Cart() {
   const entered = useEntered();
 
   const lines = useAppSelector(selectCartLines);
+  const sales = useAppSelector(selectSalesList);
   const count = useAppSelector(selectCartCount);
   const subtotal = useAppSelector(selectCartSubtotal);
   const delivery = useAppSelector(selectCartDeliveryCharges);
@@ -402,6 +405,7 @@ export default function Cart() {
                 <CartLine
                   key={lineKey(line)}
                   line={line}
+                  price={getEffectivePricing(line.product, sales).price}
                   index={i}
                   busy={busy}
                   onQty={(q) => setQty(line, q)}

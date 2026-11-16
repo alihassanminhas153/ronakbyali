@@ -9,6 +9,7 @@ import usersReducer from "./slices/userSlice";
 import wishlistReducer from "./slices/wishlistSlice";
 import alertsReducer from './slices/alertSlice';
 import reviewsReducer from "./slices/reviewSlice";
+import salesReducer from "./slices/saleSlice";
 
 const store = configureStore({
   reducer: {
@@ -21,6 +22,7 @@ const store = configureStore({
     wishlist: wishlistReducer,
     alerts: alertsReducer,
     reviews: reviewsReducer,
+    sales: salesReducer,
   },
 });
 

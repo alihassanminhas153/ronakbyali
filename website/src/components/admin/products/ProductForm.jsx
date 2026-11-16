@@ -1,12 +1,15 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { Boxes, FileText, ImagePlus, Star, Truck, Wallet, X, Image as ImageIcon } from 'lucide-react';
 
 import { addProduct, updateProduct } from '../../../store/slices/productsSlice';
+import { fetchSales, selectSaleOptions, selectSalesList } from '../../../store/slices/saleSlice';
 import productService from '../../../lib/appwrite/product';
 import SearchSelect from '../../../ui/custom/input/SearchSelect';
+import SelectInput from '../../../ui/custom/input/SelectInput';
 import AppIcon, { resolveAppIconName } from '../../../ui/custom/AppIcon';
 import { colorFor, tint, toneVar } from '../../../ui/graphs/utils';
+import { getSaleStatus } from '../../../lib/saleMath';
 import { autoPrice, slugify, toForm, toPayload, validate } from './productSchema';
 
 /* ---------- small field helpers (self-contained, theme tokens only) ---------- */
@@ -119,6 +122,8 @@ function TagsField({ value, onChange }) {
 // props: open, product (null = add), categories[], groups[], onClose, onSaved
 export default function ProductForm({ open, product, categories = [], groups = [], onClose, onSaved }) {
   const dispatch = useDispatch();
+  const sales = useSelector(selectSalesList);
+  const allSaleOptions = useSelector(selectSaleOptions);
   const editing = Boolean(product);
   const fileInput = useRef(null);
 
@@ -140,9 +145,10 @@ export default function ProductForm({ open, product, categories = [], groups = [
   const [shown, setShown] = useState(false);
   useEffect(() => {
     if (!open) { setShown(false); return undefined; }
+    dispatch(fetchSales());
     const id = requestAnimationFrame(() => setShown(true));
     return () => cancelAnimationFrame(id);
-  }, [open]);
+  }, [dispatch, open]);
 
   useEffect(() => {
     if (!open) return undefined;
@@ -158,14 +164,52 @@ export default function ProductForm({ open, product, categories = [], groups = [
     setForm((f) => {
       const next = { ...f, [key]: value };
       if (key === 'name' && !slugTouched) next.slug = slugify(value);
+      if (key === 'originalPrice' && f.saleId) {
+        const sale = sales.find((item) => item.$id === f.saleId);
+        if (sale) {
+          const percentage = Number(sale.discountPercentage) || 0;
+          next.price = String(Math.round((Number(value) || 0) * (1 - percentage / 100)));
+        }
+      }
       return next;
     });
     if (errors[key]) setErrors((e) => ({ ...e, [key]: undefined }));
+  };
+  const selectSale = (saleId) => {
+    const sale = sales.find((item) => item.$id === saleId);
+    setErrors((current) => ({ ...current, discountPercentage: undefined, price: undefined }));
+    setForm((f) => {
+      if (!sale) {
+        return {
+          ...f,
+          saleId: '',
+          discountName: '',
+          discountPercentage: '0',
+          price: String(Number(f.originalPrice) || 0),
+        };
+      }
+      const percentage = Number(sale.discountPercentage) || 0;
+      return {
+        ...f,
+        saleId,
+        discountName: sale.name || '',
+        discountPercentage: String(percentage),
+        price: String(Math.round((Number(f.originalPrice) || 0) * (1 - percentage / 100))),
+      };
+    });
   };
   const on = (key) => (e) => set(key)(e.target.value);
   const blockWheel = (e) => e.currentTarget.blur(); // scrolling over a number box must not change it
 
   const computedPrice = useMemo(() => autoPrice(form), [form]);
+  const saleOptions = allSaleOptions.filter((option) => {
+    const sale = sales.find((item) => item.$id === option.value);
+    return sale && (option.value === form.saleId || getSaleStatus(sale) !== 'ended');
+  });
+  const selectedSale = sales.find((item) => item.$id === form.saleId);
+  const salePriceHint = selectedSale
+    ? `Price after sale: Rs ${Math.round((Number(form.originalPrice) || 0) * (1 - (Number(selectedSale.discountPercentage) || 0) / 100)).toLocaleString('en-PK')}`
+    : '';
   const total = Number(form.totalAvailable) || 0;
   const sold = Number(form.sold) || 0;
   const remaining = Math.max(0, total - sold);
@@ -320,10 +364,22 @@ export default function ProductForm({ open, product, categories = [], groups = [
           </Section>
 
           <Section title="Pricing" subtitle="Final price and the formatted label are calculated for you." icon={Wallet} tone={3} delay={60}>
+            <div className="sm:col-span-2">
+              <SelectInput
+                label="Sale"
+                value={form.saleId}
+                onChange={selectSale}
+                options={saleOptions}
+                placeholder="No sale"
+                clearable
+                hint={salePriceHint}
+                size="md"
+              />
+            </div>
             <Field label="Original price (Rs)" error={errors.originalPrice}>{num('originalPrice', { placeholder: '3000' })}</Field>
-            <Field label="Discount %" error={errors.discountPercentage}>{num('discountPercentage', { max: 100, placeholder: '0' })}</Field>
+            <Field label="Discount %" error={errors.discountPercentage}>{num('discountPercentage', { max: 100, placeholder: '0', disabled: Boolean(form.saleId) })}</Field>
             <Field label="Discount name" optional>
-              <input value={form.discountName} onChange={on('discountName')} maxLength={100} placeholder="Eid sale" className={inputCls()} />
+              <input value={form.discountName} onChange={on('discountName')} maxLength={100} placeholder="Eid sale" disabled={Boolean(form.saleId)} className={inputCls()} />
             </Field>
             <Field label="Final price (Rs)" hint={`auto: ${computedPrice.toLocaleString('en-PK')}`} error={errors.price}>
               {num('price', { placeholder: String(computedPrice) })}

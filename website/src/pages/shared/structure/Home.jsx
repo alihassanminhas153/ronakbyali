@@ -9,6 +9,7 @@ import CustomStudio from "../../../components/home/CustomStudio";
 import Faqs from "../../../components/home/Faqs";
 import Footer from "../../../components/home/Footer";
 import useSmoothScroll from "../../../components/home/useSmoothScroll";
+import HandwrittenLogo from "../../../components/home/HandwrittenLogo"; // the handwriting loader (new file)
 
 /* ==========================================================================
    HOME: hero section, then the products marquee, the order journey, then the FAQs
@@ -21,7 +22,8 @@ import useSmoothScroll from "../../../components/home/useSmoothScroll";
      3. dots at the bottom showing which image is on screen (click to jump)
      4. a small label in the bottom-left corner with the product name (read from the file name)
         that links to the products page
-   A loader covers the page first. Colours come only from index.css variables,
+   A loader covers the page first: the logo is written out by hand and the loader ends the moment
+   the writing is finished. Colours come only from index.css variables,
    so light and dark both work.
    ========================================================================== */
 
@@ -67,8 +69,7 @@ const PRODUCTS_PATH = "/products"; // where the label sends you
 const SLIDE_MS = 5000; // how long each image stays
 const SLIDE_ANIM_MS = 1200; // how long a slide animation takes
 
-// Loader never shows for less than this, so it does not just flash
-const MIN_LOADER_MS = 1600;
+// The loader length is set by the logo writing itself (see WRITE_SPEED in HandwrittenLogo.jsx)
 
 /* ---- Sizes: tweak here ---- */
 const HEADING_WIDTH_FILL = 0.96; // 1 = edge to edge; the widest phrase fills this share of the row
@@ -157,16 +158,11 @@ function useFitText(sectionRef, wrapRef, innerRef) {
   }, [sectionRef, wrapRef, innerRef]);
 }
 
-/* ---------- Loader ---------- */
-function Loader({ visible }) {
-  const [filling, setFilling] = useState(false);
+/* ---------- Loader ----------
+   The logo writes itself stroke by stroke. When the last stroke is done, onWritten() fires
+   and the page is allowed to appear (once its first image is also ready). */
+function Loader({ visible, onWritten }) {
   const [mounted, setMounted] = useState(true);
-
-  // Start the progress bar on the next frame so its transition actually runs
-  useEffect(() => {
-    const id = requestAnimationFrame(() => setFilling(true));
-    return () => cancelAnimationFrame(id);
-  }, []);
 
   // Remove from the DOM once the fade-out has finished
   useEffect(() => {
@@ -182,19 +178,12 @@ function Loader({ visible }) {
       role="status"
       aria-live="polite"
       aria-label="Loading"
-      className={`fixed inset-0 z-50 flex flex-col items-center justify-center gap-5 bg-bg transition-opacity duration-700 ${
+      className={`fixed inset-0 z-50 flex items-center justify-center bg-bg transition-opacity duration-700 ${
         visible ? "opacity-100" : "pointer-events-none opacity-0"
       }`}
     >
-      <span className="font-display text-5xl font-bold tracking-[0.02em] text-text uppercase sm:text-6xl">
-        {BRAND}
-      </span>
-      <div className="h-0.5 w-40 overflow-hidden rounded-full bg-border sm:w-52">
-        <div
-          className="h-full rounded-full bg-accent transition-[width] ease-out"
-          style={{ width: filling ? "100%" : "0%", transitionDuration: `${MIN_LOADER_MS}ms` }}
-        />
-      </div>
+      <span className="sr-only">{BRAND}</span>
+      <HandwrittenLogo onDone={onWritten} className="w-[min(78vw,26rem)] max-h-[70vh] h-auto" />
     </div>
   );
 }
@@ -308,17 +297,14 @@ export default function Home() {
   const visible = usePageVisible();
   useSmoothScroll(); // eased wheel / touch scrolling for this page (npm i lenis)
 
-  const [minTimePassed, setMinTimePassed] = useState(false);
+  const [logoWritten, setLogoWritten] = useState(false); // the loader logo has finished writing itself
   const [current, setCurrent] = useState(0); // which image is showing
   const [intro, setIntro] = useState(true); // true until the first slide change (the first image rises, later ones slide)
   const [statuses, setStatuses] = useState(() => HERO_IMAGES.map((_, i) => (i === 0 ? "below" : "parked")));
 
-  useEffect(() => {
-    const id = setTimeout(() => setMinTimePassed(true), MIN_LOADER_MS);
-    return () => clearTimeout(id);
-  }, []);
+  const onLogoWritten = useCallback(() => setLogoWritten(true), []);
 
-  const ready = minTimePassed && firstDone;
+  const ready = logoWritten && firstDone;
 
   // First image: once the loader is done it rises from the bottom
   useEffect(() => {
@@ -358,7 +344,7 @@ export default function Home() {
 
   return (
     <>
-      <Loader visible={!ready} />
+      <Loader visible={!ready} onWritten={onLogoWritten} />
 
       <section
         ref={sectionRef}

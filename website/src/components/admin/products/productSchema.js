@@ -32,6 +32,7 @@ export function toForm(p) {
     tags: Array.isArray(p?.tags) ? [...p.tags] : [],
     featured: Boolean(p?.featured),
     order: str(p?.order ?? 0),
+    saleId: str(p?.saleId),
 
     originalPrice: str(p?.originalPrice),
     discountPercentage: str(p?.discountPercentage ?? 0),
@@ -87,6 +88,7 @@ export function toPayload(f) {
     tags: f.tags,
     featured: f.featured,
     order: numOrNull(f.order) ?? 0,
+    saleId: textOrNull(f.saleId),
 
     originalPrice: Number(f.originalPrice) || 0,
     discountPercentage: numOrNull(f.discountPercentage) ?? 0,

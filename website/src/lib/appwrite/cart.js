@@ -1,6 +1,7 @@
 import envVars from '../../../env/var';
 import { Client, TablesDB, Permission, Role, Query } from 'appwrite';
 import productService from './product';
+import { getEffectivePricing } from '../saleMath';
 
 // ONE cart row per user. rowId = the user's $id (same value stored in
 // users.cartId), so lookups are direct.
@@ -153,7 +154,7 @@ export class CartService {
 
     // Cart lines with the CURRENT product data (price, name, images ...).
     // Returns { cart, lines: [{ productId, quantity, variant, product }], subtotal }
-    async getCartWithProducts({ userId }) {
+    async getCartWithProducts({ userId, sales = [] }) {
         try {
             const cart = await this.getCart({ userId });
             if (!cart) return { cart: false, lines: [], subtotal: 0 };
@@ -168,7 +169,7 @@ export class CartService {
                 .map((i) => ({ ...i, product: byId.get(i.productId) }));
 
             const subtotal = lines.reduce(
-                (sum, l) => sum + (Number(l.product.price) || 0) * l.quantity,
+                (sum, l) => sum + getEffectivePricing(l.product, sales).price * l.quantity,
                 0
             );
             return { cart, lines, subtotal };

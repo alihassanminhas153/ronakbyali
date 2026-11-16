@@ -1,6 +1,7 @@
 import envVars from '../../../env/var';
 import { Client, Storage, TablesDB, Query, ID } from 'appwrite';
 import { optimizeImage, optimizeImages } from '../imageOptimizer';
+import { getEffectivePricing } from '../saleMath';
 
 export const PRODUCT_STATUS = { IN_STOCK: 'inStock', OUT_OF_STOCK: 'outOfStock' };
 
@@ -283,7 +284,19 @@ export class ProductService {
                 sortBy = 'name-asc',
                 limit = 35,
                 offset = 0,
+                sales = [],
             } = options;
+
+            if (sales.length) {
+                const rows = await this._listAllRows(this._filterQueries(filters));
+                const filtered = rows.filter((row) => {
+                    const price = getEffectivePricing(row, sales).price;
+                    return (minPrice == null || price >= Number(minPrice))
+                        && (maxPrice == null || price <= Number(maxPrice));
+                });
+                const sorted = this._sortRowsInMemory(filtered, sortBy, sales);
+                return { rows: sorted.slice(offset, offset + limit), total: sorted.length };
+            }
 
             const queries = [
                 ...this._filterQueries(filters),
@@ -316,25 +329,31 @@ export class ProductService {
                 sortBy = 'name-asc',
                 limit = 35,
                 offset = 0,
+                sales = [],
             } = options;
 
             const trimmed = (term || '').trim().toLowerCase();
             if (!trimmed) {
-                return await this.getProductsPage({ filters, minPrice, maxPrice, sortBy, limit, offset });
+                return await this.getProductsPage({ filters, minPrice, maxPrice, sortBy, limit, offset, sales });
             }
 
             const rows = await this._listAllRows([
                 ...this._filterQueries(filters),
-                ...this._priceQueries({ minPrice, maxPrice }),
+                ...(sales.length ? [] : this._priceQueries({ minPrice, maxPrice })),
             ]);
 
             const matched = rows.filter((r) =>
                 [r.name, r.description, r.category, r.group, ...(r.tags || [])].some((v) =>
                     String(v || '').toLowerCase().includes(trimmed)
                 )
-            );
+            ).filter((row) => {
+                if (!sales.length) return true;
+                const price = getEffectivePricing(row, sales).price;
+                return (minPrice == null || price >= Number(minPrice))
+                    && (maxPrice == null || price <= Number(maxPrice));
+            });
 
-            const sorted = this._sortRowsInMemory(matched, sortBy);
+            const sorted = this._sortRowsInMemory(matched, sortBy, sales);
             return { rows: sorted.slice(offset, offset + limit), total: sorted.length };
         } catch (error) {
             console.error(error.message);
@@ -448,14 +467,18 @@ export class ProductService {
         }
     }
 
-    async getPriceRange(filters = {}) {
+    async getPriceRange(filters = {}, sales = []) {
         try {
             const rows = await this._listAllRows([
                 ...this._filterQueries(filters),
-                Query.select(['$id', 'price']),
+                Query.select(sales.length
+                    ? ['$id', 'price', 'originalPrice', 'discountPercentage', 'discountName', 'saleId']
+                    : ['$id', 'price']),
             ]);
             if (rows.length === 0) return { min: 0, max: 0 };
-            const prices = rows.map((r) => Number(r.price) || 0);
+            const prices = rows.map((row) => sales.length
+                ? getEffectivePricing(row, sales).price
+                : Number(row.price) || 0);
             return { min: Math.min(...prices), max: Math.max(...prices) };
         } catch (error) {
             console.error(error.message);
@@ -685,14 +708,14 @@ export class ProductService {
         }
     }
 
-    _sortRowsInMemory(rows, sortBy) {
+    _sortRowsInMemory(rows, sortBy, sales = []) {
         const sorted = [...rows];
         switch (sortBy) {
             case 'price-asc':
-                sorted.sort((a, b) => Number(a.price) - Number(b.price));
+                sorted.sort((a, b) => getEffectivePricing(a, sales).price - getEffectivePricing(b, sales).price);
                 break;
             case 'price-desc':
-                sorted.sort((a, b) => Number(b.price) - Number(a.price));
+                sorted.sort((a, b) => getEffectivePricing(b, sales).price - getEffectivePricing(a, sales).price);
                 break;
             case 'name-desc':
                 sorted.sort((a, b) => String(b.name).localeCompare(String(a.name)));

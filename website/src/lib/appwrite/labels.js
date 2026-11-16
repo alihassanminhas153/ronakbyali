@@ -1,12 +1,17 @@
 import envVars from '../../../env/var';
 import { Client, Functions, ExecutionMethod } from 'appwrite';
 
-// Talks to the "manage-user-labels" Appwrite Function (admin only).
-// Every method returns { ok: true, ... } or { ok: false, message }.
+// Talks to the "manage-user-labels" Appwrite Function. The browser can never
+// write labels itself; the function does it with a server key and then mirrors
+// role + labels into the users table in the same call.
+//
+// Every method returns the function's JSON on success or false on failure
+// (the message is in labelService.lastError). Admin label required.
 export class LabelService {
     client = new Client();
     functions;
     functionId = envVars.ronakByAliLabelsFunction;
+    lastError = null;
 
     constructor() {
         this.client
@@ -15,41 +20,57 @@ export class LabelService {
         this.functions = new Functions(this.client);
     }
 
-    async _call(payload) {
+    async _call(action, payload = {}) {
+        this.lastError = null;
         try {
             const execution = await this.functions.createExecution({
                 functionId: this.functionId,
-                body: JSON.stringify(payload),
+                body: JSON.stringify({ action, ...payload }),
                 async: false,
-                xpath: '/',
+                path: '/',
                 method: ExecutionMethod.POST,
                 headers: { 'content-type': 'application/json' },
             });
-            let data = null;
+
+            let data = {};
             try {
                 data = JSON.parse(execution.responseBody || '{}');
             } catch {
-                data = null;
+                /* empty or non-JSON body */
             }
-            if (!data) return { ok: false, message: 'The function sent an unreadable answer.' };
-            if (execution.responseStatusCode >= 400 || data.ok === false) {
-                return { ok: false, message: data.message || `Request failed (${execution.responseStatusCode}).` };
+            if (execution.status === 'failed' || execution.responseStatusCode >= 400) {
+                return this._fail(data.error || 'The labels function failed. Please try again.');
             }
             return data;
         } catch (error) {
-            console.error(error.message);
-            return { ok: false, message: error.code === 401 ? 'You are not allowed to run this function.' : error.message };
+            return this._fail(error.message);
         }
     }
 
-    // live labels straight from Appwrite Auth
-    getAccess({ userId }) {
-        return this._call({ action: 'get', userId });
+    _fail(message) {
+        this.lastError = message || 'Something went wrong.';
+        console.error(this.lastError);
+        return false;
     }
 
-    // role: one of the six roles; labels: EXTRA labels only (staff labels come from role)
-    setAccess({ userId, role, labels = [] }) {
-        return this._call({ action: 'set', userId, role, labels });
+    // -> { userId, labels, role, mirrored }
+    setLabels({ userId, labels }) {
+        return this._call('setLabels', { userId, labels });
+    }
+
+    // -> { user: { id, name, email, labels, status, emailVerification, ... } }
+    getUser({ userId }) {
+        return this._call('getUser', { userId });
+    }
+
+    // Re-mirrors one user's labels into role/labels.  -> { userId, labels, role, mirrored }
+    resync({ userId }) {
+        return this._call('resync', { userId });
+    }
+
+    // Backfill for every account.  -> { total, mirrored }
+    resyncAll() {
+        return this._call('resyncAll');
     }
 }
 
