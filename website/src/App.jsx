@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Routes, Route, useLocation } from "react-router";
+import { Routes, Route, useLocation, useParams } from "react-router";
 import { useDispatch, useSelector } from "react-redux";
 
 import { initAuth } from "./store/slices/authSlice";
@@ -69,7 +69,7 @@ const SITE_PAGES = [
 
 const STATIC_PAGE_TITLES = {
   "/": "Home",
-  "/p/products": "Shop",
+  "/products": "Shop",
   "/p/contact": "Contact",
   "/p/privacy": "Privacy Policy",
   "/p/disclaimer": "Disclaimer",
@@ -79,6 +79,15 @@ const STATIC_PAGE_TITLES = {
   "/create-account": "Create Account",
   "/auth/callback": "Signing In",
 };
+
+function ShortProductRoute() {
+  const { productSlug } = useParams();
+  return (
+    <PlainLayout pages={SITE_PAGES} showOffers>
+      <Product slug={productSlug} />
+    </PlainLayout>
+  );
+}
 
 export default function App() {
   const dispatch = useDispatch();
@@ -148,21 +157,26 @@ export default function App() {
           <Route index element={<Home />} />                                   {/* /  */}
         </Route>
 
-        {/* Legacy URLs redirect to the /p prefix while the old links still work. */}
+        {/* Legacy storefront URLs and static-page shortcuts. */}
         {PRODUCT_LIST_ALIASES.map((alias) => (
           <Route key={alias} path={alias} element={<RedirectRoute to={PATHS.products} />} />
         ))}
-        <Route path="products" element={<RedirectRoute to={PATHS.products} />} />
+        <Route path="products" element={<AllProducts pages={SITE_PAGES} />} />
         <Route path="contact" element={<RedirectRoute to={PATHS.contact} />} />
         <Route path="privacy" element={<RedirectRoute to={PATHS.privacy} />} />
         <Route path="disclaimer" element={<RedirectRoute to={PATHS.disclaimer} />} />
         <Route path="faqs" element={<RedirectRoute to={PATHS.faqs} />} />
         <Route path="custom-studio" element={<RedirectRoute to={PATHS.customStudio} />} />
         <Route path="products/:category/:group/:productId" element={<RedirectRoute to={(p) => PATHS.product(p.category, p.group, p.productId)} />} />
-        <Route path=":category/:group/:productId" element={<RedirectRoute to={(p) => PATHS.product(p.category, p.group, p.productId)} />} />
+        <Route element={<PlainLayout pages={SITE_PAGES} showOffers />}>
+          <Route path="customize/:slug" element={<CustomizeCheckout />} />
+          <Route path=":category/:group/:productId" element={<Product />} />
+        </Route>
 
         <Route path="p">
-          <Route path="products" element={<AllProducts pages={SITE_PAGES} />} />
+          <Route path="products" element={<RedirectRoute to={PATHS.products} />} />
+          <Route path="customize/:slug" element={<RedirectRoute to={(p) => PATHS.customize(p.slug)} />} />
+          <Route path=":category/:group/:productId" element={<RedirectRoute to={(p) => PATHS.product(p.category, p.group, p.productId)} />} />
           <Route element={<PlainLayout pages={SITE_PAGES} />}>
             <Route path="contact" element={<Contact />} />
             <Route path="privacy" element={<Privacy />} />
@@ -171,11 +185,6 @@ export default function App() {
             <Route path="custom-studio" element={<CustomStudioPage />} />
             <Route path="team/:username/*" element={<CatchAllRoute />} />
             <Route path="*" element={<NotFound />} />
-          </Route>
-
-          <Route element={<PlainLayout pages={SITE_PAGES} showOffers />}>
-            <Route path="customize/:slug" element={<CustomizeCheckout />} />
-            <Route path=":category/:group/:productId" element={<Product />} />
           </Route>
 
           <Route element={<AuthLayout />}>
@@ -240,7 +249,7 @@ export default function App() {
         </Route>
 
         <Route path=":username">
-          <Route index element={<SlugRoute />} />
+          <Route index element={<ShortProductRoute />} />
           <Route element={<ProtectedRoute area="user" />}>
             <Route element={<AccountLayout />}>
               <Route path="profile" element={<UserProfile />} />

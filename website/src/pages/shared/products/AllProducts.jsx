@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 import { useStore } from 'react-redux';
-import { PackageSearch, RotateCcw, Search, SearchX, SlidersHorizontal, X } from 'lucide-react';
+import { PackageSearch, RotateCcw, Search, SlidersHorizontal, X } from 'lucide-react';
 
 import { useAppDispatch, useAppSelector } from '../../../store/slices/hooks';
 import { addToCart, selectCartLines, selectCartUpdating } from '../../../store/slices/cartSlice';
@@ -46,6 +46,7 @@ import Header from '../../../components/shared/header/Header';
 import ActionButton from '../../../ui/custom/button/ActionButton';
 import SearchSelect from '../../../ui/custom/input/SearchSelect';
 import useEntered from '../../../ui/custom/motion/useEntered';
+import NoProductsArt from '../../../ui/art/NoProductsArt';
 
 const SKELETON_COUNT = 8;
 const GRID = 'grid grid-cols-2 gap-2 sm:gap-4 sm:grid-cols-3 xl:grid-cols-4';
@@ -54,7 +55,7 @@ const SEARCH_DELAY = 350;
 
 const labelFor = (options, value) => options.find((o) => o.value === value)?.label ?? String(value);
 
-function StateCard({ icon: Icon, title, message, tone = 'neutral', children }) {
+function StateCard({ icon: Icon, art, title, message, tone = 'neutral', children }) {
   const entered = useEntered();
   const error = tone === 'error';
   return (
@@ -64,7 +65,11 @@ function StateCard({ icon: Icon, title, message, tone = 'neutral', children }) {
         error ? 'border-error/40 bg-error/10' : 'border-border bg-surface'
       } ${entered ? 'translate-y-0 opacity-100' : 'translate-y-2 opacity-0'}`}
     >
-      <Icon size={28} className={error ? 'text-error' : 'text-muted'} aria-hidden="true" />
+      {art ? (
+        <NoProductsArt className="w-40 sm:w-48" decorative />
+      ) : (
+        <Icon size={28} className={error ? 'text-error' : 'text-muted'} aria-hidden="true" />
+      )}
       <p className="font-medium text-text">{title}</p>
       {message && <p className="max-w-md text-sm text-muted">{message}</p>}
       {children}
@@ -392,7 +397,7 @@ export default function AllProducts({ pages = [] }) {
         ) : empty ? (
           narrowed ? (
             <StateCard
-              icon={SearchX}
+              art="noProducts"
               title="No products match your filters."
               message="Try a different search or remove a filter."
             >

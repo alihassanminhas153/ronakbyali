@@ -10,8 +10,8 @@ import { useEffect, useId, useRef } from "react";
    ========================================================================== */
 
 const WRITE_SPEED = 1; // 1 = normal. 0.7 = faster (shorter loader), 1.4 = slower
-const HOLD_MS = 1000; // pause on the finished logo before onDone fires
-const TOTAL_MS = 5000; // length of the full writing, at WRITE_SPEED 1
+const HOLD_MS = 750; // pause on the finished logo before onDone fires
+const TOTAL_MS = 4750; // length of the full writing, at WRITE_SPEED 1
 
 /* Pen paths, in write order. c = which piece of the logo the stroke reveals,
    d = centre line of the pen, w = pen width, from/to = start/end time in ms. */

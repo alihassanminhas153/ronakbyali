@@ -58,7 +58,6 @@ import { PATHS } from '../../../router/path';
 import ActionButton from '../../../ui/custom/button/ActionButton';
 import ConfirmDialog from '../../../ui/custom/modal/ConfirmDialog';
 import CountUp from '../../../ui/custom/motion/CountUp';
-import Typewriter from '../../../ui/custom/motion/Typewriter';
 import useEntered from '../../../ui/custom/motion/useEntered';
 import SearchInput from '../../../ui/custom/input/SearchInput';
 import SelectInput from '../../../ui/custom/input/SelectInput';
@@ -717,15 +716,6 @@ export default function Orders() {
     return [...rows].sort(by);
   }, [orders, filter, query, sort]);
 
-  const phrases = useMemo(
-    () => [
-      'Your orders',
-      stats.open ? `${stats.open} ${stats.open === 1 ? 'order' : 'orders'} on the way` : 'Nothing waiting on you',
-      `${orders.length} placed so far`,
-    ],
-    [stats.open, orders.length]
-  );
-
   const loadingFirst = status === 'idle' || (status === 'loading' && orders.length === 0 && !refreshing);
   const busy = refreshing || updating;
 
@@ -765,6 +755,10 @@ export default function Orders() {
                 {busy ? 'Syncing…' : `Updated ${ago}`}
               </span>
             )}
+            <Link to={PATHS.products} className="btn btn-ghost !min-h-10 !px-4 !py-2 text-sm">
+              <ShoppingBag size={16} aria-hidden="true" />
+              Shop more
+            </Link>
             <button
               type="button"
               onClick={refresh}
@@ -791,33 +785,6 @@ export default function Orders() {
         />
       )}
       {updateError && <Notice type="error" text={updateError} onDismiss={() => dispatch(clearOrderUpdateError())} />}
-
-      {/* Hero */}
-      <section
-        className="group relative isolate flex flex-col items-center gap-4 overflow-hidden rounded-2xl border border-border bg-surface p-5 text-center text-text sm:flex-row sm:gap-6 sm:p-7 sm:text-left"
-      >
-        <span aria-hidden="true" className="pointer-events-none absolute -right-12 -top-14 h-44 w-44 rounded-full bg-surface-alt transition-transform duration-700 group-hover:scale-125" />
-        <span aria-hidden="true" className="pointer-events-none absolute -bottom-16 right-28 hidden h-32 w-32 animate-float rounded-full bg-surface-alt/60 sm:block" />
-        <span aria-hidden="true" className="pointer-events-none absolute inset-x-0 bottom-0 h-1 origin-left scale-x-0 bg-accent transition-transform duration-500 group-hover:scale-x-100" />
-
-        <div className="relative grid size-20 shrink-0 place-items-center rounded-full border-2 border-border bg-surface-alt">
-          <span aria-hidden="true" className="absolute inset-0 animate-ring rounded-full border-2 border-accent" />
-          <AppIcon name="list" entity="order" hueRotate={false} className="size-14 object-contain sm:size-16" />
-        </div>
-        <div className="relative min-w-0 flex-1">
-          <span className="block text-[11px] font-semibold uppercase tracking-[0.18em] text-muted">Order history</span>
-          <span className="heading mt-1 block min-h-[1.6em] truncate text-2xl sm:text-3xl">
-            <Typewriter phrases={phrases} />
-          </span>
-        </div>
-        <Link
-          to={PATHS.products}
-          className="relative inline-flex shrink-0 items-center gap-2 rounded-full border border-border bg-surface-alt px-5 py-2.5 text-sm font-semibold text-text transition-transform duration-300 hover:scale-105 hover:text-[color:var(--brown)] active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-        >
-          <ShoppingBag size={16} aria-hidden="true" />
-          Shop more
-        </Link>
-      </section>
 
       {/* Stats */}
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">

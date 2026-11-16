@@ -1,7 +1,6 @@
 // src/pages/user/dashboard/Wishlist.jsx   (route: /:username/wishlist)
 // Same look as Profile.jsx / Orders.jsx. Uses the existing wishlistSlice and cartSlice unchanged.
 import PageHeader from '../../../ui/custom/PageHeader';
-import AppIcon from '../../../ui/custom/AppIcon';
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router';
 import {
@@ -13,7 +12,6 @@ import {
   PackageX,
   RefreshCw,
   Search,
-  ShoppingBag,
   ShoppingCart,
   Star,
   Tag,
@@ -39,8 +37,8 @@ import { PATHS } from '../../../router/path';
 
 import ConfirmDialog from '../../../ui/custom/modal/ConfirmDialog';
 import CountUp from '../../../ui/custom/motion/CountUp';
-import Typewriter from '../../../ui/custom/motion/Typewriter';
 import useEntered from '../../../ui/custom/motion/useEntered';
+import ActionButton from '../../../ui/custom/button/ActionButton';
 import SearchInput from '../../../ui/custom/input/SearchInput';
 import SelectInput from '../../../ui/custom/input/SelectInput';
 import { formatMoney } from '../../../components/user/profile/profileMeta';
@@ -322,15 +320,6 @@ export default function Wishlist() {
     return [...rows].sort((a, b) => ids.indexOf(b.$id) - ids.indexOf(a.$id));
   }, [items, ids, filter, category, query, sort, sales]);
 
-  const phrases = useMemo(
-    () => [
-      'Your wishlist',
-      `${items.length} saved ${items.length === 1 ? 'product' : 'products'}`,
-      stats.sale ? `${stats.sale} on sale right now` : 'Keep what you love',
-    ],
-    [items.length, stats.sale]
-  );
-
   const confirmClear = async () => {
     setClearBusy(true);
     await dispatch(clearWishlist());
@@ -377,6 +366,11 @@ export default function Wishlist() {
                 {refreshing ? 'Syncing…' : `Updated ${ago}`}
               </span>
             )}
+            {items.length > 0 && (
+              <ActionButton icon={Trash2} onClick={() => setClearOpen(true)}>
+                Clear wishlist
+              </ActionButton>
+            )}
             <button
               type="button"
               onClick={refresh}
@@ -392,44 +386,6 @@ export default function Wishlist() {
       />
 
       {error && errorShown && <Notice type="error" text={error} onDismiss={() => setErrorShown(false)} />}
-
-      {/* Hero */}
-      <section
-        className="group relative isolate flex flex-col items-center gap-4 overflow-hidden rounded-2xl border border-border bg-surface p-5 text-center text-text sm:flex-row sm:gap-6 sm:p-7 sm:text-left"
-      >
-        <span aria-hidden="true" className="pointer-events-none absolute -right-12 -top-14 h-44 w-44 rounded-full bg-surface-alt transition-transform duration-700 group-hover:scale-125" />
-        <span aria-hidden="true" className="pointer-events-none absolute -bottom-16 right-28 hidden h-32 w-32 animate-float rounded-full bg-surface-alt/60 sm:block" />
-        <span aria-hidden="true" className="pointer-events-none absolute inset-x-0 bottom-0 h-1 origin-left scale-x-0 bg-accent transition-transform duration-500 group-hover:scale-x-100" />
-
-        <div className="relative grid size-20 shrink-0 place-items-center rounded-full border-2 border-border bg-surface-alt">
-          <span aria-hidden="true" className="absolute inset-0 animate-ring rounded-full border-2 border-accent" />
-          <AppIcon name="popular" entity="wishlist" hueRotate={false} className="size-14 object-contain sm:size-16" />
-        </div>
-        <div className="relative min-w-0 flex-1">
-          <span className="block text-[11px] font-semibold uppercase tracking-[0.18em] text-muted">Saved for later</span>
-          <span className="heading mt-1 block min-h-[1.6em] truncate text-2xl sm:text-3xl">
-            <Typewriter phrases={phrases} />
-          </span>
-        </div>
-        {items.length > 0 ? (
-          <button
-            type="button"
-            onClick={() => setClearOpen(true)}
-            className="relative inline-flex shrink-0 items-center gap-2 rounded-full bg-surface-alt px-5 py-2.5 text-sm font-semibold transition-all duration-300 hover:bg-surface active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-          >
-            <Trash2 size={16} aria-hidden="true" />
-            Clear wishlist
-          </button>
-        ) : (
-          <Link
-            to={PATHS.products}
-            className="relative inline-flex shrink-0 items-center gap-2 rounded-full border border-border bg-surface-alt px-5 py-2.5 text-sm font-semibold text-text transition-transform duration-300 hover:scale-105 hover:text-[color:var(--brown)] active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-          >
-            <ShoppingBag size={16} aria-hidden="true" />
-            Browse products
-          </Link>
-        )}
-      </section>
 
       {items.length === 0 ? (
         <div className="rounded-xl border border-dashed border-border px-6 py-16 text-center">

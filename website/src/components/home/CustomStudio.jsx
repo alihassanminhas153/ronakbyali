@@ -5,7 +5,7 @@ import { ArrowUpRight } from "lucide-react";
 import { CUSTOM_STUDIO_PATH } from "../../lib/siteInfo";
 
 /* ==========================================================================
-   CUSTOM STUDIO: one viewport tall, only a short title and one animated drawing.
+   CUSTOM STUDIO: one viewport tall: a short title, a short paragraph and one animated drawing.
    The drawing loops every 12 seconds and tells the custom-order story without words:
      a plain tee is sketched, a colour is picked and floods in, a print pops onto the chest,
      a needle stitches the hem, scissors snip, a tag swings in, then it all resets.
@@ -18,6 +18,8 @@ import { CUSTOM_STUDIO_PATH } from "../../lib/siteInfo";
    ========================================================================== */
 
 const TITLE = "Custom made";
+const PARAGRAPH =
+  "Have a design in mind? Tell us the fabric, the colour and the print, share your measurements, and we cut and stitch a one-of-a-kind piece made only for you. From the first sketch to the final stitch, every detail is yours to choose.";
 const SECTION_HEIGHT = "h-[calc(100dvh-var(--header-h,4.5rem))] min-h-[30rem]";
 const VIEW_WIDE = "0 0 800 540";
 const VIEW_NARROW = "70 40 660 480"; // a tighter crop for phones
@@ -135,6 +137,8 @@ export default function CustomStudio({ learnMore = true }) {
           </Link>
         )}
       </div>
+
+      <p className="mt-3 max-w-xl text-sm leading-relaxed text-muted sm:text-base">{PARAGRAPH}</p>
 
       <div className="relative mt-2 min-h-0 flex-1">
         <svg

@@ -1,7 +1,6 @@
 // user overview page (styled like the admin overview, wired to the user's own slices)
 
 import PageHeader from '../../../ui/custom/PageHeader';
-import AppIcon from '../../../ui/custom/AppIcon';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router';
 import {
@@ -9,7 +8,6 @@ import {
   Bell,
   CalendarDays,
   Check,
-  CheckCircle2,
   Clock,
   Heart,
   KeyRound,
@@ -17,7 +15,6 @@ import {
   Receipt,
   RefreshCw,
   ShieldCheck,
-  ShoppingBag,
   ShoppingCart,
   Star,
   UserRound,
@@ -36,9 +33,8 @@ import { fetchAlertBars, selectAlertBars } from '../../../store/slices/alertSlic
 import { BarChart, Donut, TrendGraph, compact, toneVar } from '../../../ui/graphs';
 import { formatCardMoney } from '../../../ui/graphs/CardMoney';
 import CountUp from '../../../ui/custom/motion/CountUp';
-import Typewriter from '../../../ui/custom/motion/Typewriter';
 import useEntered from '../../../ui/custom/motion/useEntered';
-import { formatInt, formatMoney } from '../../../components/admin/users/userFields';
+import { formatMoney } from '../../../components/admin/users/userFields';
 import { paidAmountForOrder } from '../../../lib/orderMath';
 import { getEffectivePricing } from '../../../lib/saleMath';
 import { selectSalesList } from '../../../store/slices/saleSlice';
@@ -46,9 +42,8 @@ import { selectSalesList } from '../../../store/slices/saleSlice';
 /*
  * Route segments are relative to the user dashboard (this page is its index
  * route), so "orders" becomes /user/<username>/orders. Change them here if
- * your router uses other names. SHOP_PATH is the public store page.
+ * your router uses other names.
  */
-const SHOP_PATH = '/products';
 const grid = 'grid gap-4 lg:grid-cols-2';
 
 const short = (n) => `Rs ${compact(n)}`;
@@ -64,14 +59,6 @@ const formatDateTime = (value) => {
   const date = value ? new Date(value) : null;
   return date && !Number.isNaN(date.getTime()) ? date.toLocaleString() : '—';
 };
-const greeting = () => {
-  const hour = new Date().getHours();
-  if (hour < 5) return 'Up late';
-  if (hour < 12) return 'Good morning';
-  if (hour < 18) return 'Good afternoon';
-  return 'Good evening';
-};
-
 // Last 6 calendar months, oldest first: [{ key, label }]
 const lastMonths = (count = 6) => {
   const now = new Date();
@@ -155,7 +142,6 @@ function OverviewView({ me }) {
 
   const [refreshing, setRefreshing] = useState(false);
   const [updatedAt, setUpdatedAt] = useState(() => new Date());
-  const [brokenUrl, setBrokenUrl] = useState('');
   const ago = useTimeAgo(updatedAt);
 
   // data from the slices
@@ -201,8 +187,7 @@ function OverviewView({ me }) {
 
   // profile
   const avatarUrl = getAvatarUrl(me.avatarFileId);
-  const showAvatar = Boolean(avatarUrl) && avatarUrl !== brokenUrl;
-  const firstName = (me.name || me.username || '').split(' ')[0];
+  const showAvatar = Boolean(avatarUrl);
   const checklist = useMemo(
     () => [
       { label: 'Profile photo', done: showAvatar },
@@ -260,27 +245,6 @@ function OverviewView({ me }) {
     };
   }, [orders, myReviews, wishProducts]);
 
-  const attention = useMemo(() => {
-    const list = [];
-    if (o.open > 0) list.push({ key: 'open', count: o.open, text: `${o.open} ${o.open === 1 ? 'order' : 'orders'} on the way`, to: 'orders' });
-    if (cartCount > 0) list.push({ key: 'cart', count: cartCount, text: `${cartCount} ${cartCount === 1 ? 'item' : 'items'} waiting in your cart`, to: 'cart' });
-    if (bars.length > 0) list.push({ key: 'alerts', count: bars.length, text: `${bars.length} new ${bars.length === 1 ? 'alert' : 'alerts'}`, to: 'alerts' });
-    if (percent < 100) list.push({ key: 'profile', count: checklist.filter((i) => !i.done).length, text: 'details missing in your profile', to: 'profile' });
-    return list;
-  }, [o.open, cartCount, bars.length, percent, checklist]);
-
-  const hello = useMemo(() => greeting(), []);
-  const heroPhrases = useMemo(
-    () => [
-      `${hello}, ${firstName}`,
-      ...(attention.length
-        ? [`${attention.length} ${attention.length === 1 ? 'thing needs' : 'things need'} your attention`, ...attention.map((a) => a.text)]
-        : ['You are all caught up']),
-    ],
-    [hello, firstName, attention]
-  );
-  const firstLoad = loading && !orders.length && !cartLines.length;
-
   return (
     <div className="space-y-5">
       <PageHeader
@@ -289,6 +253,10 @@ function OverviewView({ me }) {
         subtitle={new Date().toLocaleDateString('en', { weekday: 'long', day: 'numeric', month: 'long' }) + ' · everything in your account'}
         actions={(
           <div className="flex items-center gap-3">
+            <Link to="/products" className="btn btn-ghost !min-h-10 !px-4 !py-2 text-sm">
+              <ShoppingCart size={16} aria-hidden="true" />
+              Shop now
+            </Link>
             {ago && (
               <span className="hidden items-center gap-1.5 text-xs text-muted sm:flex" aria-live="polite">
                 <span className={`h-1.5 w-1.5 rounded-full ${busy ? 'animate-pulse bg-accent-tone-3' : 'bg-accent-tone-7'}`} />
@@ -308,75 +276,6 @@ function OverviewView({ me }) {
           </div>
         )}
       />
-
-      {/* Welcome / needs attention */}
-      <section
-        className="animate-rise relative isolate overflow-hidden rounded-2xl border border-border bg-surface p-5 text-text sm:p-7"
-      >
-        <span aria-hidden="true" className="pointer-events-none absolute -right-12 -top-14 h-44 w-44 rounded-full bg-surface-alt" />
-        <span aria-hidden="true" className="pointer-events-none absolute -bottom-16 right-28 hidden h-32 w-32 animate-float rounded-full bg-surface-alt/60 sm:block" />
-
-        <div className="relative flex items-center gap-4 sm:gap-6">
-          <span className="relative grid h-14 w-14 shrink-0 place-items-center sm:h-16 sm:w-16">
-            {attention.length > 0 && (
-              <span aria-hidden="true" className="absolute inset-0 animate-ring rounded-2xl border-2 border-accent" />
-            )}
-            <span className="grid h-full w-full place-items-center overflow-hidden rounded-2xl border border-border bg-surface-alt">
-              {showAvatar ? (
-                <img src={avatarUrl} alt="" referrerPolicy="no-referrer" onError={() => setBrokenUrl(avatarUrl)} className="size-full object-cover" />
-              ) : attention.length ? (
-                <AppIcon
-                  name={attention.length ? 'alert' : 'histogram'}
-                  entity={attention.length ? 'alert' : 'order'}
-                  hueRotate={false}
-                  className="size-10 object-contain sm:size-12"
-                />
-              ) : (
-                <CheckCircle2 size={28} strokeWidth={2.5} aria-hidden="true" />
-              )}
-            </span>
-          </span>
-
-          <div className="min-w-0 flex-1">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted">{capitalize(me.role)} account</p>
-            <p className="heading mt-1 min-h-[1.6em] truncate text-xl sm:text-3xl">
-              {firstLoad ? 'Checking your account…' : <Typewriter phrases={heroPhrases} />}
-            </p>
-            <p className="mt-0.5 hidden text-sm text-muted sm:block">
-              {orderCount > 0
-                ? `You’ve placed ${formatInt(orderCount)} ${orderCount === 1 ? 'order' : 'orders'} with us. Thank you!`
-                : 'Your first order is one click away.'}
-            </p>
-          </div>
-
-          <Link
-            to={SHOP_PATH}
-            className="group relative hidden shrink-0 items-center gap-2 rounded-full border border-border bg-surface-alt px-5 py-2.5 text-sm font-semibold text-text transition-transform duration-300 hover:scale-105 active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent sm:inline-flex"
-          >
-            <ShoppingBag size={16} aria-hidden="true" />
-            Shop now
-            <ArrowRight size={16} className="group-hover:animate-nudge" aria-hidden="true" />
-          </Link>
-        </div>
-
-        {attention.length > 0 && (
-          <div className="relative mt-4 flex flex-wrap gap-2">
-            {attention.map((a) => (
-              <Link
-                key={a.key}
-                to={a.to}
-                className="group inline-flex min-h-9 items-center gap-2 rounded-full border border-border bg-surface-alt px-3.5 text-sm font-semibold text-text transition-transform duration-300 hover:scale-105 active:scale-95"
-              >
-                <span className="grid h-5 min-w-5 place-items-center rounded-full bg-accent px-1 text-[11px] font-semibold tabular-nums text-on-accent">
-                  {a.count}
-                </span>
-                {a.text.replace(/^\d+\s/, '')}
-                <ArrowRight size={14} className="group-hover:animate-nudge" />
-              </Link>
-            ))}
-          </div>
-        )}
-      </section>
 
       {/* Key numbers: every tile opens its page */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">

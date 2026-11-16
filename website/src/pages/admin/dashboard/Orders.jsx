@@ -1,8 +1,7 @@
 import PageHeader from '../../../ui/custom/PageHeader';
-import AppIcon from '../../../ui/custom/AppIcon';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { ArrowRight, ListOrdered, RefreshCw } from 'lucide-react';
+import { ListOrdered, RefreshCw } from 'lucide-react';
 
 import {
   DELIVERY_TYPES,
@@ -46,7 +45,6 @@ import SearchInput from '../../../ui/custom/input/SearchInput';
 import SelectInput from '../../../ui/custom/input/SelectInput';
 import Tabs, { TabPanel } from '../../../ui/custom/tabs/Tabs';
 import CountUp from '../../../ui/custom/motion/CountUp';
-import Typewriter from '../../../ui/custom/motion/Typewriter';
 
 const PAGE = 10;
 const EMPTY = { term: '', status: '', paymentStatus: '', deliveryType: '', paymentMethod: '', isCustom: null };
@@ -205,17 +203,7 @@ export default function Orders() {
   const visibleOrders = searching ? orders.slice(0, visibleSearch) : orders;
   const busy = refreshing || loading || analyticsStatus === 'loading';
 
-  const pending = counts?.pending || 0;
   const allCount = Object.values(counts || {}).reduce((s, n) => s + (Number(n) || 0), 0);
-  const phrases = useMemo(
-    () => [
-      pending ? `${pending} ${pending === 1 ? 'order is' : 'orders are'} waiting` : 'No orders waiting',
-      'Confirm, pack and ship',
-      'Add the courier tracking link',
-    ],
-    [pending]
-  );
-
   const tabs = [
     { id: 'all', label: 'All', icon: ListOrdered, color: 'var(--accent-tone-1)', badge: allCount || undefined },
     ...ORDER_STATUS.map((s) => ({
@@ -272,38 +260,6 @@ export default function Orders() {
 
       {view === 'orders' ? (
       <>
-      {/* Big pending button (same block as "Add product") */}
-      <button
-        type="button"
-        onClick={() => applyFilters({ status: 'pending' })}
-        className="group relative isolate flex w-full items-center gap-4 overflow-hidden rounded-2xl border border-border bg-surface p-5 text-left text-text transition-all duration-300 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.99] sm:gap-6 sm:p-7"
-      >
-        {/* decorative shapes */}
-        <span aria-hidden="true" className="pointer-events-none absolute -right-12 -top-14 h-44 w-44 rounded-full bg-surface-alt transition-transform duration-700 group-hover:scale-125" />
-        <span aria-hidden="true" className="pointer-events-none absolute -bottom-16 right-28 hidden h-32 w-32 animate-float rounded-full bg-surface-alt/60 sm:block" />
-        <span aria-hidden="true" className="pointer-events-none absolute inset-x-0 bottom-0 h-1 origin-left scale-x-0 bg-accent transition-transform duration-500 group-hover:scale-x-100" />
-
-        <span className="relative grid h-14 w-14 shrink-0 place-items-center sm:h-16 sm:w-16">
-          <span aria-hidden="true" className="absolute inset-0 animate-ring rounded-2xl border-2 border-accent" />
-          <span className="grid h-full w-full place-items-center rounded-2xl border border-border bg-surface-alt transition-transform duration-500 ease-out group-hover:-rotate-6 group-hover:scale-105">
-            <AppIcon name="list" entity="order" hueRotate={false} className="size-10 object-contain sm:size-12" />
-          </span>
-        </span>
-
-        <span className="relative min-w-0 flex-1">
-          <span className="block text-[11px] font-semibold uppercase tracking-[0.18em] text-muted">Order desk</span>
-          <span className="heading mt-1 block min-h-[1.6em] truncate text-xl sm:text-3xl">
-            <Typewriter key={pending} phrases={phrases} />
-          </span>
-          <span className="mt-0.5 hidden text-sm text-muted sm:block">Change the status, add tracking and keep the customer informed.</span>
-        </span>
-
-        <span className="relative hidden shrink-0 items-center gap-2 rounded-full border border-border bg-surface-alt px-5 py-2.5 text-sm font-semibold text-text transition-transform duration-300 group-hover:scale-105 sm:inline-flex">
-          Review pending
-          <ArrowRight size={16} className="group-hover:animate-nudge" />
-        </span>
-      </button>
-
       <Tabs iconOnly tabs={tabs} value={filters.status || 'all'} onChange={(id) => applyFilters({ status: id === 'all' ? '' : id })} />
 
       <TabPanel key={filters.status || 'all'} className="space-y-6">

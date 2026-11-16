@@ -2,7 +2,7 @@
 //
 // Routes that render this page (see App.jsx):
 //   /:category/:group/:productId   (productId is the slug)
-//   /:productId                    (rendered by SlugRoute: pass the slug as the `slug` prop)
+//   /:productSlug
 import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { Link, Navigate, useLocation, useNavigate, useParams } from "react-router";
 import { useDispatch, useSelector } from "react-redux";
@@ -46,6 +46,7 @@ import reviewService from "../../../lib/appwrite/review";
 import { getEffectivePricing } from "../../../lib/saleMath";
 import ProductCheckoutDrawer from "./ProductCheckoutDrawer";
 import { loadDraft } from "../../../lib/checkoutDraft";
+import PageArt from "../../../ui/art/PageArt";
 
 /* ------------------------------------------------------------------ */
 /* helpers                                                             */
@@ -72,7 +73,7 @@ export default function Product({ slug: slugProp }) {
   const params = useParams();
 
   // Long form uses :productId; the short form lives under :username in App.jsx.
-  const slug = slugProp ?? params.productId ?? params.username;
+  const slug = slugProp ?? params.productId ?? params.productSlug ?? params.username;
 
   const product = useSelector(selectProductDetail);
   const status = useSelector(selectProductDetailStatus);
@@ -83,7 +84,7 @@ export default function Product({ slug: slugProp }) {
     const pageTitle = product?.slug === slug
       ? product.name
       : status === "failed"
-        ? "Page not found"
+        ? "Product not found"
         : "Product";
     document.title = `${pageTitle} | Ronak By Ali`;
   }, [product?.name, product?.slug, slug, status]);
@@ -1068,7 +1069,8 @@ function PageSkeleton() {
 
 function NotFound({ message }) {
   return (
-    <main className="mx-auto flex min-h-[50vh] w-full max-w-xl flex-col items-center justify-center px-4 text-center">
+    <main className="mx-auto flex min-h-[50vh] w-full max-w-xl flex-col items-center justify-center px-4 py-10 text-center">
+      <PageArt name="noProducts" size="md" decorative className="mb-5" />
       <h1 className="font-display text-4xl font-bold text-text">
         We couldn't find that product
       </h1>

@@ -1,5 +1,4 @@
 import PageHeader from '../../../ui/custom/PageHeader';
-import AppIcon from '../../../ui/custom/AppIcon';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router';
 import {
@@ -15,7 +14,6 @@ import useSession from '../../../router/useSession';
 import { PATHS } from '../../../router/path';
 import { BarChart, Donut, HeatmapCalendar, TrendGraph, colorFor, compact, toneVar } from '../../../ui/graphs';
 import { formatCardMoney } from '../../../ui/graphs/CardMoney';
-import Typewriter from '../../../ui/custom/motion/Typewriter';
 
 const short = (n) => `Rs ${compact(n)}`;
 const colored = (data) => data.map((d) => ({ ...d, color: colorFor(d.label) }));
@@ -69,14 +67,8 @@ export default function Overview() {
     () => buildOverview({ orders, products, users, alerts, reviews, carts, wishlists, ledger }),
     [orders, products, users, alerts, reviews, carts, wishlists, ledger]
   );
-  const { fin, orderStats, productStats, userStats, alertStats, reviewStats, attention } = o;
-
-  const heroPhrases = useMemo(
-    () => (attention.length ? [`${attention.length} ${attention.length === 1 ? 'thing needs' : 'things need'} your attention`, ...attention.map((a) => a.text)] : ['You are all caught up']),
-    [attention]
-  );
+  const { fin, orderStats, productStats, userStats, alertStats, reviewStats } = o;
   const loss = fin.all.net < 0;
-  const firstLoad = loading && !orders.length && !products.length;
 
   return (
     <div className="space-y-5">
@@ -111,55 +103,6 @@ export default function Overview() {
           {error} <button type="button" onClick={reload} className="font-medium underline">Try again</button>
         </div>
       )}
-
-      {/* Needs attention */}
-      <section
-        className="animate-rise relative isolate overflow-hidden rounded-2xl border border-border bg-surface p-5 text-text sm:p-7"
-      >
-        {/* decorative shapes */}
-        <span aria-hidden="true" className="pointer-events-none absolute -right-12 -top-14 h-44 w-44 rounded-full bg-surface-alt" />
-        <span aria-hidden="true" className="pointer-events-none absolute -bottom-16 right-28 hidden h-32 w-32 animate-float rounded-full bg-surface-alt/60 sm:block" />
-
-        <div className="relative flex items-center gap-4 sm:gap-6">
-          <span className="relative grid h-14 w-14 shrink-0 place-items-center sm:h-16 sm:w-16">
-            {attention.length > 0 && (
-              <span aria-hidden="true" className="absolute inset-0 animate-ring rounded-2xl border-2 border-accent" />
-            )}
-            <span className="grid h-full w-full place-items-center rounded-2xl border border-border bg-surface-alt">
-              {attention.length ? (
-                <AppIcon name="alert" entity="alert" hueRotate={false} className="size-10 object-contain sm:size-12" />
-              ) : (
-                <AppIcon name="histogram" entity="order" hueRotate={false} className="size-10 object-contain sm:size-12" />
-              )}
-            </span>
-          </span>
-
-          <div className="min-w-0 flex-1">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted">Needs attention</p>
-            <p className="heading mt-1 min-h-[1.6em] truncate text-xl sm:text-3xl">
-              {firstLoad ? 'Checking your store…' : <Typewriter phrases={heroPhrases} />}
-            </p>
-          </div>
-        </div>
-
-        {attention.length > 0 && (
-          <div className="relative mt-4 flex flex-wrap gap-2">
-            {attention.map((a) => (
-              <Link
-                key={a.key}
-                to={link(a.to)}
-                className="group inline-flex min-h-9 items-center gap-2 rounded-full border border-border bg-surface-alt px-3.5 text-sm font-semibold text-text transition-transform duration-300 hover:scale-105 active:scale-95"
-              >
-                <span className="grid h-5 min-w-5 place-items-center rounded-full bg-accent px-1 text-[11px] font-semibold tabular-nums text-on-accent">
-                  {a.count}
-                </span>
-                {a.text.replace(/^\d+\s/, '')}
-                <ArrowRight size={14} className="group-hover:animate-nudge" />
-              </Link>
-            ))}
-          </div>
-        )}
-      </section>
 
       {/* Key numbers: every tile opens its page */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">

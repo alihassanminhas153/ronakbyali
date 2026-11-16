@@ -1,7 +1,6 @@
 import PageHeader from '../../../ui/custom/PageHeader';
-import AppIcon from '../../../ui/custom/AppIcon';
 import { useEffect, useMemo, useState } from 'react';
-import { Activity, ArrowRight, Boxes, CalendarDays, Clock, Heart, MapPin, RefreshCw, ShoppingCart, Wallet } from 'lucide-react';
+import { Activity, Boxes, CalendarDays, Clock, Heart, MapPin, RefreshCw, ShoppingCart, Wallet } from 'lucide-react';
 
 import {
   HolderList,
@@ -26,7 +25,6 @@ import SearchInput from '../../../ui/custom/input/SearchInput';
 import SelectInput from '../../../ui/custom/input/SelectInput';
 import Tabs, { TabPanel } from '../../../ui/custom/tabs/Tabs';
 import CountUp from '../../../ui/custom/motion/CountUp';
-import Typewriter from '../../../ui/custom/motion/Typewriter';
 
 const SHOW = 10;
 
@@ -139,12 +137,6 @@ export default function CartAndWishlist() {
     setFilter('');
     setSort(CONFIG[id]?.sorts[0].value || '');
   };
-  const reviewProblems = () => {
-    setTab('carts');
-    setFilter(stats.problemCarts ? 'problem' : '');
-    setSort('recent');
-  };
-
   // ---- the rows of the current tab, searched, filtered and sorted
   const list = useMemo(() => {
     if (tab === 'insights') return [];
@@ -173,17 +165,6 @@ export default function CartAndWishlist() {
     { id: 'insights', label: 'Insights', icon: Activity, color: 'var(--accent-tone-3)' },
   ];
 
-  const phrases = useMemo(
-    () => [
-      `${money(stats.value)} waiting in carts`,
-      stats.problemCarts
-        ? `${stats.problemCarts} ${stats.problemCarts === 1 ? 'cart has' : 'carts have'} a stock problem`
-        : 'No stock problems right now',
-      `${stats.saved} products saved to wishlists`,
-    ],
-    [stats.value, stats.problemCarts, stats.saved]
-  );
-
   return (
     <div className="space-y-5">
       <PageHeader
@@ -197,6 +178,17 @@ export default function CartAndWishlist() {
         )}
         actions={(
           <div className="flex items-center gap-3">
+            {stats.problemCarts > 0 && (
+              <ActionButton
+                onClick={() => {
+                  setTab('carts');
+                  setFilter('problem');
+                  setSort('recent');
+                }}
+              >
+                Review problems
+              </ActionButton>
+            )}
             {ago && (
               <span className="hidden items-center gap-1.5 text-xs text-muted sm:flex" aria-live="polite">
                 <span className={`h-1.5 w-1.5 rounded-full ${busy ? 'animate-pulse bg-accent-tone-3' : 'bg-accent-tone-7'}`} />
@@ -216,37 +208,6 @@ export default function CartAndWishlist() {
           </div>
         )}
       />
-
-      {/* Big banner (same block as the Products page) */}
-      <button
-        type="button"
-        onClick={reviewProblems}
-        className="group relative isolate flex w-full items-center gap-4 overflow-hidden rounded-2xl border border-border bg-surface p-5 text-left text-text transition-all duration-300 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.99] sm:gap-6 sm:p-7"
-      >
-        <span aria-hidden="true" className="pointer-events-none absolute -right-12 -top-14 h-44 w-44 rounded-full bg-surface-alt transition-transform duration-700 group-hover:scale-125" />
-        <span aria-hidden="true" className="pointer-events-none absolute -bottom-16 right-28 hidden h-32 w-32 animate-float rounded-full bg-surface-alt/60 sm:block" />
-        <span aria-hidden="true" className="pointer-events-none absolute inset-x-0 bottom-0 h-1 origin-left scale-x-0 bg-accent transition-transform duration-500 group-hover:scale-x-100" />
-
-        <span className="relative grid h-14 w-14 shrink-0 place-items-center sm:h-16 sm:w-16">
-          <span aria-hidden="true" className="absolute inset-0 animate-ring rounded-2xl border-2 border-accent" />
-          <span className="grid h-full w-full place-items-center rounded-2xl border border-border bg-surface-alt transition-transform duration-500 ease-out group-hover:-rotate-6 group-hover:scale-105">
-            <AppIcon name="cart" entity="cart" hueRotate={false} className="size-10 object-contain sm:size-12" />
-          </span>
-        </span>
-
-        <span className="relative min-w-0 flex-1">
-          <span className="block text-[11px] font-semibold uppercase tracking-[0.18em] text-muted">Shopper watch</span>
-          <span className="heading mt-1 block min-h-[1.6em] truncate text-xl sm:text-3xl">
-            <Typewriter key={phrases.join('|')} phrases={phrases} />
-          </span>
-          <span className="mt-0.5 hidden text-sm text-muted sm:block">See what people hold, and which items you cannot supply.</span>
-        </span>
-
-        <span className="relative hidden shrink-0 items-center gap-2 rounded-full border border-border bg-surface-alt px-5 py-2.5 text-sm font-semibold text-text transition-transform duration-300 group-hover:scale-105 sm:inline-flex">
-          {stats.problemCarts ? 'Review problems' : 'View carts'}
-          <ArrowRight size={16} className="group-hover:animate-nudge" />
-        </span>
-      </button>
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatTile appIcon="cart" tone={1} label="Carts with items" value={stats.shoppers} hint={`${stats.units} items in total`} />

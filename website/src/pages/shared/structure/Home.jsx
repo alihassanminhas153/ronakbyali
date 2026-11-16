@@ -291,6 +291,86 @@ function Slide({ src, alt, status, rising }) {
   );
 }
 
+/* ---------- Hero curves: big thick curls at the far left and far right edges ----------
+   Each side is its own SVG pinned to the edge of the hero, behind everything (negative z-index
+   inside the section's own stacking context). The curves run past the edge, so the screen edge
+   cuts them off like in the reference. Colour is the text colour (dark in the light theme, light
+   in the dark theme) at a low opacity. Once the loader is gone each curve is drawn in, one after
+   the other, then keeps floating slowly. Responsive: the SVG is a slice of a fixed drawing, so
+   narrow screens simply show a smaller part of each curl with the same thickness feel. */
+const CURVE_STROKE = 32; // thickness (drawing units)
+const CURVE_DRAW_MS = 2600; // drawing time of one curve
+const CURVE_STAGGER_MS = 450; // wait between curves
+
+const LEFT_CURVES = [
+  { d: "M -80 140 C 130 150 250 330 200 500 C 160 640 40 690 -80 660", float: "9s" },
+  { d: "M -70 300 C 60 290 120 360 100 440 C 85 500 20 530 -60 510", float: "7s" },
+  { d: "M -40 40 C 60 20 110 90 70 150 C 40 195 -20 190 -60 170", float: "11s" },
+];
+const RIGHT_CURVES = [
+  { d: "M 480 200 C 270 170 150 330 210 470 C 260 580 400 600 480 540", float: "10s" },
+  { d: "M 480 310 C 380 280 320 350 345 430 C 365 490 430 510 490 480", float: "8s" },
+  { d: "M 470 640 C 360 620 290 690 330 760 C 350 800 430 820 480 800", float: "12s" },
+];
+
+const CURVES_CSS = `
+.hc-float { transform-box: fill-box; transform-origin: 50% 50%; animation: hc-float var(--hc-dur, 9s) ease-in-out infinite alternate; }
+.hc-paused .hc-float { animation-play-state: paused; }
+@keyframes hc-float {
+  0%   { transform: translate3d(0, 0, 0) rotate(0deg); }
+  100% { transform: translate3d(0, -22px, 0) rotate(2.5deg); }
+}
+@media (prefers-reduced-motion: reduce) { .hc-float { animation: none; } }
+`;
+
+function CurveSide({ curves, side, ready, visible, instant }) {
+  const left = side === "left";
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 400 800"
+      preserveAspectRatio={left ? "xMinYMid slice" : "xMaxYMid slice"}
+      className={`pointer-events-none absolute top-0 -z-10 h-full w-[40%] text-text opacity-[0.08] sm:w-[30%] lg:w-[26%] ${
+        left ? "left-0" : "right-0"
+      } ${visible ? "" : "hc-paused"}`}
+      fill="none"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      {curves.map((c, i) => (
+        <g key={c.d} className={ready && !instant ? "hc-float" : ""} style={{ "--hc-dur": c.float }}>
+          <path
+            d={c.d}
+            pathLength="1"
+            stroke="currentColor"
+            strokeWidth={CURVE_STROKE}
+            strokeDasharray="1"
+            strokeDashoffset={ready || instant ? 0 : 1}
+            style={{
+              opacity: ready || instant ? 1 : 0,
+              transition:
+                ready && !instant
+                  ? `stroke-dashoffset ${CURVE_DRAW_MS}ms cubic-bezier(0.45, 0, 0.25, 1) ${i * CURVE_STAGGER_MS}ms`
+                  : "none",
+            }}
+          />
+        </g>
+      ))}
+    </svg>
+  );
+}
+
+function HeroCurves({ ready, visible }) {
+  const instant = prefersReducedMotion();
+  return (
+    <>
+      <style>{CURVES_CSS}</style>
+      <CurveSide curves={LEFT_CURVES} side="left" ready={ready} visible={visible} instant={instant} />
+      <CurveSide curves={RIGHT_CURVES} side="right" ready={ready} visible={visible} instant={instant} />
+    </>
+  );
+}
+
 /* ---------- Page ---------- */
 export default function Home() {
   const sectionRef = useRef(null);
@@ -352,6 +432,9 @@ export default function Home() {
         aria-labelledby="hero-title"
         className={`relative isolate w-full overflow-hidden bg-[radial-gradient(70rem_36rem_at_50%_90%,var(--accent-soft),transparent_70%)] ${HERO_HEIGHT}`}
       >
+        {/* Big curls at the far left and right edges, drawn after the loader. Behind everything in the hero. */}
+        <HeroCurves ready={ready} visible={visible} />
+
         {/* Heading, pinned to the top. z-0 puts it BEHIND the images (z-10). */}
         <div className="relative z-0 px-3 pt-2 sm:px-6 sm:pt-4">
           <Heading ready={ready} sectionRef={sectionRef} visible={visible} />

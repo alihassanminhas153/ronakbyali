@@ -1,5 +1,5 @@
 import PageHeader from '../../../ui/custom/PageHeader';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   AlertCircle,
   ArrowRight,
@@ -40,7 +40,6 @@ import ActionButton from '../../../ui/custom/button/ActionButton';
 import ConfirmDialog from '../../../ui/custom/modal/ConfirmDialog';
 import Tabs, { TabPanel } from '../../../ui/custom/tabs/Tabs';
 import CountUp from '../../../ui/custom/motion/CountUp';
-import Typewriter from '../../../ui/custom/motion/Typewriter';
 import useEntered from '../../../ui/custom/motion/useEntered';
 import ProfileDrawer from '../../../components/user/profile/ProfileDrawer';
 import {
@@ -168,11 +167,6 @@ function ProfileView({ me }) {
   };
   useEffect(() => () => clearTimeout(noticeTimer.current), []);
 
-  const phrases = useMemo(
-    () => [me.name || me.username, `@${me.username}`, `${capitalize(me.role)} account`],
-    [me.name, me.username, me.role]
-  );
-
   // How much of the profile is filled in.
   const checklist = [
     { key: 'photo', label: 'Add a photo', done: showAvatar },
@@ -257,6 +251,7 @@ function ProfileView({ me }) {
             subtitle="Your account details and settings."
             actions={(
               <div className="flex items-center gap-3">
+                <ActionButton icon={Pencil} onClick={() => openDrawer('details')}>Edit profile</ActionButton>
                 {ago && (
                   <span className="hidden items-center gap-1.5 text-xs text-muted sm:flex" aria-live="polite">
                     <span className={`h-1.5 w-1.5 rounded-full ${refreshing ? 'animate-pulse bg-accent-tone-3' : 'bg-accent-tone-7'}`} />
@@ -279,7 +274,7 @@ function ProfileView({ me }) {
           <p className="mt-1 hidden text-sm text-muted lg:block">Manage your photo, contact details and password.</p>
         </div>
 
-        <div className="flex items-center gap-3">
+        {/* <div className="flex items-center gap-3">
           {ago && (
             <span className="hidden items-center gap-1.5 text-xs text-muted sm:flex" aria-live="polite">
               <span className={`h-1.5 w-1.5 rounded-full ${busy ? 'animate-pulse bg-accent-tone-3' : 'bg-accent-tone-7'}`} />
@@ -296,92 +291,11 @@ function ProfileView({ me }) {
             <RefreshCw size={16} className={refreshing ? 'animate-spin' : 'transition-transform duration-500 group-hover:rotate-180'} />
             <span>{refreshing ? 'Refreshing' : 'Refresh'}</span>
           </button>
-        </div>
+        </div> */}
       </header>
 
       {notice && <Notice key={notice.id} type={notice.type} text={notice.text} onDismiss={() => setNotice(null)} />}
-
-      {/* Hero */}
-      <section
-        className="group relative isolate flex flex-col items-center gap-5 overflow-hidden rounded-2xl border border-border bg-surface p-5 text-center text-text sm:flex-row sm:gap-7 sm:p-7 sm:text-left"
-      >
-        {/* decorative shapes */}
-        <span aria-hidden="true" className="pointer-events-none absolute -right-12 -top-14 h-44 w-44 rounded-full bg-surface-alt transition-transform duration-700 group-hover:scale-125" />
-        <span aria-hidden="true" className="pointer-events-none absolute -bottom-16 right-28 hidden h-32 w-32 animate-float rounded-full bg-surface-alt/60 sm:block" />
-        <span aria-hidden="true" className="pointer-events-none absolute inset-x-0 bottom-0 h-1 origin-left scale-x-0 bg-accent transition-transform duration-500 group-hover:scale-x-100" />
-
-        {/* avatar */}
-        <div className="relative shrink-0">
-          <span aria-hidden="true" className="absolute inset-0 animate-ring rounded-full border-2 border-accent" />
-          <div className="relative grid size-28 place-items-center overflow-hidden rounded-full border-2 border-border bg-surface-alt text-muted sm:size-32">
-            {showAvatar ? (
-              <img
-                src={avatarUrl}
-                alt={`${me.name || me.username}’s profile photo`}
-                referrerPolicy="no-referrer"
-                onError={() => setBrokenUrl(avatarUrl)}
-                className="size-full object-cover"
-              />
-            ) : (
-              <User size={52} aria-hidden="true" />
-            )}
-            {photoBusy && (
-              <div className="absolute inset-0 grid place-items-center bg-black/45">
-                <Loader2 size={28} className="animate-spin" aria-hidden="true" />
-              </div>
-            )}
-          </div>
-          <button
-            type="button"
-            onClick={() => fileRef.current?.click()}
-            disabled={photoBusy}
-            aria-label={showAvatar ? 'Change profile photo' : 'Upload profile photo'}
-            className="absolute -bottom-1 -right-1 grid size-10 place-items-center rounded-full border-2 border-border bg-white text-[color:var(--brown)] shadow-soft transition-transform duration-200 hover:scale-110 active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:opacity-60"
-          >
-            <Camera size={18} aria-hidden="true" />
-          </button>
-          {showAvatar && (
-            <button
-              type="button"
-              onClick={() => { setRemoveError(''); setRemoveOpen(true); }}
-              disabled={photoBusy}
-              aria-label="Remove profile photo"
-              className="absolute -bottom-1 -left-1 grid size-10 place-items-center rounded-full border-2 border-border bg-white text-error shadow-soft transition-transform duration-200 hover:scale-110 active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:opacity-60"
-            >
-              <Trash2 size={18} aria-hidden="true" />
-            </button>
-          )}
-          <input ref={fileRef} type="file" accept={ALLOWED_TYPES.join(',')} onChange={onPick} className="hidden" />
-        </div>
-
-        {/* identity */}
-        <div className="relative min-w-0 flex-1">
-          <span className="block text-[11px] font-semibold uppercase tracking-[0.18em] text-muted">Your account</span>
-          <span className="heading mt-1 block min-h-[1.6em] truncate text-2xl sm:text-3xl">
-            <Typewriter phrases={phrases} />
-          </span>
-          <div className="mt-2 flex flex-wrap items-center justify-center gap-2 sm:justify-start">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-surface-alt px-3 py-1 text-xs font-medium">
-              <ShieldCheck size={13} aria-hidden="true" />
-              {capitalize(me.role)}
-            </span>
-            <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium ${me.isBlocked ? 'bg-error text-white' : 'bg-surface-alt'}`}>
-              <span className={`h-1.5 w-1.5 rounded-full ${me.isBlocked ? 'bg-white' : 'bg-accent-tone-7'}`} />
-              {me.isBlocked ? 'Blocked' : 'Active'}
-            </span>
-            <span className="text-xs text-muted">JPG, PNG or WebP, up to {MAX_IMAGE_MB} MB</span>
-          </div>
-        </div>
-
-        <button
-          type="button"
-          onClick={() => openDrawer('details')}
-          className="relative inline-flex shrink-0 items-center gap-2 rounded-full border border-border bg-surface-alt px-5 py-2.5 text-sm font-semibold text-text transition-transform duration-300 hover:scale-105 active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-        >
-          <Pencil size={16} aria-hidden="true" />
-          Edit profile
-        </button>
-      </section>
+      <input ref={fileRef} type="file" accept={ALLOWED_TYPES.join(',')} onChange={onPick} className="hidden" />
 
       {/* Stats */}
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -405,6 +319,36 @@ function ProfileView({ me }) {
         <TabPanel key="details" className="space-y-4">
           {/* completeness */}
           <div className="rounded-xl border border-border bg-surface p-4 sm:p-5">
+            {showAvatar && (
+              <div className="mb-4 flex flex-wrap items-center gap-3">
+                <img
+                  src={avatarUrl}
+                  alt=""
+                  referrerPolicy="no-referrer"
+                  onError={() => setBrokenUrl(avatarUrl)}
+                  className="size-12 rounded-full border border-border object-cover"
+                />
+                <span className="flex-1 text-sm font-medium text-text">Profile photo</span>
+                <button
+                  type="button"
+                  onClick={() => fileRef.current?.click()}
+                  disabled={photoBusy}
+                  className="inline-flex min-h-9 items-center gap-2 rounded-lg border border-border bg-surface px-3 text-sm font-medium text-text transition-colors hover:bg-surface-alt disabled:opacity-60"
+                >
+                  {photoBusy ? <Loader2 size={16} className="animate-spin" aria-hidden="true" /> : <Camera size={16} aria-hidden="true" />}
+                  Change photo
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setRemoveError(''); setRemoveOpen(true); }}
+                  disabled={photoBusy}
+                  className="inline-flex min-h-9 items-center gap-2 rounded-lg border border-border bg-surface px-3 text-sm font-medium text-error transition-colors hover:bg-surface-alt disabled:opacity-60"
+                >
+                  <Trash2 size={16} aria-hidden="true" />
+                  Remove photo
+                </button>
+              </div>
+            )}
             <div className="flex items-center justify-between gap-3">
               <p className="text-sm font-medium text-text">
                 {percent === 100 ? 'Your profile is complete' : 'Finish setting up your profile'}

@@ -33,11 +33,11 @@ export const PATHS = {
   signup: "/create-account",
 
   // products
-  products: `${P}/products`,
-  customize: (slug) => `${P}/customize/${e(slug)}`,
-  productShort: (productId) => `${P}/${e(productId)}`,
+  products: "/products",
+  customize: (slug) => `/customize/${e(slug)}`,
+  productShort: (productId) => `/${e(productId)}`,
   product: (category, group, productId) =>
-    `${P}/${e(category)}/${e(group)}/${e(productId)}`,
+    `/${e(category)}/${e(group)}/${e(productId)}`,
 
   // user dashboard  ->  /p/@username/...
   user: {

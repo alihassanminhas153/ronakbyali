@@ -1,8 +1,7 @@
 import PageHeader from '../../../ui/custom/PageHeader';
-import AppIcon from '../../../ui/custom/AppIcon';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { ArrowRight, Boxes, LayoutList, Plus, RefreshCw, Shapes, Tag } from 'lucide-react';
+import { Boxes, LayoutList, Plus, RefreshCw, Shapes, Tag } from 'lucide-react';
 
 import {
   deleteProduct,
@@ -40,10 +39,8 @@ import ConfirmDialog from '../../../ui/custom/modal/ConfirmDialog';
 import Modal from '../../../ui/custom/modal/Modal';
 import Tabs, { TabPanel } from '../../../ui/custom/tabs/Tabs';
 import CountUp from '../../../ui/custom/motion/CountUp';
-import Typewriter from '../../../ui/custom/motion/Typewriter';
 import { OrderFormArt, ProductsArt } from '../../../ui/art';
 
-const CTA_PHRASES = ['Add a new product', 'Upload product images', 'Set price and stock'];
 const TYPE_OPTIONS = [
   { value: 'normal', label: 'Normal products' },
   { value: 'custom', label: 'Custom products' },
@@ -205,6 +202,8 @@ export default function Products() {
         )}
         actions={(
           <div className="flex items-center gap-3">
+            <ActionButton icon={Plus} onClick={openAdd}>Add product</ActionButton>
+            <ActionButton variant="secondary" icon={Tag} onClick={() => setSalesOpen(true)}>Sales</ActionButton>
             {ago && (
               <span className="hidden items-center gap-1.5 text-xs text-muted sm:flex" aria-live="polite">
                 <span className={`h-1.5 w-1.5 rounded-full ${busy ? 'animate-pulse bg-accent-tone-3' : 'bg-accent-tone-7'}`} />
@@ -224,39 +223,6 @@ export default function Products() {
           </div>
         )}
       />
-
-      {/* Big add button */}
-      <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">
-        <button
-          type="button"
-          onClick={openAdd}
-          className="group relative isolate flex w-full items-center gap-4 overflow-hidden rounded-2xl border border-border bg-surface p-5 text-left text-text transition-all duration-300 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.99] sm:gap-6 sm:p-7"
-        >
-          <span aria-hidden="true" className="pointer-events-none absolute -right-12 -top-14 h-44 w-44 rounded-full bg-surface-alt transition-transform duration-700 group-hover:scale-125" />
-          <span aria-hidden="true" className="pointer-events-none absolute -bottom-16 right-28 hidden h-32 w-32 animate-float rounded-full bg-surface-alt/60 sm:block" />
-          <span aria-hidden="true" className="pointer-events-none absolute inset-x-0 bottom-0 h-1 origin-left scale-x-0 bg-accent transition-transform duration-500 group-hover:scale-x-100" />
-          <span className="relative grid h-14 w-14 shrink-0 place-items-center sm:h-16 sm:w-16">
-            <span aria-hidden="true" className="absolute inset-0 animate-ring rounded-2xl border-2 border-accent" />
-            <span className="grid h-full w-full place-items-center rounded-2xl border border-border bg-surface-alt transition-transform duration-500 ease-out group-hover:rotate-90 group-hover:scale-105">
-              <AppIcon name="boxes" entity="product" hueRotate={false} className="size-10 object-contain sm:size-12" />
-            </span>
-          </span>
-          <span className="relative min-w-0 flex-1">
-            <span className="block text-[11px] font-semibold uppercase tracking-[0.18em] text-muted">New product</span>
-            <span className="heading mt-1 block min-h-[1.6em] truncate text-xl sm:text-3xl">
-              <Typewriter phrases={CTA_PHRASES} />
-            </span>
-            <span className="mt-0.5 hidden text-sm text-muted sm:block">Fill in the details once and it goes live in your store.</span>
-          </span>
-          <span className="relative hidden shrink-0 items-center gap-2 rounded-full border border-border bg-surface-alt px-5 py-2.5 text-sm font-semibold text-text transition-transform duration-300 group-hover:scale-105 sm:inline-flex">
-            Add product
-            <ArrowRight size={16} className="group-hover:animate-nudge" />
-          </span>
-        </button>
-        <ActionButton variant="secondary" icon={Tag} onClick={() => setSalesOpen(true)} className="sm:self-stretch sm:px-6">
-          Sales
-        </ActionButton>
-      </div>
 
       <Tabs tabs={tabs} value={tab} onChange={setTab} />
 

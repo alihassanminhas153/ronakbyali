@@ -1,9 +1,8 @@
 import PageHeader from '../../../ui/custom/PageHeader';
-import AppIcon from '../../../ui/custom/AppIcon';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import {
-  ArrowRight, Calculator, CalendarDays, Download, LineChart as LineIcon, MessageSquare,
+  Calculator, CalendarDays, Download, LineChart as LineIcon, MessageSquare,
   PieChart, RefreshCw, Star, TrendingUp, Trophy,
 } from 'lucide-react';
 
@@ -23,7 +22,6 @@ import Segmented from '../../../ui/custom/input/Segmented';
 import ConfirmDialog from '../../../ui/custom/modal/ConfirmDialog';
 import Tabs, { TabPanel } from '../../../ui/custom/tabs/Tabs';
 import CountUp from '../../../ui/custom/motion/CountUp';
-import Typewriter from '../../../ui/custom/motion/Typewriter';
 
 const PAGE = 10;
 const STATUS_LABELS = STATUS_ORDER.map((s) => STATUS_META[s].label);
@@ -95,10 +93,6 @@ export default function Reviews() {
   const productNames = useMemo(() => [...new Set(items.map((r) => r.productName).filter(Boolean))].sort(), [items]);
   const productStats = useMemo(() => buildProductStats(items), [items]);
 
-  const phrases = pending
-    ? [`${pending} ${pending === 1 ? 'review is' : 'reviews are'} waiting`, 'Approve what customers wrote', 'Reply and build trust']
-    : ['Everything is moderated', 'No reviews waiting', 'Nice and tidy'];
-
   /* ---------- review list ---------- */
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -139,13 +133,6 @@ export default function Reviews() {
         (n) => setNotice(`Updated the rating of ${n} ${n === 1 ? 'product' : 'products'}.`),
         () => {}
       );
-  };
-
-  const showPending = () => {
-    setTab('reviews');
-    setStatusLabel(STATUS_META.pending.label);
-    setSort('Oldest');
-    setVisible(PAGE);
   };
 
   const confirmDelete = async () => {
@@ -228,37 +215,6 @@ export default function Reviews() {
           <button type="button" onClick={() => setNotice('')} className="font-medium underline">Dismiss</button>
         </div>
       )}
-
-      {/* Big moderation button */}
-      <button
-        type="button"
-        onClick={showPending}
-        className="group relative isolate flex w-full items-center gap-4 overflow-hidden rounded-2xl border border-border bg-surface p-5 text-left text-text transition-all duration-300 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.99] sm:gap-6 sm:p-7"
-      >
-        <span aria-hidden="true" className="pointer-events-none absolute -right-12 -top-14 h-44 w-44 rounded-full bg-surface-alt transition-transform duration-700 group-hover:scale-125" />
-        <span aria-hidden="true" className="pointer-events-none absolute -bottom-16 right-28 hidden h-32 w-32 animate-float rounded-full bg-surface-alt/60 sm:block" />
-        <span aria-hidden="true" className="pointer-events-none absolute inset-x-0 bottom-0 h-1 origin-left scale-x-0 bg-accent transition-transform duration-500 group-hover:scale-x-100" />
-
-        <span className="relative grid h-14 w-14 shrink-0 place-items-center sm:h-16 sm:w-16">
-          {pending > 0 && <span aria-hidden="true" className="absolute inset-0 animate-ring rounded-2xl border-2 border-accent" />}
-          <span className="grid h-full w-full place-items-center rounded-2xl border border-border bg-surface-alt transition-transform duration-500 ease-out group-hover:-rotate-6 group-hover:scale-105">
-            <AppIcon name="reviews" entity="review" hueRotate={false} className="size-10 object-contain sm:size-12" />
-          </span>
-        </span>
-
-        <span className="relative min-w-0 flex-1">
-          <span className="block text-[11px] font-semibold uppercase tracking-[0.18em] text-muted">Moderation desk</span>
-          <span className="heading mt-1 block min-h-[1.6em] truncate text-xl sm:text-3xl">
-            <Typewriter key={pending} phrases={phrases} />
-          </span>
-          <span className="mt-0.5 hidden text-sm text-muted sm:block">Approve, reject or reply so only the reviews you trust reach your product pages.</span>
-        </span>
-
-        <span className="relative hidden shrink-0 items-center gap-2 rounded-full border border-border bg-surface-alt px-5 py-2.5 text-sm font-semibold text-text transition-transform duration-300 group-hover:scale-105 sm:inline-flex">
-          Review pending
-          <ArrowRight size={16} className="group-hover:animate-nudge" />
-        </span>
-      </button>
 
       {/* quick operations */}
       <div className="flex flex-wrap gap-2">
