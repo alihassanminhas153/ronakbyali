@@ -11,7 +11,7 @@ const DEFAULT_CLASS =
 
 // Logs out (clears every user slice via isSessionEnded) and goes to the sign-in page.
 // Pass `className` to restyle it, e.g. as a sidebar row.
-export default function LogoutButton({ className = DEFAULT_CLASS }) {
+export default function LogoutButton({ className = DEFAULT_CLASS, redirectTo = PATHS.signin }) {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const [busy, setBusy] = useState(false);
@@ -22,7 +22,7 @@ export default function LogoutButton({ className = DEFAULT_CLASS }) {
     const result = await dispatch(logout());
     setBusy(false);
     if (logout.fulfilled.match(result)) {
-      navigate(PATHS.signin, { replace: true });
+      navigate(redirectTo, { replace: true });
     }
   };
 

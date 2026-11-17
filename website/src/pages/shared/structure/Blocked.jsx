@@ -5,6 +5,7 @@ import { useAppSelector } from '../../../store/slices/hooks';
 import { selectMe } from '../../../store/slices/userSlice';
 import BlockedArt from '../../../ui/art/BlockedArt';
 import useEntered from '../../../ui/custom/motion/useEntered';
+import { PATHS } from '../../../router/path';
 import LogoutButton from '../auth/LogoutButton';
 
 // Set these in .env (Vite):  VITE_SUPPORT_EMAIL=...   VITE_SUPPORT_PHONE=...
@@ -75,7 +76,7 @@ export default function Blocked() {
         </div>
 
         <div className="mt-6 flex justify-center">
-          <LogoutButton className={LOGOUT_CLASS} />
+          <LogoutButton className={LOGOUT_CLASS} redirectTo={PATHS.home} />
         </div>
       </section>
     </main>

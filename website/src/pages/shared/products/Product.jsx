@@ -29,7 +29,7 @@ import {
   getProductImageUrls,
   getMainImageUrl,
 } from "../../../store/slices/productsSlice";
-import { PATHS } from "../../../router/path";
+import { PATHS, PRODUCT_LIST_ALIASES } from "../../../router/path";
 import { LOGIN_REQUIRED } from "../../../store/slices/utils";
 import AlertPopupHost from "../../../components/shared/AlertPopupHost";
 import {
@@ -60,6 +60,19 @@ const money = (v) => `Rs ${Number(v || 0).toLocaleString("en-PK")}`;
 const LOW_STOCK_AT = 5;
 const MAX_QTY_WITHOUT_LIMIT = 10;
 const REVIEW_PAGE_SIZE = 10;
+const RESERVED_SHORT_PRODUCT_SLUGS = new Set([
+  ...PRODUCT_LIST_ALIASES,
+  "products",
+  "p",
+  "team",
+  "contact",
+  "privacy",
+  "disclaimer",
+  "faqs",
+  "custom-studio",
+  "create-account",
+  "welcome-back",
+]);
 
 const formatRemaining = (count, cap) => {
   const amount = Number(count);
@@ -518,9 +531,12 @@ function Details({ product }) {
   // Optimistic: the heart flips at once and rolls back if saving fails.
   const handleWish = () => dispatch(toggleWishlist({ productId: product.$id }));
   const copyProductLink = async () => {
+    const path = RESERVED_SHORT_PRODUCT_SLUGS.has(product.slug)
+      ? PATHS.product(product.category, product.group, product.slug)
+      : PATHS.productShort(product.slug);
     const success = await copy(
       "product-link",
-      new URL(PATHS.productShort(product.slug), window.location.origin).toString()
+      new URL(path, window.location.origin).toString()
     );
     setCopyError(!success);
   };
