@@ -1,5 +1,12 @@
 import { useState } from 'react';
 
+const authImages = import.meta.glob('../../../assets/auth/auth.webp', {
+  eager: true,
+  import: 'default',
+  query: '?url',
+});
+const AUTH_IMAGE = Object.values(authImages)[0] || '';
+
 // One small entrance for the form and a slow drift for the background glow on the image side.
 // Both are switched off for people who prefer reduced motion.
 const CSS = `
@@ -16,15 +23,12 @@ const CSS = `
 //
 // The frame is fixed over the whole viewport, so the site header/footer from the layout
 // never shows on these pages.
-//
-// `image` is a path inside your /public folder (default /auth-side.jpg). If the file is
-// missing, a themed gradient is shown instead.
 export default function AuthShell({
   title,
   subtitle,
   children,
   footer,
-  image = '/auth-side.jpg',
+  image = AUTH_IMAGE,
   imageTitle,
   imageText,
 }) {

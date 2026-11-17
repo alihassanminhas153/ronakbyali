@@ -6,7 +6,6 @@ import {
   ORDER_STATUS,
   PAYMENT_METHODS,
   PAYMENT_STATUS,
-  addTrackerUpdate,
   deleteLatestOrderDetail,
   clearStaffWarning,
   clearTrackerError,
@@ -26,18 +25,16 @@ import {
   setOrderTracking,
   setTrackerLink,
   updateOrderFields,
+  updateOrderConfirmation,
   updateOrderPayment,
   updateOrderStatus,
   updateStaffCustomOrder,
 } from '../../../store/slices/ordersSlice';
 import { editableKeysFor } from '../../../lib/appwrite/order';
-import { UPDATE_PRESETS } from '../../../lib/appwrite/tracker';
 import customOrderService from '../../../lib/appwrite/customOrder';
 import ConfirmDialog from '../../../ui/custom/modal/ConfirmDialog';
-import Modal from '../../../ui/custom/modal/Modal';
 import SelectInput from '../../../ui/custom/input/SelectInput';
 import TextInput from '../../../ui/custom/input/TextInput';
-import { addToast } from '../../../store/slices/uiSlice';
 
 import { DrawerShell, Field, ReadValue, Section, inputCls } from './FormParts';
 import { DeliveryChip } from './OrderBadges';
@@ -45,6 +42,10 @@ import OrderTracker from './OrderTracker';
 import { METHOD_LABEL, PAYMENT_META, STATUS_META, fullDate, money } from './orderMeta';
 
 const STATUS_CHOICES = ORDER_STATUS.map((v) => ({ value: v, label: STATUS_META[v].label, tone: STATUS_META[v].tone }));
+const CONFIRMATION_CHOICES = [
+  { value: 'false', label: 'Not confirmed' },
+  { value: 'true', label: 'Confirmed' },
+];
 const PAYMENT_CHOICES = PAYMENT_STATUS.map((v) => ({ value: v, label: PAYMENT_META[v].label, tone: PAYMENT_META[v].tone }));
 const METHOD_CHOICES = PAYMENT_METHODS.map((v) => ({ value: v, label: METHOD_LABEL[v], tone: 1 }));
 const CUSTOM_STATUS_CHOICES = [
@@ -83,15 +84,15 @@ const toLocal = (iso) => {
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
 };
 
-const fromOrder = (o = {}) => ({
-  customerName: o.customerName || '',
-  customerPhone: o.customerPhone || '',
-  customerEmail: o.customerEmail || '',
-  city: o.city || '',
-  address: o.address || '',
-  paymentMethod: o.paymentMethod || 'cod',
-  deliveryTime: o.deliveryTime || '',
-  estimatedDelivery: toLocal(o.estimatedDelivery),
+const fromOrder = (o) => ({
+  customerName: o?.customerName || '',
+  customerPhone: o?.customerPhone || '',
+  customerEmail: o?.customerEmail || '',
+  city: o?.city || '',
+  address: o?.address || '',
+  paymentMethod: o?.paymentMethod || 'cod',
+  deliveryTime: o?.deliveryTime || '',
+  estimatedDelivery: toLocal(o?.estimatedDelivery),
 });
 
 // Plain buttons (global .btn classes), so nothing depends on another component's props.
@@ -136,16 +137,13 @@ export default function OrderForm({ open, orderId, onClose }) {
   const [form, setForm] = useState(() => fromOrder(order));
   const base = useRef(fromOrder(order));
   const [nextStatus, setNextStatus] = useState(order?.status || 'pending');
+  const [nextConfirmation, setNextConfirmation] = useState(order?.isConfirmed ? 'true' : 'false');
   const [nextPayment, setNextPayment] = useState(order?.paymentStatus || 'unpaid');
   const [trackingId, setTrackingId] = useState(order?.trackingId || '');
   const [link, setLink] = useState('');
-  const [title, setTitle] = useState('');
-  const [note, setNote] = useState('');
   const [adminNotes, setAdminNotes] = useState(order?.adminNotes || '');
   const [detailDraft, setDetailDraft] = useState('');
   const [confirmOpen, setConfirmOpen] = useState(false);
-  const [confirmationOpen, setConfirmationOpen] = useState(false);
-  const [confirmation, setConfirmation] = useState({ contactMethod: '', paymentProtocol: '', notes: '' });
   const [deleteDetailOpen, setDeleteDetailOpen] = useState(false);
   const [customStatus, setCustomStatus] = useState('requested');
   const [customContactMethod, setCustomContactMethod] = useState('');
@@ -179,8 +177,9 @@ export default function OrderForm({ open, orderId, onClose }) {
 
   useEffect(() => {
     setNextStatus(order?.status || 'pending');
+    setNextConfirmation(order?.isConfirmed ? 'true' : 'false');
     setNextPayment(order?.paymentStatus || 'unpaid');
-  }, [order?.status, order?.paymentStatus]);
+  }, [order?.status, order?.isConfirmed, order?.paymentStatus]);
   useEffect(() => { setTrackingId(order?.trackingId || ''); }, [order?.trackingId]);
   useEffect(() => { setAdminNotes(order?.adminNotes || ''); }, [order?.adminNotes]);
   useEffect(() => { setLink(tracker?.link || ''); }, [tracker?.link]);
@@ -215,31 +214,20 @@ export default function OrderForm({ open, orderId, onClose }) {
     }
   };
 
-  const saveStatus = async (confirmationData = {}) => {
+  const saveStatus = async () => {
     const ok = await run('status', updateOrderStatus({
       orderId,
       status: nextStatus,
-      confirmation: { ...confirmationData, confirmedBy },
     }), 'Status updated');
     if (ok) setConfirmOpen(false);
-    if (ok) setConfirmationOpen(false);
   };
   const onStatusClick = () => {
-    if (nextStatus === 'confirmed') {
-      setConfirmationOpen(true);
-      return;
-    }
     if (CONFIRM_STATUSES.includes(nextStatus)) setConfirmOpen(true);
     else saveStatus();
   };
 
   const saveCustomStatus = async () => {
     if (!customOrder) return;
-    if (customStatus === 'confirmed') {
-      setNextStatus('confirmed');
-      setConfirmationOpen(true);
-      return;
-    }
     const mapped = { in_progress: 'processing', ready: 'shipped', cancelled: 'cancelled' }[customStatus];
     if (mapped && mapped !== order.status) {
       setNextStatus(mapped);
@@ -271,6 +259,11 @@ export default function OrderForm({ open, orderId, onClose }) {
   };
 
   const savePayment = () => run('payment', updateOrderPayment({ orderId, paymentStatus: nextPayment }), 'Payment updated');
+  const saveConfirmation = () => run('confirmation', updateOrderConfirmation({
+    orderId,
+    isConfirmed: nextConfirmation === 'true',
+    confirmedBy,
+  }), 'Confirmation updated');
 
   const saveDetails = () => {
     const data = {};
@@ -285,16 +278,9 @@ export default function OrderForm({ open, orderId, onClose }) {
     if (linkDirty) await run('tracking', setTrackerLink({ orderId, link }), 'Tracking saved');
   };
 
-  const addUpdate = async () => {
-    if (await run('step', addTrackerUpdate({ orderId, title, note }), 'Step added to the timeline')) {
-      setTitle('');
-      setNote('');
-    }
-  };
   const postDetail = async () => {
-    if (await run('detail', postOrderDetail({ orderId, detail: detailDraft }), 'Update posted')) {
+    if (await run('detail', postOrderDetail({ orderId, detail: detailDraft }), 'Customer update posted')) {
       setDetailDraft('');
-      dispatch(addToast({ type: 'success', message: 'Update posted' }));
     }
   };
   const deleteDetail = async () => {
@@ -385,7 +371,7 @@ export default function OrderForm({ open, orderId, onClose }) {
           </Section>
         )}
 
-        <Section title="Status and payment" subtitle="Pick one, then confirm" appIcon="donut_chart" tone={1}>
+        <Section title="Status and payment" subtitle="Delivery status and order confirmation are managed separately" appIcon="donut_chart" tone={1}>
           <Field label="Order status" className="sm:col-span-2">
             <SelectInput aria-label="Order status" value={nextStatus} onChange={setNextStatus} options={STATUS_CHOICES} size="md" />
             {statusDirty && (
@@ -399,6 +385,24 @@ export default function OrderForm({ open, orderId, onClose }) {
             <p className="mt-2 text-xs text-muted">
               Shipped and delivered take the items off stock. A delivered cash on delivery order is marked paid.
             </p>
+          </Field>
+          <Field label="Order confirmation" className="sm:col-span-2">
+            <SelectInput
+              aria-label="Order confirmation"
+              value={nextConfirmation}
+              onChange={setNextConfirmation}
+              options={CONFIRMATION_CHOICES}
+              size="md"
+            />
+            {nextConfirmation !== (order.isConfirmed ? 'true' : 'false') && (
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                <Btn primary busy={busy === 'confirmation'} onClick={saveConfirmation}>
+                  Set as {nextConfirmation === 'true' ? 'confirmed' : 'not confirmed'}
+                </Btn>
+                <Btn onClick={() => setNextConfirmation(order.isConfirmed ? 'true' : 'false')}>Undo</Btn>
+              </div>
+            )}
+            {order.confirmedAt && <p className="mt-2 text-xs text-muted">Confirmed {fullDate(order.confirmedAt)}</p>}
           </Field>
           <Field label="Payment" className="sm:col-span-2">
             <SelectInput aria-label="Payment status" value={nextPayment} onChange={setNextPayment} options={PAYMENT_CHOICES} size="md" />
@@ -427,43 +431,19 @@ export default function OrderForm({ open, orderId, onClose }) {
             </Btn>
           </div>
 
-          <Field label="Add a step to the timeline" className="sm:col-span-2">
-            <div className="mb-2 flex flex-wrap gap-1.5">
-              {UPDATE_PRESETS.map((p) => (
-                <button
-                  key={p}
-                  type="button"
-                  onClick={() => setTitle(p)}
-                  className={`rounded-full border px-2.5 py-1 text-xs transition-colors ${
-                    title === p ? 'border-accent-tone-2 bg-accent-tone-2/10 text-text' : 'border-border bg-surface text-muted hover:border-accent-tone-2/60 hover:text-text'
-                  }`}
-                >
-                  {p}
-                </button>
-              ))}
-            </div>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <input value={title} onChange={(e) => setTitle(e.target.value)} maxLength={150} placeholder="Title" aria-label="Step title" className={inputCls()} />
-              <input value={note} onChange={(e) => setNote(e.target.value)} maxLength={500} placeholder="Note (optional)" aria-label="Step note" className={inputCls()} />
-            </div>
-            <div className="mt-3">
-              <Btn busy={busy === 'step'} disabled={!title.trim()} onClick={addUpdate}>Add step</Btn>
-            </div>
-          </Field>
-
           <div className="sm:col-span-2">
             <OrderTracker order={order} tracker={tracker} loading={!tracker && !trackerError} />
           </div>
           <div className="space-y-2 sm:col-span-2">
             <TextInput
-              label="Order detail"
+              label="Customer-visible tracking update"
               value={detailDraft}
               onChange={(event) => setDetailDraft(event.target.value)}
               maxLength={300}
               showCount
-              hint="Visible to the customer in their order details."
+              hint="This is appended to the tracking timeline and shown to the customer."
             />
-            <Btn primary busy={busy === 'detail'} disabled={!detailDraft.trim()} onClick={postDetail}>Post update</Btn>
+            <Btn primary busy={busy === 'detail'} disabled={!detailDraft.trim()} onClick={postDetail}>Post customer update</Btn>
             {tracker?.updates?.[0]?.kind === 'detail' && (
               <button type="button" onClick={() => setDeleteDetailOpen(true)} className="ml-2 text-sm text-error underline">
                 Delete latest update
@@ -600,25 +580,6 @@ export default function OrderForm({ open, orderId, onClose }) {
         onConfirm={() => saveStatus()}
         onCancel={() => setConfirmOpen(false)}
       />
-      <Modal
-        open={confirmationOpen}
-        onClose={() => setConfirmationOpen(false)}
-        title="Confirm order"
-        description="Record how the customer will be contacted and how payment was discussed."
-        busy={busy === 'status'}
-        footer={
-          <div className="flex justify-end gap-2">
-            <Btn onClick={() => setConfirmationOpen(false)}>Cancel</Btn>
-            <Btn primary busy={busy === 'status'} onClick={() => saveStatus(confirmation)}>Confirm order</Btn>
-          </div>
-        }
-      >
-        <div className="space-y-4">
-          <SelectInput label="Contact method" value={confirmation.contactMethod} onChange={(contactMethod) => setConfirmation((current) => ({ ...current, contactMethod }))} options={CONTACT_CHOICES} placeholder="Optional" clearable size="md" />
-          <TextInput label="Payment protocol" as="textarea" rows={3} maxLength={1000} value={confirmation.paymentProtocol} onChange={(event) => setConfirmation((current) => ({ ...current, paymentProtocol: event.target.value }))} hint="How the advance will be paid (optional)." />
-          <TextInput label="Notes" as="textarea" rows={2} maxLength={1000} value={confirmation.notes} onChange={(event) => setConfirmation((current) => ({ ...current, notes: event.target.value }))} />
-        </div>
-      </Modal>
       <ConfirmDialog
         open={deleteDetailOpen}
         danger

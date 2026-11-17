@@ -284,7 +284,7 @@ export default function Reviews() {
       {/* ---------------- Reviews ---------------- */}
       {tab === 'reviews' && (
         <TabPanel key="reviews" className="space-y-6">
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_10rem_9rem_13rem_10rem]">
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_10rem_9rem_13rem_10rem]">
             <SearchInput size="sm" value={search} onSearch={onSearch} placeholder="Search review, product, customer" label="Search reviews" className="sm:col-span-2 lg:col-span-1" />
             <SearchSelect aria-label="Filter by status" options={STATUS_LABELS} value={statusLabel} onChange={(v) => { setStatusLabel(v); setVisible(PAGE); }} creatable={false} placeholder="All statuses" searchPlaceholder="Search statuses…" />
             <SearchSelect aria-label="Filter by rating" options={RATING_LABELS} value={ratingLabel} onChange={(v) => { setRatingLabel(v); setVisible(PAGE); }} creatable={false} placeholder="All ratings" searchPlaceholder="Search ratings…" />

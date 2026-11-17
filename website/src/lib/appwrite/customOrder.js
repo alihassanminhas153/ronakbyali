@@ -10,7 +10,6 @@ const CUSTOM_STATUSES = ['requested', 'contacted', 'confirmed', 'in_progress', '
 const CONTACT_METHODS = ['whatsapp', 'call', 'email', 'other'];
 const IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
 const MAX_FILE_BYTES = 5 * 1024 * 1024;
-const STAFF_LABELS = ['admin', 'support', 'manager'];
 
 const parseJsonArray = (value) => {
     if (Array.isArray(value)) return value;
@@ -136,9 +135,11 @@ export class CustomOrderService {
             fileIds = await this.uploadReferences(files);
             if (fileIds === false) return false;
 
+            const customOrderId = ID.unique();
             order = await orderService.placeOrder({
                 profile,
                 custom: true,
+                customOrderId,
                 items: [{
                     productId: product.$id,
                     name: product.name,
@@ -163,18 +164,11 @@ export class CustomOrderService {
             });
             if (!order) throw new Error(orderService.lastError || 'Could not place your customization request.');
 
-            const permissions = [
-                Permission.read(Role.user(profile.$id)),
-                ...STAFF_LABELS.flatMap((label) => [
-                    Permission.read(Role.label(label)),
-                    Permission.update(Role.label(label)),
-                ]),
-            ];
-            await this.table.createRow({
+            const customOrder = await this.table.createRow({
                 databaseId: this.databaseId,
                 tableId: this.tableId,
-                rowId: ID.unique(),
-                permissions,
+                rowId: customOrderId,
+                permissions: [Permission.read(Role.user(profile.$id))],
                 data: {
                     orderId: order.$id,
                     orderNumber: order.orderNumber,
@@ -192,14 +186,15 @@ export class CustomOrderService {
                     isCustom: true,
                 },
             });
-            return order;
+            if (!customOrder?.$id) throw new Error('Could not save the custom-order details.');
+            return { ...order, customization: customOrder.$id };
         } catch (error) {
             if (order) {
-                await Promise.allSettled([
-                    this.deleteForOrder(order.$id),
-                    orderService.deleteOrder(order.$id),
-                    orderService._syncProfileCounts(order, order.status, 'cancelled'),
-                ]);
+                const cancelled = await orderService.cancelFailedCustomOrder({
+                    userId: profile.$id,
+                    orderId: order.$id,
+                });
+                if (!cancelled) console.error(orderService.lastError || 'Could not cancel the incomplete custom order.');
             }
             if (fileIds.length) await Promise.allSettled(fileIds.map((id) => productService.deleteImage(id)));
             return this._fail(error.message || 'Could not place your customization request.', error);

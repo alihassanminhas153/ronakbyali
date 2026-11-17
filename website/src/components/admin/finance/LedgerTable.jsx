@@ -70,8 +70,8 @@ export default function LedgerTable({ entries = [], onEdit, onDelete }) {
         ))}
       </ul>
 
-      <div className="hidden overflow-hidden rounded-lg border border-border bg-surface md:block">
-        <table className="w-full text-left">
+      <div className="hidden overflow-x-auto rounded-lg border border-border bg-surface md:block">
+        <table className="w-full min-w-[48rem] text-left">
           <thead className="bg-surface-alt/60 text-xs text-muted">
             <tr>
               <th className="px-4 py-3 font-medium">Date</th>

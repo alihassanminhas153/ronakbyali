@@ -21,7 +21,7 @@ export const PERIODS = [
 const num = (v) => Number(v) || 0;
 const sum = (arr, fn) => arr.reduce((s, x) => s + fn(x), 0);
 const DAY = 864e5;
-export const OPEN_STATUSES = ['pending', 'confirmed', 'processing', 'shipped'];
+export const OPEN_STATUSES = ['pending', 'processing', 'shipped'];
 export const LOST_STATUSES = ['cancelled', 'returned'];
 
 export function parseItems(row) {

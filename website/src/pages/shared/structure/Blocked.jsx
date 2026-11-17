@@ -1,8 +1,9 @@
 import { useEffect } from 'react';
-import { Ban, Mail, Phone } from 'lucide-react';
+import { Mail, Phone } from 'lucide-react';
 
 import { useAppSelector } from '../../../store/slices/hooks';
 import { selectMe } from '../../../store/slices/userSlice';
+import BlockedArt from '../../../ui/art/BlockedArt';
 import useEntered from '../../../ui/custom/motion/useEntered';
 import LogoutButton from '../auth/LogoutButton';
 
@@ -40,9 +41,7 @@ export default function Blocked() {
           entered ? 'translate-y-0 opacity-100' : 'translate-y-3 opacity-0'
         }`}
       >
-        <div className="mx-auto flex size-14 items-center justify-center rounded-full border border-error/30 bg-error/10 text-error">
-          <Ban size={26} aria-hidden="true" />
-        </div>
+        <BlockedArt className="mx-auto w-56 sm:w-64" decorative />
 
         <h1 id="blocked-title" className="mt-5 text-xl font-semibold">
           Your account is blocked

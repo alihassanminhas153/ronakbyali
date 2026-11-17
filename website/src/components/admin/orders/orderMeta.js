@@ -1,10 +1,9 @@
-import { CheckCircle2, Clock, Cog, PackageCheck, Truck, Undo2, XCircle } from 'lucide-react';
+import { Clock, Cog, PackageCheck, Truck, Undo2, XCircle } from 'lucide-react';
 import { entityColorStep, toneColor } from '../../../lib/entityColors';
 
 // tone = the theme accent shade used by the badge, tab, and timeline dot
 export const STATUS_META = {
   pending: { label: 'Pending', tone: entityColorStep('orderStatus', 'pending'), icon: Clock },
-  confirmed: { label: 'Confirmed', tone: entityColorStep('orderStatus', 'confirmed'), icon: CheckCircle2 },
   processing: { label: 'Processing', tone: entityColorStep('orderStatus', 'processing'), icon: Cog },
   shipped: { label: 'Shipped', tone: entityColorStep('orderStatus', 'shipped'), icon: Truck },
   delivered: { label: 'Delivered', tone: entityColorStep('orderStatus', 'delivered'), icon: PackageCheck },

@@ -25,7 +25,7 @@ const SECTIONS = [
   {
     title: "How we use it",
     text: [
-      "We use your details to make, pack and deliver your order, to contact you about it by email or WhatsApp, to keep your account safe, and to improve the shop.",
+      "We use your details to make, pack and deliver your order, and to contact you by phone, email or WhatsApp to confirm your order and share updates. Please enter a current phone number, email address and other contact details so we can reach you; incorrect or incomplete details may delay order confirmation or delivery.",
       "We do not sell your personal information.",
     ],
   },

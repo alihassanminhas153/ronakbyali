@@ -151,6 +151,11 @@ export default function Orders() {
     [rows, filters]
   );
   const orderIds = useMemo(() => orders.map((order) => order.$id), [orders]);
+  const confirmedRows = useMemo(() => rows.filter((order) => order.isConfirmed), [rows]);
+  const confirmationByOrder = useMemo(
+    () => new Map(confirmedOrders.map((confirmation) => [confirmation.orderId, confirmation])),
+    [confirmedOrders]
+  );
 
   useEffect(() => {
     if (orderIds.length) dispatch(fetchTrackerDetails(orderIds));
@@ -163,7 +168,7 @@ export default function Orders() {
       if (view === 'confirmed') {
         await Promise.all([
           dispatch(fetchStaffConfirmedOrders({ limit: 100, offset: 0 })),
-          dispatch(fetchStaffOrders({ status: 'confirmed', limit: 100, offset: 0 })),
+          dispatch(fetchStaffOrders({ isConfirmed: true, limit: 100, offset: 0 })),
         ]);
       } else {
         await Promise.all([load(filters), dispatch(fetchStaffCounts()), dispatch(fetchStaffOrderAnalytics())]);
@@ -177,7 +182,7 @@ export default function Orders() {
     setView('confirmed');
     await Promise.all([
       dispatch(fetchStaffConfirmedOrders({ limit: 100, offset: 0 })),
-      dispatch(fetchStaffOrders({ status: 'confirmed', limit: 100, offset: 0 })),
+      dispatch(fetchStaffOrders({ isConfirmed: true, limit: 100, offset: 0 })),
     ]);
   };
   const openOrders = () => {
@@ -252,7 +257,7 @@ export default function Orders() {
       <Tabs
         tabs={[
           { id: 'orders', label: 'Orders', icon: ListOrdered },
-          { id: 'confirmed', label: 'Confirmed orders', badge: confirmedOrders.length || undefined },
+          { id: 'confirmed', label: 'Confirmed orders', badge: confirmedRows.length || undefined },
         ]}
         value={view}
         onChange={(selected) => selected === 'confirmed' ? openConfirmedOrders() : openOrders()}
@@ -263,7 +268,7 @@ export default function Orders() {
       <Tabs iconOnly tabs={tabs} value={filters.status || 'all'} onChange={(id) => applyFilters({ status: id === 'all' ? '' : id })} />
 
       <TabPanel key={filters.status || 'all'} className="space-y-6">
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_12rem_12rem_12rem_12rem]">
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_12rem_12rem_12rem_12rem]">
           <SearchInput
             size="sm"
             value={filters.term}
@@ -271,7 +276,7 @@ export default function Orders() {
             loading={loading && searching}
             placeholder="Search order no., name, phone, tracking"
             label="Search orders"
-            className="sm:col-span-2 lg:col-span-1"
+            className="sm:col-span-2 xl:col-span-1"
           />
           <SelectInput
             size="sm"
@@ -353,11 +358,16 @@ export default function Orders() {
             <h2 className="font-display text-xl font-semibold text-text">Confirmed orders</h2>
             <p className="mt-1 text-sm text-muted">Confirmation records for normal and customized orders.</p>
           </div>
-          {confirmedStatus === 'failed' ? (
-            <p role="alert" className="p-5 text-sm text-error">{confirmedError || 'Could not load confirmed orders.'}</p>
-          ) : confirmedStatus === 'loading' ? (
+          {confirmedStatus === 'failed' && (
+            <p role="alert" className="border-b border-error/30 bg-error/5 p-4 text-sm text-error">
+              Confirmation details could not be loaded: {confirmedError || 'Please refresh to try again.'}
+            </p>
+          )}
+          {status === 'failed' && !rows.length ? (
+            <p role="alert" className="p-5 text-sm text-error">{error || 'Could not load confirmed orders.'}</p>
+          ) : status === 'loading' && !rows.length ? (
             <p role="status" className="p-5 text-sm text-muted">Loading confirmed orders…</p>
-          ) : confirmedOrders.length === 0 ? (
+          ) : confirmedRows.length === 0 ? (
             <p className="p-8 text-center text-sm text-muted">No confirmed orders yet.</p>
           ) : (
             <div className="overflow-x-auto">
@@ -366,20 +376,20 @@ export default function Orders() {
                   <tr><th className="px-4 py-3 font-medium">Order</th><th className="px-4 py-3 font-medium">Customer</th><th className="px-4 py-3 font-medium">Total</th><th className="px-4 py-3 font-medium">Contact</th><th className="px-4 py-3 font-medium">Confirmed</th></tr>
                 </thead>
                 <tbody className="divide-y divide-border">
-                  {confirmedOrders.map((confirmation) => {
-                    const matchingOrder = rows.find((row) => row.$id === confirmation.orderId);
+                  {confirmedRows.map((matchingOrder) => {
+                    const confirmation = confirmationByOrder.get(matchingOrder.$id);
                     return (
-                      <tr key={confirmation.$id}>
+                      <tr key={matchingOrder.$id}>
                         <td className="px-4 py-3">
                           <button type="button" onClick={() => matchingOrder && openOrder(matchingOrder)} disabled={!matchingOrder} className="font-semibold text-text hover:text-accent disabled:cursor-default">
-                            {confirmation.orderNumber || 'Order'}
+                            {matchingOrder.orderNumber || 'Order'}
                           </button>
-                          {confirmation.isCustom && <span className="ml-2 rounded-full bg-accent-tone-6/10 px-2 py-0.5 text-xs font-medium text-accent-tone-6">Custom</span>}
+                          {matchingOrder.isCustom && <span className="ml-2 rounded-full bg-accent-tone-6/10 px-2 py-0.5 text-xs font-medium text-accent-tone-6">Custom</span>}
                         </td>
                         <td className="px-4 py-3 text-text">{matchingOrder?.customerName || '—'}</td>
-                        <td className="px-4 py-3 tabular-nums text-text">{`Rs ${Number(confirmation.total || 0).toLocaleString('en-PK')}`}</td>
-                        <td className="px-4 py-3 capitalize text-muted">{confirmation.contactMethod || '—'}</td>
-                        <td className="px-4 py-3 text-muted">{confirmation.confirmedAt ? new Date(confirmation.confirmedAt).toLocaleString() : '—'}</td>
+                        <td className="px-4 py-3 tabular-nums text-text">{`Rs ${Number(matchingOrder.total || 0).toLocaleString('en-PK')}`}</td>
+                        <td className="px-4 py-3 capitalize text-muted">{confirmation?.contactMethod || '—'}</td>
+                        <td className="px-4 py-3 text-muted">{matchingOrder.confirmedAt ? new Date(matchingOrder.confirmedAt).toLocaleString() : '—'}</td>
                       </tr>
                     );
                   })}

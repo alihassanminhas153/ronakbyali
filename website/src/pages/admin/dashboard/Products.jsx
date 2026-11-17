@@ -228,7 +228,7 @@ export default function Products() {
 
       {tab === 'products' && (
         <TabPanel key="products" className="space-y-6">
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_12rem_12rem_12rem_12rem]">
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_12rem_12rem_12rem_12rem]">
             <SearchInput
               size="sm"
               value={filters.searchTerm}
@@ -236,7 +236,7 @@ export default function Products() {
               loading={loading && Boolean(filters.searchTerm)}
               placeholder="Search name, category, tags"
               label="Search products"
-              className="sm:col-span-2 lg:col-span-1"
+              className="sm:col-span-2 xl:col-span-1"
             />
             <SelectInput
               size="sm"

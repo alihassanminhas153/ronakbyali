@@ -279,14 +279,14 @@ export default function Alerts() {
 
       {tab === 'alerts' && (
         <TabPanel key="alerts" className="space-y-6">
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_11rem_11rem_11rem_11rem]">
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_11rem_11rem_11rem_11rem]">
             <SearchInput
               size="sm"
               value={search}
               onSearch={onSearch}
               placeholder="Search title and message"
               label="Search alerts"
-              className="sm:col-span-2 lg:col-span-1"
+              className="sm:col-span-2 xl:col-span-1"
             />
             <SelectInput
               size="sm"

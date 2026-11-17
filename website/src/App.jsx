@@ -153,8 +153,8 @@ export default function App() {
     <ToastViewport />
     <RouteErrorBoundary>
     <Routes>
-      {/* Pathless layout route ABOVE every other route: a blocked user sees only the
-          Blocked page, whatever URL they type. */}
+      {/* Pathless layout route ABOVE every other route: blocked users may see Home;
+          every other URL is replaced by the Blocked page. */}
       <Route element={<BlockedGate />}>
         {/* ---------- Home: the only page that keeps the site header ---------- */}
         <Route element={<MainLayout pages={SITE_PAGES} />}>

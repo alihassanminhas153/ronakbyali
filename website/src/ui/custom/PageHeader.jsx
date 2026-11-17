@@ -10,13 +10,17 @@ export default function PageHeader({ art, title, subtitle, actions, className = 
 
   return (
     <header className={`rounded-2xl border border-border bg-surface p-4 sm:p-6 ${className}`}>
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+      <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-center">
         {artNode && <div className="shrink-0">{artNode}</div>}
         <div className="min-w-0 flex-1">
           <h1 className="font-display text-3xl font-bold tracking-wide text-text sm:text-4xl">{title}</h1>
           {subtitle ? <p className="mt-1 text-sm text-muted">{subtitle}</p> : null}
         </div>
-        {actions ? <div className="flex flex-wrap items-center justify-start gap-2 sm:justify-end">{actions}</div> : null}
+        {actions ? (
+          <div className="flex min-w-0 max-w-full flex-wrap items-center justify-start gap-2 sm:ml-auto sm:justify-end [&>div]:min-w-0 [&>div]:max-w-full [&>div]:flex-wrap">
+            {actions}
+          </div>
+        ) : null}
       </div>
     </header>
   );

@@ -23,7 +23,7 @@ export const ALL_FAQS = [
   },
   {
     q: "Which payment methods do you accept?",
-    a: "You can pay online by card or bank transfer, or choose cash on delivery on ready-made pieces.",
+    a: "Advance payments are made by bank transfer or supported online payment apps; we do not take advance payments by card. Cash on delivery is available on ready-made pieces.",
   },
   {
     q: "Do you offer discounts?",

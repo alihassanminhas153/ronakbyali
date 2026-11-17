@@ -527,9 +527,18 @@ const afterStatus = (a, dispatch) => Promise.all([refreshTimeline(a, dispatch), 
 
 export const updateOrderStatus = staffThunk(
   'orders/staffStatus',
-  ({ orderId, status, confirmation }) => orderService.updateStatus(orderId, status, { confirmation }),
+  ({ orderId, status }) => orderService.updateStatus(orderId, status),
   'Could not change the status.',
   afterStatus
+);
+export const updateOrderConfirmation = staffThunk(
+  'orders/staffConfirmation',
+  ({ orderId, isConfirmed, confirmedBy }) => orderService.updateConfirmationStatus(orderId, isConfirmed, { confirmedBy }),
+  'Could not update the order confirmation.',
+  (arg, dispatch) => Promise.all([
+    refreshTimeline(arg, dispatch),
+    dispatch(fetchStaffConfirmedOrders({ limit: 100, offset: 0 })),
+  ])
 );
 export const updateOrderPayment = staffThunk(
   'orders/staffPayment',
@@ -555,7 +564,7 @@ export const updateOrderFields = staffThunk(
   refreshTimeline
 );
 
-const staffEdits = [updateOrderStatus, updateOrderPayment, setOrderTracking, setOrderAdminNotes, updateOrderFields];
+const staffEdits = [updateOrderStatus, updateOrderConfirmation, updateOrderPayment, setOrderTracking, setOrderAdminNotes, updateOrderFields];
 
 /* ---------- slice ---------- */
 
@@ -836,6 +845,9 @@ const ordersSlice = createSlice({
         .addCase(thunk.fulfilled, (state, action) => {
           state.tracker.saving = false;
           trackerAdapter.upsertOne(state.tracker, action.payload);
+          if (action.payload.detail !== undefined) {
+            state.tracker.details[action.payload.orderId] = action.payload.detail;
+          }
         })
         .addCase(thunk.rejected, (state, action) => {
           state.tracker.saving = false;

@@ -12,7 +12,6 @@ export const ENTITY_COLOR_STEPS = {
   },
   orderStatus: {
     pending: 3,
-    confirmed: 1,
     processing: 6,
     shipped: 5,
     delivered: 7,

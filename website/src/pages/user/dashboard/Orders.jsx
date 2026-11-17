@@ -75,12 +75,11 @@ import customOrderService from '../../../lib/appwrite/customOrder';
 
 const PAGE_SIZE = 10;
 const FETCH_SIZE = 100;
-const STEPS = ['pending', 'confirmed', 'processing', 'shipped', 'delivered'];
+const STEPS = ['pending', 'processing', 'shipped', 'delivered'];
 
 // One colour per real status (graph palette, so it follows light/dark).
 const STATUS = {
   pending:    { label: 'Received',       color: toneColor(entityColorStep('orderStatus', 'pending')), icon: Clock,        note: 'We have your order and will confirm it soon.' },
-  confirmed:  { label: 'Confirmed',      color: toneColor(entityColorStep('orderStatus', 'confirmed')), icon: Check,        note: 'Your order is confirmed.' },
   processing: { label: 'Being prepared', color: toneColor(entityColorStep('orderStatus', 'processing')), icon: PackageCheck, note: 'We are getting your order ready.' },
   shipped:    { label: 'Shipped',        color: toneColor(entityColorStep('orderStatus', 'shipped')), icon: Truck,        note: 'Your order is on its way. It can no longer be changed.' },
   delivered:  { label: 'Delivered',      color: toneColor(entityColorStep('orderStatus', 'delivered')), icon: Check,        note: 'Your order was delivered.' },
@@ -246,7 +245,7 @@ function StatusPill({ status }) {
   );
 }
 
-// pending -> confirmed -> processing -> shipped -> delivered
+// pending -> processing -> shipped -> delivered
 function Stepper({ status }) {
   const entered = useEntered();
   const index = STEPS.indexOf(status);
@@ -383,6 +382,7 @@ function OrderCard({ order, busy, username, index }) {
         <span className="min-w-0 flex-1">
           <span className="block truncate font-heading text-base font-semibold text-text">Order {order.orderNumber}</span>
           {order.isCustom && <span className="mt-1 inline-flex rounded-full bg-accent-tone-6/10 px-2 py-0.5 text-[11px] font-medium text-accent-tone-6">Custom order</span>}
+          {order.isConfirmed && <span className="mt-1 inline-flex rounded-full bg-success/10 px-2 py-0.5 text-[11px] font-medium text-success">Order confirmed</span>}
           <span className="block truncate text-xs text-muted">
             {formatDateTime(order.$createdAt)} · {itemCount} {itemCount === 1 ? 'item' : 'items'}
           </span>
@@ -501,12 +501,6 @@ function OrderCard({ order, busy, username, index }) {
             })}
           </ul>
 
-          {tracker?.detail && (
-            <section className="rounded-xl border border-border bg-surface-alt p-4">
-              <h3 className="text-sm font-semibold text-text">Latest order update</h3>
-              <p className="mt-1 whitespace-pre-line text-sm text-muted">{tracker.detail}</p>
-            </section>
-          )}
           <section aria-label="Order updates" className="rounded-xl border border-border bg-surface p-4">
             <h3 className="mb-3 text-sm font-semibold text-text">Tracking updates</h3>
             <OrderTracker order={order} tracker={tracker} loading={!tracker} />
@@ -698,7 +692,7 @@ export default function Orders() {
     return {
       counts,
       spent,
-      open: counts.pending + counts.confirmed + counts.processing,
+      open: counts.pending + counts.processing,
       heat: [...days.entries()].map(([date, value]) => ({ date, value })),
     };
   }, [orders]);

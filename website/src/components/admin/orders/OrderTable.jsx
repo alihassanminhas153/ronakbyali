@@ -1,9 +1,11 @@
-import { memo } from 'react';
+import { memo, useState } from 'react';
+import { useDispatch } from 'react-redux';
 import { Eye } from 'lucide-react';
 import '../users/userScroll.css';
 
 import AppIcon from '../../../ui/custom/AppIcon';
 import Tooltip from '../../../ui/custom/tooltip/Tooltip';
+import { postOrderDetail } from '../../../store/slices/ordersSlice';
 import { DeliveryChip, PaymentBadge, StatusBadge } from './OrderBadges';
 import { money, STATUS_META } from './orderMeta';
 
@@ -12,6 +14,7 @@ const COLUMNS = [
   { label: 'Customer' },
   { label: 'Payment' },
   { label: 'Status' },
+  { label: 'Customer update' },
   { label: 'Actions', right: true },
 ];
 
@@ -25,7 +28,7 @@ function Shell({ children, always = false }) {
   return (
     <div className={`overflow-hidden rounded-xl border border-border bg-surface shadow-soft ${always ? '' : 'hidden lg:block'}`}>
       <div className="user-scroll overflow-x-auto">
-        <table className="w-full min-w-[44rem] text-left">
+        <table className="w-full min-w-[60rem] text-left">
           <thead className="sticky top-0 z-10 border-b border-border bg-surface-alt/90 text-[11px] uppercase tracking-wide text-muted backdrop-blur">
             <tr>
               {COLUMNS.map((column) => (
@@ -47,6 +50,58 @@ function ViewButton({ order, onView }) {
         <Eye size={18} aria-hidden="true" />
       </button>
     </Tooltip>
+  );
+}
+
+function QuickUpdate({ orderId, orderNumber }) {
+  const dispatch = useDispatch();
+  const [detail, setDetail] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState('');
+  const [failed, setFailed] = useState(false);
+
+  const submit = async (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    const text = detail.trim();
+    if (!text || busy) return;
+    setBusy(true);
+    setMessage('');
+    setFailed(false);
+    try {
+      await dispatch(postOrderDetail({ orderId, detail: text })).unwrap();
+      setDetail('');
+      setMessage('Update shared with customer.');
+    } catch (error) {
+      setMessage(typeof error === 'string' ? error : 'Could not post the update.');
+      setFailed(true);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <form onSubmit={submit} onClick={stop} className="min-w-0 space-y-1">
+      <div className="flex min-w-0 flex-wrap gap-1.5">
+        <input
+          value={detail}
+          onChange={(event) => setDetail(event.target.value)}
+          maxLength={300}
+          aria-label={`Customer-visible update for order ${orderNumber}`}
+          placeholder="Add a customer update"
+          className="min-w-[10rem] flex-1 rounded-md border border-border bg-surface px-2.5 py-2 text-xs text-text placeholder:text-muted focus:border-accent focus:outline-none"
+        />
+        <button
+          type="submit"
+          disabled={!detail.trim() || busy}
+          aria-label={`Post update for order ${orderNumber}`}
+          className="btn btn-ghost min-h-9 px-3 py-1.5 text-xs disabled:opacity-50"
+        >
+          {busy ? 'Posting…' : 'Post'}
+        </button>
+      </div>
+      {message && <p role={failed ? 'alert' : 'status'} className={`text-xs ${failed ? 'text-error' : 'text-success'}`}>{message}</p>}
+    </form>
   );
 }
 
@@ -77,6 +132,7 @@ const OrderRow = memo(function OrderRow({ order, index, onView, detail }) {
         <p className="mt-1 text-xs tabular-nums text-muted">{money(order.total)}</p>
       </td>
       <td className="px-4 py-3"><StatusBadge status={order.status} /></td>
+      <td className="px-4 py-3" onClick={stop}><QuickUpdate orderId={order.$id} orderNumber={order.orderNumber} /></td>
       <td className="cursor-default px-4 py-3" onClick={stop}>
         <div className="flex justify-end"><ViewButton order={order} onView={onView} /></div>
       </td>
@@ -114,6 +170,9 @@ const OrderCard = memo(function OrderCard({ order, index, onView, detail }) {
         </div>
         <StatusBadge status={order.status} />
         <ViewButton order={order} onView={onView} />
+      </div>
+      <div className="mt-3 border-t border-border pt-3">
+        <QuickUpdate orderId={order.$id} orderNumber={order.orderNumber} />
       </div>
     </li>
   );

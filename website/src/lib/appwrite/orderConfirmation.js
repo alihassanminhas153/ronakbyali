@@ -21,7 +21,7 @@ export class OrderConfirmationService {
         return false;
     }
 
-    async createForOrder({ order, contactMethod, paymentProtocol, notes, confirmedBy } = {}) {
+    async createForOrder({ order, contactMethod, paymentProtocol, notes, confirmedBy, confirmedAt } = {}) {
         this.lastError = null;
         if (!order?.$id || !order?.userId) return this._fail('A valid order is required for confirmation.');
         if (contactMethod && !CONTACT_METHODS.includes(contactMethod)) return this._fail('Choose a valid contact method.');
@@ -35,7 +35,8 @@ export class OrderConfirmationService {
             contactMethod: contactMethod || null,
             paymentProtocol: String(paymentProtocol || '').trim().slice(0, 1000) || null,
             confirmedBy: confirmedBy || null,
-            confirmedAt: new Date().toISOString(),
+            confirmedAt: confirmedAt || new Date().toISOString(),
+            expiredAt: null,
             notes: String(notes || '').trim().slice(0, 1000) || null,
             status: 'confirmed',
         };
@@ -83,12 +84,37 @@ export class OrderConfirmationService {
         try {
             const queries = [];
             if (typeof isCustom === 'boolean') queries.push(Query.equal('isCustom', isCustom));
+            queries.push(Query.equal('status', 'confirmed'));
             queries.push(Query.orderDesc('confirmedAt'), Query.limit(Math.min(100, Math.max(1, Number(limit) || 50))), Query.offset(Math.max(0, Number(offset) || 0)));
             const result = await this.table.listRows({ databaseId: this.databaseId, tableId: this.tableId, queries });
             return { rows: result.rows || [], total: result.total || 0 };
         } catch (error) {
             this._fail('Could not load confirmed orders.', error);
             return false;
+        }
+    }
+
+    async setStatusForOrder(orderId, status) {
+        this.lastError = null;
+        if (!['pending', 'confirmed', 'expired'].includes(status)) {
+            return this._fail('Choose a valid confirmation status.');
+        }
+        const confirmation = await this.getByOrderId(orderId);
+        if (confirmation === false) return false;
+        if (!confirmation) return true;
+        try {
+            const updated = await this.table.updateRow({
+                databaseId: this.databaseId,
+                tableId: this.tableId,
+                rowId: confirmation.$id,
+                data: {
+                    status,
+                    expiredAt: status === 'expired' ? new Date().toISOString() : null,
+                },
+            });
+            return updated || this._fail('Could not update the order confirmation record.');
+        } catch (error) {
+            return this._fail('Could not update the order confirmation record.', error);
         }
     }
 

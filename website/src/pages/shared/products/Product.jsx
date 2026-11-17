@@ -8,6 +8,8 @@ import { Link, Navigate, useLocation, useNavigate, useParams } from "react-route
 import { useDispatch, useSelector } from "react-redux";
 import {
   BadgeCheck,
+  Check,
+  Copy,
   ShoppingCart,
   Star,
   Tag,
@@ -47,6 +49,7 @@ import { getEffectivePricing } from "../../../lib/saleMath";
 import ProductCheckoutDrawer from "./ProductCheckoutDrawer";
 import { loadDraft } from "../../../lib/checkoutDraft";
 import PageArt from "../../../ui/art/PageArt";
+import useCopied from "../../../lib/useCopied";
 
 /* ------------------------------------------------------------------ */
 /* helpers                                                             */
@@ -456,6 +459,7 @@ function Details({ product }) {
   const sales = useSelector(selectSalesList);
   const [qty, setQty] = useState(1);
   const [added, setAdded] = useState(false);
+  const [copyError, setCopyError] = useState(false);
   const [cartError, setCartError] = useState(null);
   const [checkoutMounted, setCheckoutMounted] = useState(false);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
@@ -464,6 +468,7 @@ function Details({ product }) {
   const checkoutTrigger = useRef(null);
   const reopened = useRef(false);
   const location = useLocation();
+  const { copied, copy } = useCopied();
 
   const wished = useSelector(selectIsWished(product.$id));
   const account = useSelector(selectMe);
@@ -512,6 +517,13 @@ function Details({ product }) {
 
   // Optimistic: the heart flips at once and rolls back if saving fails.
   const handleWish = () => dispatch(toggleWishlist({ productId: product.$id }));
+  const copyProductLink = async () => {
+    const success = await copy(
+      "product-link",
+      new URL(PATHS.productShort(product.slug), window.location.origin).toString()
+    );
+    setCopyError(!success);
+  };
   const openCustomOrder = () => navigate(PATHS.customize(product.slug));
 
   const openCheckout = () => {
@@ -559,9 +571,24 @@ function Details({ product }) {
   return (
     <section className="flex flex-col">
       <ProductRating product={product} />
-      <h1 className="font-display text-4xl font-bold leading-tight text-text sm:text-5xl">
-        {product.name}
-      </h1>
+      <div className="flex items-start justify-between gap-3">
+        <h1 className="min-w-0 font-display text-4xl font-bold leading-tight text-text sm:text-5xl">
+          {product.name}
+        </h1>
+        <button
+          type="button"
+          onClick={copyProductLink}
+          aria-label={copied === "product-link" ? "Product link copied" : "Copy product link"}
+          title={copied === "product-link" ? "Copied" : "Copy product link"}
+          className="grid size-10 shrink-0 place-items-center rounded-md border border-border bg-surface text-muted transition-colors hover:border-accent/60 hover:text-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+        >
+          {copied === "product-link" ? <Check size={18} aria-hidden="true" /> : <Copy size={18} aria-hidden="true" />}
+        </button>
+      </div>
+      <span className="sr-only" aria-live="polite">
+        {copied === "product-link" ? "Product link copied." : copyError ? "Could not copy the product link." : ""}
+      </span>
+      {copyError && <p role="alert" className="mt-1 text-xs text-error">Could not copy the link. Please copy it from the address bar.</p>}
 
       {/* price */}
       <div className="mt-4 flex flex-wrap items-baseline gap-x-3 gap-y-1">

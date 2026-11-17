@@ -29,11 +29,11 @@ export default function useCopied() {
   const timer = useRef(0);
   useEffect(() => () => clearTimeout(timer.current), []);
   const copy = useCallback(async (key, text) => {
-    if (await copyText(text)) {
-      setCopied(key);
-      clearTimeout(timer.current);
-      timer.current = setTimeout(() => setCopied(""), 1800);
-    }
+    if (!(await copyText(text))) return false;
+    setCopied(key);
+    clearTimeout(timer.current);
+    timer.current = setTimeout(() => setCopied(""), 1800);
+    return true;
   }, []);
   return { copied, copy };
 }

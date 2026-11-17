@@ -507,7 +507,7 @@ function ReviewsView({ me }) {
       {actionError && !notice && <Notice type="error" text={actionError} onDismiss={() => dispatch(clearMyReviewError())} />}
 
       {/* Hero */}
-      <section
+      {/* <section
         className="group relative isolate flex flex-col items-center gap-5 overflow-hidden rounded-2xl border border-border bg-surface p-5 text-center text-text sm:flex-row sm:gap-7 sm:p-7 sm:text-left"
       >
         <span aria-hidden="true" className="pointer-events-none absolute -right-12 -top-14 h-44 w-44 rounded-full bg-surface-alt transition-transform duration-700 group-hover:scale-125" />
@@ -543,7 +543,7 @@ function ReviewsView({ me }) {
           <ShoppingBag size={16} aria-hidden="true" />
           Browse products
         </Link>
-      </section>
+      </section> */}
 
       {/* Stats */}
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">

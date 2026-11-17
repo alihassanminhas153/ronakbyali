@@ -40,7 +40,7 @@ const SECTIONS = [
   {
     title: "Prices and availability",
     text: [
-      "Prices, discounts and stock can change without notice. If we make a mistake in a price or an item sells out after you order, we will contact you and offer a choice or a full refund.",
+      "Prices, discounts, product information and stock availability can change, and mistakes can happen. An item shown as in stock may become unavailable, or a listing may contain another error. If we find a mistake or cannot fulfil an order as placed, we will contact you before proceeding, explain the issue and discuss the available options, including a refund where appropriate.",
     ],
   },
   {
@@ -52,7 +52,7 @@ const SECTIONS = [
   {
     title: "Information on this site",
     text: [
-      "We work to keep everything on this site accurate and up to date, but mistakes can happen. Nothing here limits the rights you have under the law.",
+      "We work to keep everything on this site accurate and up to date, but mistakes can happen. Please provide a correct phone number, email address and other contact information when ordering so we can contact you to confirm your order or resolve an issue. Nothing here limits the rights you have under the law.",
     ],
   },
   {

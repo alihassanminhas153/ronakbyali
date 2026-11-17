@@ -30,20 +30,17 @@ export function getEffectivePricing(product, sales, now = new Date()) {
         };
     }
 
-    if (sale) {
-        return {
-            price: originalPrice,
-            originalPrice,
-            discountPercentage: 0,
-            discountName: null,
-            sale: null,
-        };
-    }
+    const fallbackDiscount = Number.isFinite(storedPrice) && storedDiscount === 0 && product?.price != null && product?.price !== ''
+        ? 0
+        : storedDiscount;
+    const fallbackPrice = Number.isFinite(storedPrice)
+        ? storedPrice
+        : (fallbackDiscount > 0 ? Math.round(originalPrice * (1 - fallbackDiscount / 100)) : originalPrice);
 
     return {
-        price: Number.isFinite(storedPrice) ? storedPrice : originalPrice,
+        price: fallbackPrice,
         originalPrice,
-        discountPercentage: storedDiscount,
+        discountPercentage: fallbackDiscount,
         discountName: product?.discountName || null,
         sale: null,
     };

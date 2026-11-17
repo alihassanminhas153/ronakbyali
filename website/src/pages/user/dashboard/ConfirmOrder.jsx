@@ -4,12 +4,14 @@ import {
   BadgeCheck,
   CalendarDays,
   Check,
+  CircleAlert,
   Clock,
   Loader2,
   MapPin,
   Phone,
   RefreshCw,
   UserRound,
+  X,
 } from 'lucide-react';
 
 import PageHeader from '../../../ui/custom/PageHeader';
@@ -19,6 +21,7 @@ import EmptyState from '../../../ui/art/EmptyState';
 import { useAppDispatch, useAppSelector } from '../../../store/slices/hooks';
 import {
   fetchMyOrders,
+  fetchOrder,
   selectMyOrders,
   selectMyOrdersError,
   selectMyOrdersStatus,
@@ -83,6 +86,36 @@ function orderSearchText(order) {
     .join(' ')
     .toLowerCase();
 }
+
+// What to say when the order from the e-mail link cannot be confirmed (any more).
+function linkedMessage(order, justConfirmed) {
+  const name = order.orderNumber || 'This order';
+  if (justConfirmed || order.isConfirmed) {
+    return { tone: 'success', title: `${name} is confirmed`, text: 'Thank you! We are preparing your order now.' };
+  }
+  switch (order.status) {
+    case 'processing':
+      return null; // confirmable
+    case 'pending':
+      return { tone: 'info', title: `${name} is not ready yet`, text: 'We are still reviewing your order. We will e-mail you a new confirm button as soon as it is being processed.' };
+    case 'cancelled':
+      return { tone: 'error', title: `${name} was cancelled`, text: 'A cancelled order cannot be confirmed.' };
+    case 'shipped':
+      return { tone: 'info', title: `${name} is already on its way`, text: 'It was dispatched, so nothing more is needed from you.' };
+    case 'delivered':
+      return { tone: 'info', title: `${name} was delivered`, text: 'This order is complete.' };
+    case 'returned':
+      return { tone: 'info', title: `${name} was returned`, text: 'A returned order cannot be confirmed.' };
+    default:
+      return { tone: 'info', title: `${name} cannot be confirmed right now`, text: `Its current status is "${order.status}".` };
+  }
+}
+
+const TONES = {
+  success: 'border-success/40 bg-success/10 text-success',
+  error: 'border-error/40 bg-error/10 text-error',
+  info: 'border-border bg-surface text-text',
+};
 
 function OrderCard({ order, busy, onConfirm }) {
   const items = orderService.parseItems(order);
@@ -173,8 +206,8 @@ export default function ConfirmOrder() {
   const total = useAppSelector(selectMyOrdersTotal);
   const status = useAppSelector(selectMyOrdersStatus);
   const error = useAppSelector(selectMyOrdersError);
-  const [params] = useSearchParams();
-  const linkedOrderId = params.get('orderId') || '';
+  const [params, setParams] = useSearchParams();
+  const linkedOrderId = (params.get('orderId') || '').trim();
 
   const [query, setQuery] = useState(linkedOrderId);
   const [period, setPeriod] = useState('all');
@@ -185,6 +218,7 @@ export default function ConfirmOrder() {
   const [notice, setNotice] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
   const [loadedCount, setLoadedCount] = useState(0);
+  const [linkedLookup, setLinkedLookup] = useState('idle'); // idle | loading | missing
 
   const fetchPage = useCallback(async (offset = 0) => {
     const result = await dispatch(fetchMyOrders({ limit: PAGE_SIZE, offset }));
@@ -202,9 +236,37 @@ export default function ConfirmOrder() {
     fetchPage(0);
   }, [fetchPage]);
 
+  // The order from the e-mail link. It normally sits in the first page of orders; when it does not,
+  // fetch that single order. Another customer's order cannot be read, so it ends as "missing".
+  const linkedOrder = useMemo(
+    () => (linkedOrderId ? orders.find((order) => order.$id === linkedOrderId) || null : null),
+    [orders, linkedOrderId]
+  );
+
   useEffect(() => {
-    if (linkedOrderId) setQuery(linkedOrderId);
-  }, [linkedOrderId]);
+    if (!linkedOrderId || linkedOrder || status === 'idle' || status === 'loading') return undefined;
+    let alive = true;
+    setLinkedLookup('loading');
+    dispatch(fetchOrder(linkedOrderId)).then((result) => {
+      if (alive) setLinkedLookup(fetchOrder.fulfilled.match(result) ? 'idle' : 'missing');
+    });
+    return () => {
+      alive = false;
+    };
+  }, [dispatch, linkedOrderId, linkedOrder, status]);
+
+  // The search bar shows the order number from the link, and while it still says that, ONLY that order is shown.
+  // Typing anything else turns the page back into the normal searchable list.
+  const linkedText = linkedOrderId ? linkedOrder?.orderNumber || linkedOrderId : '';
+  useEffect(() => {
+    if (linkedText) setQuery(linkedText);
+  }, [linkedText]);
+  const linkedMode = Boolean(linkedOrderId) && query.trim() === linkedText;
+
+  const showAll = () => {
+    setParams({}, { replace: true });
+    setQuery('');
+  };
 
   const confirmableOrders = useMemo(
     () => orders.filter((order) => order.status === 'processing' && !order.isConfirmed && !confirmedIds.has(order.$id)),
@@ -213,6 +275,7 @@ export default function ConfirmOrder() {
 
   const filteredOrders = useMemo(() => {
     const term = query.trim().toLowerCase();
+    if (linkedMode) return confirmableOrders.filter((order) => order.$id === linkedOrderId);
     const filtered = confirmableOrders.filter((order) => (
       (!term || orderSearchText(order).includes(term))
       && isWithinPeriod(order, period)
@@ -226,10 +289,14 @@ export default function ConfirmOrder() {
       lowest: (a, b) => (Number(a.total) || 0) - (Number(b.total) || 0),
     };
     return [...filtered].sort(comparators[sort]);
-  }, [confirmableOrders, query, period, type, sort]);
+  }, [confirmableOrders, linkedMode, linkedOrderId, query, period, type, sort]);
 
   const hasFilters = Boolean(query.trim()) || period !== 'all' || type !== 'all';
-  const loadingFirst = status === 'idle' || (status === 'loading' && orders.length === 0);
+  const linkedInfo = linkedMode && linkedOrder
+    ? linkedMessage(linkedOrder, confirmedIds.has(linkedOrder.$id))
+    : null;
+  const linkedMissing = linkedMode && !linkedOrder && linkedLookup === 'missing';
+  const loadingFirst = status === 'idle' || (status === 'loading' && orders.length === 0) || (linkedMode && !linkedOrder && linkedLookup !== 'missing');
   const busy = refreshing || Boolean(confirmingId);
 
   const refresh = async () => {
@@ -293,6 +360,36 @@ export default function ConfirmOrder() {
         </p>
       )}
 
+      {linkedMode && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-surface-alt px-4 py-3 text-sm text-text">
+          <span>Showing the order from your e-mail.</span>
+          <button type="button" onClick={showAll} className="inline-flex items-center gap-1.5 font-medium text-accent hover:underline">
+            <X size={14} aria-hidden="true" />
+            Show all orders to confirm
+          </button>
+        </div>
+      )}
+
+      {linkedInfo && (
+        <div role="status" className={`flex items-start gap-3 rounded-xl border p-4 ${TONES[linkedInfo.tone]}`}>
+          {linkedInfo.tone === 'success' ? <Check size={18} className="mt-0.5 shrink-0" aria-hidden="true" /> : <CircleAlert size={18} className="mt-0.5 shrink-0" aria-hidden="true" />}
+          <div className="min-w-0">
+            <p className="font-semibold">{linkedInfo.title}</p>
+            <p className="mt-1 text-sm opacity-90">{linkedInfo.text}</p>
+          </div>
+        </div>
+      )}
+
+      {linkedMissing && (
+        <div role="alert" className="flex items-start gap-3 rounded-xl border border-error/40 bg-error/10 p-4 text-error">
+          <CircleAlert size={18} className="mt-0.5 shrink-0" aria-hidden="true" />
+          <div className="min-w-0">
+            <p className="font-semibold">We could not find this order</p>
+            <p className="mt-1 text-sm">Sign in with the account that placed the order, then open the e-mail link again.</p>
+          </div>
+        </div>
+      )}
+
       <div className="grid items-start gap-3 sm:grid-cols-2 xl:grid-cols-[minmax(0,2fr)_1fr_1fr_1fr]">
         <SearchInput
           value={query}
@@ -336,7 +433,7 @@ export default function ConfirmOrder() {
           <button type="button" onClick={refresh} className="btn btn-ghost">Try again</button>
         </div>
       ) : filteredOrders.length === 0 ? (
-        hasFilters ? (
+        linkedInfo || linkedMissing ? null : hasFilters ? (
           <EmptyState
             art="noResults"
             title="No matching orders"

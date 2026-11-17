@@ -65,23 +65,23 @@ export function LinkTile({ to, label, value, format, hint, icon: Icon, appIcon, 
   );
 }
 
-// A whole chart card that is a link to its page.
+// A chart card with an explicit link to its page.
 export function OverviewCard({ to, cta, className = '', children, ...card }) {
   return (
-    <Link to={to} className={`group/link block min-w-0 rounded-lg ${className}`}>
+    <div className={`group/link min-w-0 rounded-lg ${className}`}>
       <ChartCard
         {...card}
         className="h-full"
         action={
-          <span className="inline-flex shrink-0 items-center gap-1 pt-1 text-xs font-medium text-muted transition-colors group-hover/link:text-text">
+          <Link to={to} className="inline-flex shrink-0 items-center gap-1 pt-1 text-xs font-medium text-muted transition-colors hover:text-text">
             {cta}
             <ArrowRight size={13} className="transition-transform duration-300 group-hover/link:translate-x-1" />
-          </span>
+          </Link>
         }
       >
         {children}
       </ChartCard>
-    </Link>
+    </div>
   );
 }
 

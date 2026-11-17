@@ -20,9 +20,8 @@ const MIN_GAP_MS = 2_000; // focus + visibilitychange often fire together
 // Pathless layout route that wraps EVERY route in App.jsx (all layouts, GuestRoute,
 // ProtectedRoute, CatchAllRoute, SlugRoute, /auth/callback).
 //
-//  - signed in and isBlocked  -> <Blocked /> instead of <Outlet />, on every URL.
-//    No redirect and no exceptions, so there is nothing to loop and the gate also
-//    wins over GuestRoute / ProtectedRoute.
+//  - signed in and isBlocked  -> only the public home route is allowed; every
+//    other URL shows <Blocked /> instead of its route content.
 //  - signed in, profile still loading -> a neutral full-screen loader is drawn OVER
 //    protected routes (they stay mounted, so e.g. AuthCallback keeps its state).
 //    The public home page remains visible while its block check runs in the background.
@@ -82,10 +81,10 @@ export default function BlockedGate() {
     };
   }, [recheck]);
 
-  if (loggedIn && blocked) return <Blocked />;
+  const isPublicHome = pathname === '/';
+  if (loggedIn && blocked && !isPublicHome) return <Blocked />;
 
   // The storefront home is public, so let it render while the account block check runs.
-  const isPublicHome = pathname === '/';
   const resolving = loggedIn && !isPublicHome && (meStatus === 'idle' || meStatus === 'loading');
 
   return (

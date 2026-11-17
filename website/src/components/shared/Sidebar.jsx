@@ -39,8 +39,8 @@ const userLinks = (u) => [
 ];
 
 const adminLinks = (u) => [
-  { to: PATHS.admin.orders(u), label: 'Orders', icon: Package },
   { to: PATHS.admin.overview(u), label: 'Overview', icon: LayoutDashboard, end: true },
+  { to: PATHS.admin.orders(u), label: 'Orders', icon: Package },
   { to: PATHS.admin.products(u), label: 'Products', icon: Store },
   { to: PATHS.admin.users(u), label: 'Users', icon: Users },
   { to: PATHS.admin.finance(u), label: 'Finance', icon: Wallet },

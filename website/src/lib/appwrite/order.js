@@ -9,14 +9,14 @@ import orderConfirmationService from './orderConfirmation';
 import { paidAmountForOrder } from '../orderMath';
 
 // The statuses below are the real enum values of ronakbyali_orders.status.
-export const ORDER_STATUS = ['pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled', 'returned'];
+export const ORDER_STATUS = ['pending', 'processing', 'shipped', 'delivered', 'cancelled', 'returned'];
 export const PAYMENT_METHODS = ['cod', 'bank_transfer', 'card', 'easypaisa', 'jazzcash'];
 export const PAYMENT_STATUS = ['unpaid', 'partial', 'paid', 'refunded'];
 export const DELIVERY_TYPES = ['fast', 'regular', 'pickup'];
 
 // "Dispatched" in the app = "shipped" in the database.
 // A customer may change or cancel an order only BEFORE it ships.
-export const USER_EDITABLE_STATUSES = ['pending', 'confirmed', 'processing'];
+export const USER_EDITABLE_STATUSES = ['pending', 'processing'];
 
 // Product stock is taken when an order ships and given back if a shipped or
 // delivered order is cancelled or returned. Because a customer can still edit
@@ -29,14 +29,13 @@ export const STAFF_ROLES = ['admin', 'support', 'manager'];
 
 // ---------------------------------------------------------------------
 // WHAT STAFF MAY EDIT, BY STATUS  (the only place to change these rules)
-//   pending / confirmed / processing -> customer details, payment method, delivery time
-//   shipped                          -> only the delivery address (and city)
+//   pending / processing -> customer details, payment method, delivery time
+//   shipped              -> only the delivery address (and city)
 //   delivered / cancelled / returned -> nothing (read only)
 // Always open to staff: order status, payment status, courier link, tracking
 // number, timeline updates and admin notes. Items and amounts are never edited here.
-// To lock earlier (for example right after "confirmed"), shorten FULL_EDIT_STATUSES.
 // ---------------------------------------------------------------------
-export const FULL_EDIT_STATUSES = ['pending', 'confirmed', 'processing'];
+export const FULL_EDIT_STATUSES = ['pending', 'processing'];
 export const ADDRESS_EDIT_STATUSES = ['shipped'];
 const FULL_EDIT_KEYS = [
     'customerName', 'customerPhone', 'customerEmail', 'city', 'address', 'notes',
@@ -56,7 +55,6 @@ const NOT_COUNTED_STATUSES = ['cancelled', 'returned'];
 // One timeline step is written for every status change.
 const STATUS_UPDATES = {
     pending: ['Order placed', 'The order is waiting to be confirmed.'],
-    confirmed: ['Order confirmed', 'We have confirmed your order.'],
     processing: ['Order is being prepared', 'Your items are being packed.'],
     shipped: ['Order shipped', 'Your parcel has been handed to the courier.'],
     delivered: ['Order delivered', 'The parcel was delivered. Thank you for shopping with us.'],
@@ -83,7 +81,8 @@ const DETAIL_LABELS = {
 };
 
 // Columns (full list in appwrite.config.json):
-//   userId, username, orderNumber(unique), items(Text JSON), subtotal,
+//   userId, username, orderNumber(unique), items(Text JSON), customization,
+//   subtotal,
 //   deliveryCharges, discount, total, advanceAmount, codAmount,
 //   status, paymentMethod, paymentStatus, deliveryType, deliveryTime,
 //   estimatedDelivery, customerName, customerEmail, customerPhone,
@@ -211,10 +210,13 @@ export class OrderService {
     //            paymentMethod, deliveryType, deliveryTime, estimatedDelivery,
     //            deliveryCharges, discount, advanceAmount, notes }
     // Returns the order row, or false (the reason is in this.lastError).
-    async placeOrder({ profile, items, form = {}, custom = false }) {
+    async placeOrder({ profile, items, form = {}, custom = false, customOrderId = null }) {
         this.lastError = null;
         try {
             if (!profile?.$id) return this._fail('Please sign in to place an order.');
+            if (form.isCustom && !customOrderId) {
+                return this._fail('A custom-order record is required to place this request.');
+            }
             const cleanItems = this._cleanItems(items);
             if (!cleanItems.length) return this._fail('Your cart is empty.');
 
@@ -249,6 +251,7 @@ export class OrderService {
                     customFileId: form.customFileId || null,
                     customSelections: form.customSelections || '[]',
                     customFileIds: Array.isArray(form.customFileIds) ? form.customFileIds : [],
+                    customization: customOrderId,
                 } : {}),
             };
 
@@ -497,6 +500,20 @@ export class OrderService {
         }
     }
 
+    async cancelFailedCustomOrder({ userId, orderId }) {
+        this.lastError = null;
+        try {
+            const order = await this._getEditable(userId, orderId);
+            if (!order) return false;
+            const saved = await this._userUpdate(orderId, { status: 'cancelled', customization: null });
+            if (saved) await this._syncProfileCounts(order, order.status, 'cancelled');
+            return saved;
+        } catch (error) {
+            console.error(error.message);
+            return this._fail('Could not cancel the incomplete custom order.');
+        }
+    }
+
     // =====================================================================
     // READ
     // =====================================================================
@@ -570,7 +587,7 @@ export class OrderService {
         return total;
     }
 
-    // { pending: 3, confirmed: 1, ... } for the staff status tabs.
+    // Counts for the staff order-status tabs.
     async getStatusCounts() {
         try {
             const entries = await Promise.all(
@@ -630,7 +647,7 @@ export class OrderService {
     // The staff member's account needs update permission on the products table
     // for the stock part. If the stock cannot be updated the status still
     // changes, and this.lastError says which products need fixing by hand.
-    async updateStatus(rowId, status, { adjustStock = true, confirmation = {} } = {}) {
+    async updateStatus(rowId, status, { adjustStock = true } = {}) {
         this.lastError = null;
         try {
             if (!ORDER_STATUS.includes(status)) return this._fail('Unknown order status.');
@@ -651,20 +668,9 @@ export class OrderService {
             const sideEffects = await Promise.allSettled([
                 trackerService.addUpdate(rowId, { title, note, status, by: 'staff' }, { order }),
                 this._syncProfileCounts(order, order.status, status),
-                status === 'confirmed'
-                    ? orderConfirmationService.createForOrder({
-                        order: updated,
-                        contactMethod: confirmation.contactMethod,
-                        paymentProtocol: confirmation.paymentProtocol,
-                        notes: confirmation.notes,
-                        confirmedBy: confirmation.confirmedBy,
-                    })
-                    : Promise.resolve(true),
                 this._syncCustomOrderStatus(updated, status),
             ]);
-            if (status === 'confirmed' && (sideEffects[2].status === 'rejected' || sideEffects[2].value === false)) {
-                this.lastError = 'Order status changed, but its confirmation record could not be saved.';
-            } else if (order.isCustom && (sideEffects[3].status === 'rejected' || sideEffects[3].value === false)) {
+            if (order.isCustom && (sideEffects[2].status === 'rejected' || sideEffects[2].value === false)) {
                 this.lastError = 'Order status changed, but its custom request status could not be synchronized.';
             }
 
@@ -692,7 +698,6 @@ export class OrderService {
         if (!order?.isCustom) return true;
         const customStatus = {
             pending: 'requested',
-            confirmed: 'confirmed',
             processing: 'in_progress',
             shipped: 'ready',
             delivered: 'ready',
@@ -838,6 +843,46 @@ export class OrderService {
         const updated = await this.updateOrder(rowId, { paymentStatus });
         if (updated) await this._syncProfileCounts(order, order.status, order.status);
         return updated;
+    }
+
+    async updateConfirmationStatus(rowId, isConfirmed, { confirmedBy } = {}) {
+        this.lastError = null;
+        if (typeof isConfirmed !== 'boolean') return this._fail('Choose whether the order is confirmed.');
+        try {
+            const order = await this.getOrder(rowId);
+            if (!order) return this._fail('Order not found.');
+            if (Boolean(order.isConfirmed) === isConfirmed) return order;
+            if (isConfirmed && order.status !== 'processing') {
+                return this._fail('Only an order being prepared can be confirmed.');
+            }
+
+            const confirmedAt = isConfirmed ? new Date().toISOString() : null;
+            const updated = await this.updateOrder(rowId, { isConfirmed, confirmedAt });
+            if (!updated) return this._fail('Could not update the order confirmation.');
+
+            const confirmationWrite = isConfirmed
+                ? orderConfirmationService.createForOrder({ order: updated, confirmedBy, confirmedAt })
+                : orderConfirmationService.setStatusForOrder(rowId, 'expired');
+            const [confirmationResult, timelineResult] = await Promise.allSettled([
+                confirmationWrite,
+                trackerService.addUpdate(rowId, {
+                    title: isConfirmed ? 'Order confirmed' : 'Order confirmation updated',
+                    note: isConfirmed ? 'We have confirmed your order.' : 'The order is no longer marked as confirmed.',
+                    status: updated.status,
+                    by: 'staff',
+                }, { order: updated }),
+            ]);
+
+            if (confirmationResult.status === 'rejected' || confirmationResult.value === false) {
+                this.lastError = 'Confirmation changed, but its confirmation record could not be synchronized.';
+            } else if (timelineResult.status === 'rejected' || timelineResult.value === false) {
+                this.lastError = 'Confirmation changed, but the customer tracking timeline could not be updated.';
+            }
+            return updated;
+        } catch (error) {
+            console.error(error.message);
+            return this._fail('Could not update the order confirmation.');
+        }
     }
 
     async setTracking(rowId, trackingId) {
