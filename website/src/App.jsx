@@ -99,7 +99,8 @@ export default function App() {
   useEffect(() => {
     const route = pathname.replace(/\/+$/, "") || "/";
     const pageTitle = STATIC_PAGE_TITLES[route];
-    if (pageTitle) document.title = `${pageTitle} | Ronak By Ali`;
+    if (pageTitle === "Home") document.title = "Ronak By Ali | Handmade & Custom Products"
+    if (pageTitle !== "Home") document.title = `${pageTitle} | Ronak By Ali`;
   }, [pathname]);
 
   useLayoutEffect(() => {

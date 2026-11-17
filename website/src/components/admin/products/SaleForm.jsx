@@ -5,6 +5,7 @@ import { ALERT_TYPES } from '../../../lib/appwrite';
 import { addToast } from '../../../store/slices/uiSlice';
 import { addSale, updateSale } from '../../../store/slices/saleSlice';
 import ActionButton from '../../../ui/custom/button/ActionButton';
+import DatePicker from '../../../ui/custom/input/DatePicker';
 import SelectInput from '../../../ui/custom/input/SelectInput';
 import SwitchField from '../../../ui/custom/input/SwitchField';
 import TextInput from '../../../ui/custom/input/TextInput';
@@ -24,6 +25,37 @@ const initialForm = (sale) => ({
   makeAlert: Boolean(sale?.makeAlert),
   type: sale?.type || 'promo',
 });
+
+function SaleDateTimeField({ label, value, onChange, error }) {
+  const date = value ? value.slice(0, 10) : '';
+  const time = value ? value.slice(11, 16) : '12:00';
+
+  return (
+    <div>
+      <p className="mb-2 block text-[0.8rem] font-medium text-muted lg:text-sm">
+        {label}<span className="ml-0.5 text-error" aria-hidden="true">*</span>
+      </p>
+      <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_8rem]">
+        <DatePicker
+          value={date}
+          onChange={(nextDate) => onChange(nextDate ? `${nextDate}T${time || '12:00'}` : '')}
+          error={Boolean(error)}
+          clearable
+          aria-label={`${label} date`}
+        />
+        <TextInput
+          type="time"
+          value={time}
+          disabled={!date}
+          aria-label={`${label} time`}
+          onChange={(event) => onChange(date ? `${date}T${event.target.value}` : '')}
+          inputClassName="!h-11"
+        />
+      </div>
+      {error && <p role="alert" className="mt-1 text-sm text-error">{error}</p>}
+    </div>
+  );
+}
 
 export default function SaleForm({ sale, onCancel, onSaved }) {
   const dispatch = useDispatch();
@@ -101,20 +133,16 @@ export default function SaleForm({ sale, onCancel, onSaved }) {
         error={errors.name}
         placeholder="Eid Sale"
       />
-      <TextInput
+      <SaleDateTimeField
         label="Starts"
-        type="datetime-local"
-        required
         value={form.startsAt}
-        onChange={onChange('startsAt')}
+        onChange={set('startsAt')}
         error={errors.startsAt}
       />
-      <TextInput
+      <SaleDateTimeField
         label="Ends"
-        type="datetime-local"
-        required
         value={form.endsAt}
-        onChange={onChange('endsAt')}
+        onChange={set('endsAt')}
         error={errors.endsAt}
       />
       <TextInput

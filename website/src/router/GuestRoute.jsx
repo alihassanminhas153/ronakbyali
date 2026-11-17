@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Navigate, Outlet } from "react-router";
+import { Loader2 } from "lucide-react";
 import useSession from "./useSession";
 
 // Sign in / sign up are for logged-out people only.
@@ -23,7 +24,18 @@ export default function GuestRoute() {
     }
   }, [isReady, isLoggedIn]);
 
-  if (!isReady) return null;
+  if (!isReady) {
+    return (
+      <div
+        role="status"
+        aria-live="polite"
+        className="fixed inset-0 z-[100] flex items-center justify-center bg-bg text-muted"
+      >
+        <Loader2 size={28} className="animate-spin text-accent" aria-hidden="true" />
+        <span className="sr-only">Checking your session</span>
+      </div>
+    );
+  }
 
   if (isLoggedIn && arrivedLoggedIn) {
     return <Navigate to={panel} replace />;
