@@ -119,6 +119,7 @@ export default function Header({ logo, pages = [], showOffers = false }) {
   const menuButtonRef = useRef(null);
   const wasMenuOpen = useRef(false);
   const { signedIn, name, avatar, accountPath, alertPath, cartPath, ...alertData } = useHeaderData({ showOffers });
+  const visibleBar = alertData.bars[0] ?? null;
 
   useEffect(() => {
     if (menuOpen) {
@@ -142,15 +143,12 @@ export default function Header({ logo, pages = [], showOffers = false }) {
 
   return (
     <>
-      {showOffers && alertData.bars.length > 0 && (
+      {showOffers && visibleBar && (
         <aside aria-label="Store announcements">
-          {alertData.bars.map((alert) => (
-            <Announcement
-              key={alert.$id}
-              alert={alert}
-              onDismiss={(alertId) => dispatch(dismissAlert({ alertId }))}
-            />
-          ))}
+          <Announcement
+            alert={visibleBar}
+            onDismiss={(alertId) => dispatch(dismissAlert({ alertId }))}
+          />
         </aside>
       )}
       <header className="sticky top-0 z-40 border-b border-border/80 bg-bg/95 shadow-sm backdrop-blur-md">

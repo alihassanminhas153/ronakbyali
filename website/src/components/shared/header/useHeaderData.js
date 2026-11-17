@@ -28,6 +28,7 @@ export default function useHeaderData({ showOffers = false } = {}) {
   const bars = useAppSelector(selectAlertBars);
   const list = useAppSelector(selectAlertNotifications);
   const pageBars = usePageAlerts(bars);
+  const visibleBar = pageBars[0] ?? null;
   const pageAlerts = usePageAlerts(list);
   const alertsStatus = useAppSelector(selectAlertNotificationsStatus);
   const userId = authProfile?.userId ?? authProfile?.$id ?? user?.$id ?? null;
@@ -57,9 +58,10 @@ export default function useHeaderData({ showOffers = false } = {}) {
   }, [refresh]);
 
   useEffect(() => {
-    if (!showOffers) return;
-    pageBars.forEach((alert) => dispatch(trackAlertImpression({ alert })));
-  }, [dispatch, pageBars, showOffers]);
+    if (showOffers && visibleBar) {
+      dispatch(trackAlertImpression({ alert: visibleBar }));
+    }
+  }, [dispatch, showOffers, visibleBar]);
 
   const alerts = useMemo(
     () =>
@@ -80,7 +82,7 @@ export default function useHeaderData({ showOffers = false } = {}) {
     accountPath,
     alertPath,
     cartPath,
-    bars: pageBars,
+    bars: visibleBar ? [visibleBar] : [],
     alerts,
     alertsStatus,
     unreadCount,
