@@ -175,7 +175,7 @@ export default function Finance() {
         )}
         actions={(
           <div className="flex items-center gap-3">
-            <ActionButton icon={Plus} onClick={openAdd}>Add entry</ActionButton>
+            <ActionButton icon={Plus} onClick={() => openAdd()}>Add entry</ActionButton>
             {ago && (
               <span className="hidden items-center gap-1.5 text-xs text-muted sm:flex" aria-live="polite">
                 <span className={`h-1.5 w-1.5 rounded-full ${loading ? 'animate-pulse bg-accent-tone-3' : 'bg-accent-tone-7'}`} />

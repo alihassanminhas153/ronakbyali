@@ -14,6 +14,7 @@ import {
   orderItemKey,
   parseOrderItems,
   postOrderDetail,
+  rejectOrderReturn,
   selectCustomOrderForOrder,
   selectStaffOrderById,
   selectStaffCustomOrdersUpdateError,
@@ -136,7 +137,7 @@ export default function OrderForm({ open, orderId, onClose }) {
 
   const [form, setForm] = useState(() => fromOrder(order));
   const base = useRef(fromOrder(order));
-  const [nextStatus, setNextStatus] = useState(order?.status || 'pending');
+  const [nextStatus, setNextStatus] = useState(order?.status || 'placed');
   const [nextConfirmation, setNextConfirmation] = useState(order?.isConfirmed ? 'true' : 'false');
   const [nextPayment, setNextPayment] = useState(order?.paymentStatus || 'unpaid');
   const [trackingId, setTrackingId] = useState(order?.trackingId || '');
@@ -176,7 +177,7 @@ export default function OrderForm({ open, orderId, onClose }) {
   }, [order?.$updatedAt]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    setNextStatus(order?.status || 'pending');
+    setNextStatus(order?.status || 'placed');
     setNextConfirmation(order?.isConfirmed ? 'true' : 'false');
     setNextPayment(order?.paymentStatus || 'unpaid');
   }, [order?.status, order?.isConfirmed, order?.paymentStatus]);
@@ -294,7 +295,7 @@ export default function OrderForm({ open, orderId, onClose }) {
     allowed.includes(key) ? (
       <Field key={key} label={label} optional={optional} className={className}>
         {area ? (
-          <textarea value={form[key]} onChange={set(key)} rows={3} className={`${inputCls()} resize-y py-2`} />
+          <textarea value={form[key]} onChange={set(key)} rows={3} className={`${inputCls()} resize-none py-2`} />
         ) : (
           <input type={type} value={form[key]} onChange={set(key)} className={inputCls()} />
         )}
@@ -359,7 +360,7 @@ export default function OrderForm({ open, orderId, onClose }) {
                 </Field>
                 <TextInput label="Quoted total (Rs)" type="number" min="0" value={customQuotedTotal} onChange={(event) => setCustomQuotedTotal(event.target.value)} />
                 <Field label="Admin notes" className="sm:col-span-2">
-                  <textarea value={customAdminNotes} onChange={(event) => setCustomAdminNotes(event.target.value)} maxLength={2000} rows={3} className={`${inputCls()} resize-y py-2`} />
+                  <textarea value={customAdminNotes} onChange={(event) => setCustomAdminNotes(event.target.value)} maxLength={2000} rows={3} className={`${inputCls()} resize-none py-2`} />
                 </Field>
                 <div className="sm:col-span-2">
                   <Btn primary busy={busy === 'custom-details'} onClick={saveCustomDetails}>Save custom request details</Btn>
@@ -372,18 +373,28 @@ export default function OrderForm({ open, orderId, onClose }) {
         )}
 
         <Section title="Status and payment" subtitle="Delivery status and order confirmation are managed separately" appIcon="donut_chart" tone={1}>
+          {order.returnRequestStatus === 'requested' && (
+            <div className="space-y-2 rounded-md border border-warning/30 bg-warning/5 p-3 sm:col-span-2">
+              <p className="text-sm font-medium text-text">Customer requested a return{order.returnRequestedAt ? ` · ${fullDate(order.returnRequestedAt)}` : ''}</p>
+              {order.returnRequestNote && <p className="whitespace-pre-wrap text-sm text-muted">{order.returnRequestNote}</p>}
+              <div className="flex flex-wrap gap-2">
+                <Btn primary busy={busy === 'status'} onClick={() => { setNextStatus('returned'); setConfirmOpen(true); }}>Approve and mark returned</Btn>
+                <Btn busy={busy === 'return-request'} onClick={() => run('return-request', rejectOrderReturn({ orderId }), 'Return request declined')}>Decline request</Btn>
+              </div>
+            </div>
+          )}
           <Field label="Order status" className="sm:col-span-2">
             <SelectInput aria-label="Order status" value={nextStatus} onChange={setNextStatus} options={STATUS_CHOICES} size="md" />
             {statusDirty && (
               <div className="mt-3 flex flex-wrap items-center gap-2">
-                <Btn primary busy={busy === 'status'} onClick={onStatusClick}>
+                <Btn primary busy={busy === 'status'} disabled={nextStatus === 'returned' && order.returnRequestStatus !== 'requested'} onClick={onStatusClick}>
                   Set as {STATUS_META[nextStatus]?.label}
                 </Btn>
                 <Btn onClick={() => setNextStatus(order.status)}>Undo</Btn>
               </div>
             )}
             <p className="mt-2 text-xs text-muted">
-              Shipped and delivered take the items off stock. A delivered cash on delivery order is marked paid.
+              Stock is deducted when shipped and restored after an approved return. A delivered cash on delivery order is marked paid.
             </p>
           </Field>
           <Field label="Order confirmation" className="sm:col-span-2">
@@ -552,7 +563,7 @@ export default function OrderForm({ open, orderId, onClose }) {
               maxLength={1000}
               aria-label="Admin notes"
               placeholder="Anything the team should know about this order"
-              className={`${inputCls()} resize-y py-2`}
+              className={`${inputCls()} resize-none py-2`}
             />
             <Btn
               primary
@@ -573,8 +584,10 @@ export default function OrderForm({ open, orderId, onClose }) {
         title={`Mark order as ${STATUS_META[nextStatus]?.label.toLowerCase()}?`}
         message={
           nextStatus === 'cancelled'
-            ? 'If this order had shipped, the items go back on stock and the customer’s order totals drop.'
-            : 'The items go back on stock and the customer’s order totals drop.'
+            ? 'Only an unconfirmed processing order can be cancelled.'
+            : nextStatus === 'returned'
+              ? 'This completes the customer’s return request and restores the items to stock.'
+              : 'Update the order status?'
         }
         confirmLabel={`Mark ${STATUS_META[nextStatus]?.label.toLowerCase()}`}
         onConfirm={() => saveStatus()}

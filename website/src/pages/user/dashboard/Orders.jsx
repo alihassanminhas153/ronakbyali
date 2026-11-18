@@ -37,9 +37,12 @@ import {
   updateOrderItemQuantity,
   updateOrderDetails,
   cancelMyOrder,
+  requestOrderReturn,
   clearLastPlacedOrder,
   clearOrderUpdateError,
   canEditOrder,
+  canAddItemsToOrder,
+  canCancelOrder,
   fetchMyTracker,
   parseOrderItems,
   orderItemKey,
@@ -75,12 +78,13 @@ import customOrderService from '../../../lib/appwrite/customOrder';
 
 const PAGE_SIZE = 10;
 const FETCH_SIZE = 100;
-const STEPS = ['pending', 'processing', 'shipped', 'delivered'];
+const STEPS = ['placed', 'processing', 'packed', 'shipped', 'delivered'];
 
 // One colour per real status (graph palette, so it follows light/dark).
 const STATUS = {
-  pending:    { label: 'Received',       color: toneColor(entityColorStep('orderStatus', 'pending')), icon: Clock,        note: 'We have your order and will confirm it soon.' },
+  placed:     { label: 'Placed',          color: toneColor(entityColorStep('orderStatus', 'placed')), icon: Clock,        note: 'We have received your order.' },
   processing: { label: 'Being prepared', color: toneColor(entityColorStep('orderStatus', 'processing')), icon: PackageCheck, note: 'We are getting your order ready.' },
+  packed:     { label: 'Packed',          color: toneColor(entityColorStep('orderStatus', 'packed')), icon: PackageCheck, note: 'Your order is packed and ready to ship.' },
   shipped:    { label: 'Shipped',        color: toneColor(entityColorStep('orderStatus', 'shipped')), icon: Truck,        note: 'Your order is on its way. It can no longer be changed.' },
   delivered:  { label: 'Delivered',      color: toneColor(entityColorStep('orderStatus', 'delivered')), icon: Check,        note: 'Your order was delivered.' },
   cancelled:  { label: 'Cancelled',      color: toneColor(entityColorStep('orderStatus', 'cancelled')), icon: XCircle,      note: 'This order was cancelled.' },
@@ -245,7 +249,7 @@ function StatusPill({ status }) {
   );
 }
 
-// pending -> processing -> shipped -> delivered
+// placed -> processing -> packed -> shipped -> delivered
 function Stepper({ status }) {
   const entered = useEntered();
   const index = STEPS.indexOf(status);
@@ -311,20 +315,24 @@ function OrderCard({ order, busy, username, index }) {
   const items = useMemo(() => parseOrderItems(order), [order]);
   const tracker = useAppSelector(selectTrackerByOrder(order.$id));
   const editable = canEditOrder(order);
-  const itemsEditable = editable && !order.isCustom;
+  const itemsEditable = canAddItemsToOrder(order) && !order.isCustom;
   const customSelections = order.isCustom ? customOrderService.parseSelections(order) : [];
   const referenceFileIds = order.isCustom
     ? [...new Set([...(Array.isArray(order.customFileIds) ? order.customFileIds : []), order.customFileId].filter(Boolean))]
     : [];
-  const meta = STATUS[order.status] || STATUS.pending;
+  const meta = STATUS[order.status] || STATUS.placed;
 
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(null);
   const [cancelOpen, setCancelOpen] = useState(false);
   const [cancelError, setCancelError] = useState('');
+  const [returnOpen, setReturnOpen] = useState(false);
+  const [returnNote, setReturnNote] = useState('');
+  const [returnError, setReturnError] = useState('');
 
   const itemCount = items.reduce((s, i) => s + (Number(i.quantity) || 0), 0);
+  const returnRequestStatus = order.returnRequestStatus || 'none';
 
   useEffect(() => {
     if (open && !tracker) dispatch(fetchMyTracker(order.$id));
@@ -357,6 +365,18 @@ function OrderCard({ order, busy, username, index }) {
     const res = await dispatch(cancelMyOrder({ orderId: order.$id, toast: true }));
     if (cancelMyOrder.fulfilled.match(res)) setCancelOpen(false);
     else setCancelError(res.payload || 'Could not cancel this order.');
+  };
+
+  const submitReturnRequest = async (event) => {
+    event.preventDefault();
+    setReturnError('');
+    const res = await dispatch(requestOrderReturn({ orderId: order.$id, note: returnNote, toast: true }));
+    if (requestOrderReturn.fulfilled.match(res)) {
+      setReturnOpen(false);
+      setReturnNote('');
+    } else {
+      setReturnError(res.payload || 'Could not request the return.');
+    }
   };
 
   return (
@@ -506,6 +526,45 @@ function OrderCard({ order, busy, username, index }) {
             <OrderTracker order={order} tracker={tracker} loading={!tracker} />
           </section>
 
+          {(order.status === 'delivered' || returnRequestStatus === 'approved') && (
+            <section className="space-y-3 rounded-xl border border-border bg-surface p-4">
+              <h3 className="text-sm font-semibold text-text">Return request</h3>
+              {returnRequestStatus === 'requested' && (
+                <div className="text-sm text-muted">
+                  <p>Your return request was sent{order.returnRequestedAt ? ` on ${formatDateTime(order.returnRequestedAt)}` : ''}. Our team will review it.</p>
+                  {order.returnRequestNote && <p className="mt-1 whitespace-pre-wrap">{order.returnRequestNote}</p>}
+                </div>
+              )}
+              {returnRequestStatus === 'approved' && <p className="text-sm text-success">Your return request was approved.</p>}
+              {returnRequestStatus === 'rejected' && <p className="text-sm text-muted">Your return request was declined. You can submit another request or contact our team.</p>}
+              {order.status === 'delivered' && !['requested', 'approved'].includes(returnRequestStatus) && (
+                returnOpen ? (
+                  <form onSubmit={submitReturnRequest} className="space-y-3">
+                    <label className="block text-xs font-medium text-muted">
+                      Reason for return (optional)
+                      <textarea
+                        rows={3}
+                        maxLength={1000}
+                        value={returnNote}
+                        onChange={(event) => setReturnNote(event.target.value)}
+                        className="mt-1 block w-full"
+                      />
+                    </label>
+                    {returnError && <p role="alert" className="text-sm text-error">{returnError}</p>}
+                    <div className="flex flex-wrap gap-2">
+                      <ActionButton type="submit" disabled={busy}>Send return request</ActionButton>
+                      <button type="button" onClick={() => setReturnOpen(false)} className="btn btn-ghost">Not now</button>
+                    </div>
+                  </form>
+                ) : (
+                  <button type="button" onClick={() => setReturnOpen(true)} className="btn btn-ghost !min-h-10 !px-4 !py-2 text-sm">
+                    Request a return
+                  </button>
+                )
+              )}
+            </section>
+          )}
+
           {/* money */}
           <dl className="ml-auto max-w-xs space-y-1 text-sm">
             <Line label="Subtotal" value={formatMoney(order.subtotal)} />
@@ -573,7 +632,7 @@ function OrderCard({ order, busy, username, index }) {
             </div>
           )}
 
-          {/* actions: only until the order ships */}
+          {/* actions available while the order can still be changed */}
           {editable && !editing && (
             <div className="flex flex-wrap items-center gap-3 border-t border-border pt-4">
               <button
@@ -585,20 +644,24 @@ function OrderCard({ order, busy, username, index }) {
                 <Pencil size={15} aria-hidden="true" />
                 Change delivery details
               </button>
-              {!order.isCustom && <Link to={PATHS.products} className="btn btn-ghost !min-h-10 !px-4 !py-2 text-sm">Add more products</Link>}
-              <button
-                type="button"
-                onClick={() => { setCancelError(''); setCancelOpen(true); }}
-                disabled={busy}
-                className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-error/40 px-4 py-2 text-sm font-medium text-error transition-colors hover:bg-error/10 disabled:opacity-50"
-              >
-                <XCircle size={15} aria-hidden="true" />
-                Cancel order
-              </button>
+              {itemsEditable && <Link to={PATHS.products} className="btn btn-ghost !min-h-10 !px-4 !py-2 text-sm">Add more products</Link>}
+              {canCancelOrder(order) && (
+                <button
+                  type="button"
+                  onClick={() => { setCancelError(''); setCancelOpen(true); }}
+                  disabled={busy}
+                  className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-error/40 px-4 py-2 text-sm font-medium text-error transition-colors hover:bg-error/10 disabled:opacity-50"
+                >
+                  <XCircle size={15} aria-hidden="true" />
+                  Cancel order
+                </button>
+              )}
               <p className="w-full text-xs text-muted">
                 {order.isCustom
-                  ? 'You can change the delivery details or cancel this request until it ships. Contact us if you need to change your customization.'
-                  : <>You can change or cancel this order until it ships. To add products, put them in your cart and choose “Add to order” at <Link to={PATHS.user.checkout(username)} className="underline">checkout</Link>.</>}
+                  ? 'You can change delivery details while this order is being prepared. Cancellation is only available before confirmation.'
+                  : itemsEditable
+                    ? <>Add products while the order is placed by putting them in your cart and choosing “Add to order” at <Link to={PATHS.user.checkout(username)} className="underline">checkout</Link>.</>
+                    : 'Delivery details can still be changed while the order is processing. Cancellation is unavailable after confirmation.'}
               </p>
             </div>
           )}
@@ -692,7 +755,7 @@ export default function Orders() {
     return {
       counts,
       spent,
-      open: counts.pending + counts.processing,
+      open: counts.placed + counts.processing,
       heat: [...days.entries()].map(([date, value]) => ({ date, value })),
     };
   }, [orders]);
@@ -740,7 +803,7 @@ export default function Orders() {
       <PageHeader
         art="orders"
         title="Orders"
-        subtitle="Track, change or cancel your orders until they ship."
+        subtitle="Add products while an order is placed, cancel an unconfirmed processing order, and request a return after delivery."
         actions={(
           <div className="flex items-center gap-3">
             {ago && (
@@ -773,7 +836,7 @@ export default function Orders() {
           text={
             placedKind === 'added'
               ? `Your items were added to order ${placed.orderNumber}. The new total is ${formatMoney(placed.total)}.`
-              : `Thank you. Order ${placed.orderNumber} is placed. You can change it until it ships.`
+              : `Thank you. Order ${placed.orderNumber} is placed. You can add products before processing begins.`
           }
           onDismiss={() => dispatch(clearLastPlacedOrder())}
         />

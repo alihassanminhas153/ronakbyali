@@ -39,6 +39,7 @@ export class OrderConfirmationService {
             expiredAt: null,
             notes: String(notes || '').trim().slice(0, 1000) || null,
             status: 'confirmed',
+            isConfirmed: true,
         };
         try {
             const existing = await this.getByOrderId(order.$id);
@@ -109,6 +110,7 @@ export class OrderConfirmationService {
                 rowId: confirmation.$id,
                 data: {
                     status,
+                    isConfirmed: status === 'confirmed',
                     expiredAt: status === 'expired' ? new Date().toISOString() : null,
                 },
             });

@@ -22,7 +22,7 @@ export function buildOverview({ orders, products, users, alerts, reviews, carts,
   const recentOrders = [...orders].sort((a, b) => new Date(b.$createdAt) - new Date(a.$createdAt)).slice(0, 4);
   const orderStats = {
     total: orders.length,
-    pending: count('pending'),
+    placed: count('placed'),
     open: orders.filter((o) => OPEN_STATUSES.includes(o.status)).length,
     delivered: count('delivered'),
     byStatus: groupBy(orders, (o) => o.status),
@@ -74,7 +74,7 @@ export function buildOverview({ orders, products, users, alerts, reviews, carts,
 
   /* things that need the admin */
   const attention = [
-    { key: 'orders', count: orderStats.pending, to: 'orders', tone: 3, text: `${plural(orderStats.pending, 'order', 'orders')} waiting to be confirmed` },
+    { key: 'orders', count: orderStats.placed, to: 'orders', tone: 3, text: `${plural(orderStats.placed, 'order', 'orders')} waiting to be processed` },
     { key: 'reviews', count: reviewStats.pending, to: 'reviews', tone: 4, text: `${plural(reviewStats.pending, 'review', 'reviews')} to approve` },
     { key: 'out', count: productStats.out, to: 'products', tone: 4, text: `${plural(productStats.out, 'product', 'products')} out of stock` },
     { key: 'wanted', count: fin.demand.wanted.length, to: 'carts', tone: 6, text: `${plural(fin.demand.wanted.length, 'sold-out product', 'sold-out products')} shoppers want` },

@@ -284,12 +284,14 @@ export default function Reviews() {
       {/* ---------------- Reviews ---------------- */}
       {tab === 'reviews' && (
         <TabPanel key="reviews" className="space-y-6">
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_10rem_9rem_13rem_10rem]">
-            <SearchInput size="sm" value={search} onSearch={onSearch} placeholder="Search review, product, customer" label="Search reviews" className="sm:col-span-2 lg:col-span-1" />
-            <SearchSelect aria-label="Filter by status" options={STATUS_LABELS} value={statusLabel} onChange={(v) => { setStatusLabel(v); setVisible(PAGE); }} creatable={false} placeholder="All statuses" searchPlaceholder="Search statuses…" />
-            <SearchSelect aria-label="Filter by rating" options={RATING_LABELS} value={ratingLabel} onChange={(v) => { setRatingLabel(v); setVisible(PAGE); }} creatable={false} placeholder="All ratings" searchPlaceholder="Search ratings…" />
-            <SearchSelect aria-label="Filter by product" options={productNames} value={productName} onChange={(v) => { setProductName(v); setVisible(PAGE); }} creatable={false} placeholder="All products" searchPlaceholder="Search products…" />
-            <SearchSelect aria-label="Sort reviews" options={SORTS} value={sort} onChange={(v) => setSort(v || 'Newest')} creatable={false} clearable={false} placeholder="Sort" searchPlaceholder="Search…" />
+          <div className="space-y-3">
+            <SearchInput size="sm" value={search} onSearch={onSearch} placeholder="Search review, product, customer" label="Search reviews" className="w-full min-w-0" />
+            <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              <SearchSelect aria-label="Filter by status" options={STATUS_LABELS} value={statusLabel} onChange={(v) => { setStatusLabel(v); setVisible(PAGE); }} creatable={false} placeholder="All statuses" searchPlaceholder="Search statuses…" />
+              <SearchSelect aria-label="Filter by rating" options={RATING_LABELS} value={ratingLabel} onChange={(v) => { setRatingLabel(v); setVisible(PAGE); }} creatable={false} placeholder="All ratings" searchPlaceholder="Search ratings…" />
+              <SearchSelect aria-label="Filter by product" options={productNames} value={productName} onChange={(v) => { setProductName(v); setVisible(PAGE); }} creatable={false} placeholder="All products" searchPlaceholder="Search products…" />
+              <SearchSelect aria-label="Sort reviews" options={SORTS} value={sort} onChange={(v) => setSort(v || 'Newest')} creatable={false} clearable={false} placeholder="Sort" searchPlaceholder="Search…" />
+            </div>
           </div>
 
           <p className="text-xs text-muted">

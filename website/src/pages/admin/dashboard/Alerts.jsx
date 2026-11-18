@@ -279,49 +279,51 @@ export default function Alerts() {
 
       {tab === 'alerts' && (
         <TabPanel key="alerts" className="space-y-6">
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_11rem_11rem_11rem_11rem]">
+          <div className="space-y-3">
             <SearchInput
               size="sm"
               value={search}
               onSearch={onSearch}
               placeholder="Search title and message"
               label="Search alerts"
-              className="sm:col-span-2 xl:col-span-1"
+              className="w-full min-w-0"
             />
-            <SelectInput
-              size="sm"
-              aria-label="Filter by type"
-              placeholder="All types"
-              options={TYPE_OPTIONS}
-              value={filters.type}
-              onChange={(value) => applyFilters({ type: value || '' })}
-              clearable
-            />
-            <SelectInput
-              size="sm"
-              aria-label="Filter by display"
-              placeholder="Bars and popups"
-              options={DISPLAY_OPTIONS}
-              value={filters.display}
-              onChange={(value) => applyFilters({ display: value || '' })}
-              clearable
-            />
-            <SelectInput
-              size="sm"
-              aria-label="Filter by status"
-              placeholder="Any status"
-              options={STATUS_OPTIONS}
-              value={filters.status}
-              onChange={(value) => applyFilters({ status: value || '' })}
-              clearable
-            />
-            <SelectInput
-              size="sm"
-              aria-label="Sort alerts"
-              options={SORT_OPTIONS}
-              value={filters.sort}
-              onChange={(value) => applyFilters({ sort: value || 'newest' })}
-            />
+            <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              <SelectInput
+                size="sm"
+                aria-label="Filter by type"
+                placeholder="All types"
+                options={TYPE_OPTIONS}
+                value={filters.type}
+                onChange={(value) => applyFilters({ type: value || '' })}
+                clearable
+              />
+              <SelectInput
+                size="sm"
+                aria-label="Filter by display"
+                placeholder="Bars and popups"
+                options={DISPLAY_OPTIONS}
+                value={filters.display}
+                onChange={(value) => applyFilters({ display: value || '' })}
+                clearable
+              />
+              <SelectInput
+                size="sm"
+                aria-label="Filter by status"
+                placeholder="Any status"
+                options={STATUS_OPTIONS}
+                value={filters.status}
+                onChange={(value) => applyFilters({ status: value || '' })}
+                clearable
+              />
+              <SelectInput
+                size="sm"
+                aria-label="Sort alerts"
+                options={SORT_OPTIONS}
+                value={filters.sort}
+                onChange={(value) => applyFilters({ sort: value || 'newest' })}
+              />
+            </div>
           </div>
 
           {status === 'failed' && !shownRows.length ? (

@@ -438,7 +438,7 @@ export default function ProfileDrawer({ open, me, section = 'details', canChange
               <input value={form.lastCity} onChange={on('lastCity')} maxLength={100} autoComplete="address-level2" placeholder="Lahore" disabled={saving} className={`${inputCls(errors.lastCity)} h-10`} />
             </Field>
             <Field label="Address" optional hint={`${form.lastAddress.length}/500`} error={errors.lastAddress} className="sm:col-span-2">
-              <textarea value={form.lastAddress} onChange={on('lastAddress')} rows={3} maxLength={500} autoComplete="street-address" placeholder="House, street, area" disabled={saving} className={`${inputCls(errors.lastAddress)} resize-y py-2`} />
+              <textarea value={form.lastAddress} onChange={on('lastAddress')} rows={3} maxLength={500} autoComplete="street-address" placeholder="House, street, area" disabled={saving} className={`${inputCls(errors.lastAddress)} resize-none py-2`} />
             </Field>
           </Section>
 

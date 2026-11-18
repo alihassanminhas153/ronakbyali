@@ -1,12 +1,11 @@
-import { useState } from 'react';
-import { Link, NavLink } from 'react-router';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { Link, NavLink, useLocation } from 'react-router';
 import {
   Bell,
   BadgeCheck,
   Heart,
   LayoutDashboard,
   Package,
-  Palette,
   Settings,
   ShoppingBag,
   ShoppingCart,
@@ -24,7 +23,7 @@ import { PATHS } from '../../router/path';
 import { getAvatarUrl } from '../../store/slices/authSlice';
 import Fold, { IconCell } from './SidebarFold';
 import SidebarLogout from './SidebarLogout';
-import ThemeToggle from '../../ui/custom/toggles/ThemeToggle';
+import SidebarThemeToggle from './SidebarThemeToggle';
 
 // ---------- links (all URLs come from router/path.js) ----------
 const userLinks = (u) => [
@@ -50,50 +49,78 @@ const adminLinks = (u) => [
   { to: PATHS.admin.settings(u), label: 'Settings', icon: Settings },
 ];
 
+// ---------- motion ----------
+const EASE = 'ease-[cubic-bezier(0.22,1,0.36,1)]';
+const STAGGER_MS = 35;
+
+// Flips to true just after the first paint so rows can slide in one after another.
+// The drawer mounts a fresh Sidebar each time it opens, so it plays there too.
+function useReady() {
+  const [ready, setReady] = useState(false);
+  useEffect(() => {
+    let second;
+    const first = requestAnimationFrame(() => {
+      second = requestAnimationFrame(() => setReady(true));
+    });
+    return () => {
+      cancelAnimationFrame(first);
+      cancelAnimationFrame(second);
+    };
+  }, []);
+  return ready;
+}
+
+const enterClass = (ready) =>
+  `transition-[opacity,transform] duration-500 ${EASE} motion-reduce:transition-none ${
+    ready ? 'translate-x-0 opacity-100' : '-translate-x-3 opacity-0'
+  }`;
+const enterStyle = (ready, index) => ({ transitionDelay: ready ? `${index * STAGGER_MS}ms` : '0ms' });
+
 // ---------- row styles ----------
 const ROW =
-  'relative flex h-11 w-full items-center rounded-md text-sm transition-colors focus-visible:-outline-offset-2 focus-visible:outline-accent';
-const ACTIVE =
-  'bg-accent-soft font-medium text-accent before:absolute before:inset-y-2 before:left-0 before:w-[3px] before:rounded-full before:bg-accent';
+  'group relative flex h-11 w-full items-center rounded-md text-sm transition-colors duration-200 focus-visible:-outline-offset-2 focus-visible:outline-accent';
+// Rows that sit on the gliding pill only change text colour. The pill draws the background.
+const ACTIVE_TEXT = 'font-medium text-accent';
+const ACTIVE_BG = 'bg-accent-soft font-medium text-accent';
 const IDLE = 'text-muted hover:bg-surface-alt hover:text-text';
 
-const itemClass = ({ isActive }) => `${ROW} ${isActive ? ACTIVE : IDLE}`;
-
-function Item({ to, icon: Icon, label, end, collapsed, onNavigate }) {
+function Item({ to, icon: Icon, label, end, collapsed, onNavigate, slide = true, ready, index = 0 }) {
   return (
-    <li>
+    <li className={enterClass(ready)} style={enterStyle(ready, index)}>
       <NavLink
         to={to}
         end={end}
         onClick={onNavigate}
+        data-slide={slide ? '' : undefined}
         title={collapsed ? label : undefined}
         aria-label={collapsed ? label : undefined}
-        className={itemClass}
+        className={({ isActive }) => `${ROW} ${isActive ? (slide ? ACTIVE_TEXT : ACTIVE_BG) : IDLE}`}
       >
-        <IconCell>
-          <Icon size={20} strokeWidth={1.75} aria-hidden="true" />
-        </IconCell>
-        <Fold collapsed={collapsed} className="truncate">
-          {label}
-        </Fold>
+        {({ isActive }) => (
+          <>
+            <IconCell>
+              {/* icon tile: fills with the accent colour on the current page */}
+              <span
+                className={`grid size-9 place-items-center rounded-lg transition-[background-color,color,box-shadow,transform] duration-300 motion-reduce:transition-none ${
+                  isActive
+                    ? 'bg-accent text-on-accent shadow-soft'
+                    : 'group-hover:bg-bg group-hover:shadow-soft'
+                }`}
+              >
+                <Icon
+                  size={19}
+                  strokeWidth={1.75}
+                  aria-hidden="true"
+                  className={`transition-transform duration-300 ${EASE} group-hover:scale-110 motion-reduce:transition-none`}
+                />
+              </span>
+            </IconCell>
+            <Fold collapsed={collapsed} className="truncate">
+              {label}
+            </Fold>
+          </>
+        )}
       </NavLink>
-    </li>
-  );
-}
-
-// "Menu" label when open, a thin divider when collapsed (cross-fades).
-function SectionLabel({ collapsed, children }) {
-  const fade = 'transition-opacity duration-300 motion-reduce:transition-none';
-  return (
-    <li aria-hidden="true" className="relative h-8">
-      <span className={`absolute inset-x-2 top-1/2 h-px bg-border ${fade} ${collapsed ? 'opacity-100' : 'opacity-0'}`} />
-      <span
-        className={`absolute left-3 top-1/2 -translate-y-1/2 whitespace-nowrap text-xs font-medium text-muted ${fade} ${
-          collapsed ? 'opacity-0' : 'opacity-100'
-        }`}
-      >
-        {children}
-      </span>
     </li>
   );
 }
@@ -102,9 +129,9 @@ function SectionLabel({ collapsed, children }) {
 function Brand() {
   const [failed, setFailed] = useState(false);
   return failed ? (
-    <span title="Ronak By Ali" className="flex size-9 items-center justify-center rounded-md bg-accent text-on-accent shadow-soft">
+    <Link to="/" title="Ronak By Ali" className="flex size-9 items-center justify-center rounded-md bg-accent text-on-accent shadow-soft">
       <Store size={18} strokeWidth={1.75} aria-hidden="true" />
-    </span>
+    </Link>
   ) : (
     <img
       src="/images/icons/branding/favicon.ico"
@@ -129,18 +156,25 @@ function Avatar({ profile }) {
     .join('');
 
   return (
-    <span className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-border bg-accent-soft font-heading text-sm font-semibold text-accent ring-2 ring-accent/20">
-      {src && src !== broken ? (
-        <img
-          src={src}
-          alt=""
-          referrerPolicy="no-referrer"
-          onError={() => setBroken(src)}
-          className="size-full object-cover"
-        />
-      ) : (
-        initials
-      )}
+    <span className="relative flex size-10 shrink-0">
+      <span className="flex size-full items-center justify-center overflow-hidden rounded-full border border-border bg-accent-soft font-heading text-sm font-semibold text-accent ring-2 ring-accent/20 transition-shadow duration-300 group-hover:ring-accent/50">
+        {src && src !== broken ? (
+          <img
+            src={src}
+            alt=""
+            referrerPolicy="no-referrer"
+            onError={() => setBroken(src)}
+            className="size-full object-cover"
+          />
+        ) : (
+          initials
+        )}
+      </span>
+      {/* signed-in dot */}
+      <span
+        aria-hidden="true"
+        className="absolute bottom-0 right-0 size-2.5 rounded-full bg-emerald-500 ring-2 ring-surface"
+      />
     </span>
   );
 }
@@ -154,16 +188,43 @@ const capitalise = (s = '') => s.charAt(0).toUpperCase() + s.slice(1);
 //   onToggleCollapse : desktop only, shows the collapse button inside the header while open
 export default function Sidebar({ area = 'user', collapsed = false, onNavigate, onClose, onToggleCollapse }) {
   const { user, username, isStaff } = useSession();
+  const { pathname } = useLocation();
+  const ready = useReady();
   const isAdminArea = area === 'admin';
   const title = isAdminArea ? 'Admin panel' : 'My account';
 
   const links = isAdminArea ? adminLinks(username) : userLinks(username);
   const profileTo = isAdminArea ? PATHS.admin.settings(username) : PATHS.user.profile(username);
 
+  // ---- gliding active pill ----
+  // One highlight element that moves to whichever link is current (NavLink marks it aria-current).
+  const wrapRef = useRef(null);
+  const [pill, setPill] = useState({ y: 0, h: 0, visible: false, animate: false });
+
+  useLayoutEffect(() => {
+    const wrap = wrapRef.current;
+    if (!wrap) return undefined;
+    const measure = () => {
+      const active = wrap.querySelector('a[data-slide][aria-current="page"]');
+      setPill((prev) => {
+        const next = active
+          ? { y: active.offsetTop, h: active.offsetHeight, visible: true, animate: prev.visible }
+          : { ...prev, visible: false };
+        return next.y === prev.y && next.h === prev.h && next.visible === prev.visible && next.animate === prev.animate
+          ? prev
+          : next;
+      });
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(wrap);
+    return () => observer.disconnect();
+  }, [pathname, isAdminArea, username]);
+
   return (
     <div className="flex h-full min-h-0 flex-col bg-surface">
       {/* header: favicon + brand name + panel name, collapse button inside while open */}
-      <div className="flex h-16 shrink-0 items-center border-b border-border px-3">
+      <div className="flex h-16 shrink-0 items-center border-b border-border bg-linear-to-b from-accent-soft/60 to-surface px-3">
         <IconCell>
           <Brand />
         </IconCell>
@@ -184,7 +245,7 @@ export default function Sidebar({ area = 'user', collapsed = false, onNavigate, 
           onToggleCollapse && (
             <span
               aria-hidden={collapsed || undefined}
-              className={`shrink-0 overflow-hidden transition-[max-width,opacity] duration-300 ease-out motion-reduce:transition-none ${
+              className={`shrink-0 overflow-hidden transition-[max-width,opacity] duration-300 ${EASE} motion-reduce:transition-none ${
                 collapsed ? 'max-w-0 opacity-0' : 'max-w-9 opacity-100'
               }`}
             >
@@ -193,10 +254,14 @@ export default function Sidebar({ area = 'user', collapsed = false, onNavigate, 
                 onClick={onToggleCollapse}
                 tabIndex={collapsed ? -1 : 0}
                 aria-label="Collapse sidebar"
-                title="Collapse sidebar"
-                className="flex size-9 items-center justify-center rounded-md text-muted transition-colors hover:bg-surface-alt hover:text-accent"
+                title="Collapse sidebar (Ctrl+B)"
+                className="group flex size-9 items-center justify-center rounded-md text-muted transition-colors hover:bg-surface-alt hover:text-accent"
               >
-                <ChevronsLeft size={18} aria-hidden="true" />
+                <ChevronsLeft
+                  size={18}
+                  aria-hidden="true"
+                  className="transition-transform duration-300 group-hover:-translate-x-0.5 motion-reduce:transition-none"
+                />
               </button>
             </span>
           )
@@ -204,50 +269,69 @@ export default function Sidebar({ area = 'user', collapsed = false, onNavigate, 
       </div>
 
       {/* who is logged in */}
-      <div className="shrink-0 px-3 pt-3">
+      <div className={`shrink-0 px-3 pt-3 ${enterClass(ready)}`} style={enterStyle(ready, 1)}>
         <Link
           to={profileTo}
           onClick={onNavigate}
           title={collapsed ? user?.name || username : undefined}
           aria-label={collapsed ? user?.name || username : undefined}
-          className="flex gap-2 h-14 items-center rounded-md transition-colors hover:bg-surface-alt focus-visible:-outline-offset-2 focus-visible:outline-accent"
+          className="group flex h-14 items-center rounded-md transition-colors duration-200 hover:bg-surface-alt focus-visible:-outline-offset-2 focus-visible:outline-accent"
         >
           <IconCell>
             <Avatar profile={user} />
           </IconCell>
           <Fold collapsed={collapsed} className="pr-2">
             <span className="block truncate text-sm font-semibold text-text">{user?.name || username}</span>
-            <span className={`block truncate text-xs ${isStaff ? 'font-medium text-accent' : 'text-muted'}`}>
-              {isStaff ? capitalise(user?.role) : user?.email}
-            </span>
+            {isStaff ? (
+              <span className="mt-0.5 inline-block rounded-full bg-accent-soft px-2 py-px text-[11px] font-medium leading-4 text-accent">
+                {capitalise(user?.role)}
+              </span>
+            ) : (
+              <span className="block truncate text-xs text-muted">{user?.email}</span>
+            )}
           </Fold>
         </Link>
       </div>
 
       {/* main links */}
       <nav aria-label={title} className="no-scrollbar min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-contain px-3 pb-3">
-        <ul className="flex flex-col gap-1">
-          <SectionLabel collapsed={collapsed}>Menu</SectionLabel>
-          {links.map((l) => (
-            <Item key={l.to} {...l} collapsed={collapsed} onNavigate={onNavigate} />
-          ))}
-        </ul>
+        <div ref={wrapRef} className="relative">
+          <span
+            aria-hidden="true"
+            style={{
+              height: pill.h,
+              transform: `translateY(${pill.y}px)`,
+              transitionDuration: pill.animate ? '400ms' : '0ms',
+            }}
+            className={`pointer-events-none absolute left-0 top-0 w-full rounded-md bg-accent-soft transition-[transform,height,opacity] ${EASE} motion-reduce:transition-none ${
+              pill.visible ? 'opacity-100' : 'opacity-0'
+            }`}
+          />
+          <ul className="flex flex-col gap-1">
+            {links.map((l, i) => (
+              <Item key={l.to} {...l} collapsed={collapsed} onNavigate={onNavigate} ready={ready} index={i + 2} />
+            ))}
+          </ul>
+        </div>
       </nav>
 
       {/* shop + appearance + sign out */}
-      <div className="sticky bottom-0 z-10 shrink-0 border-t border-border bg-surface p-3">
+      <div
+        className={`sticky bottom-0 z-10 shrink-0 border-t border-border bg-surface p-3 ${enterClass(ready)}`}
+        style={enterStyle(ready, links.length + 3)}
+      >
         <ul className="flex flex-col gap-1">
-          <Item to={PATHS.products} icon={Store} label="Browse shop" collapsed={collapsed} onNavigate={onNavigate} />
+          <Item
+            to={PATHS.products}
+            icon={Store}
+            label="Browse shop"
+            collapsed={collapsed}
+            onNavigate={onNavigate}
+            slide={false}
+            ready
+          />
           <li>
-            <div className="flex items-center justify-between gap-2 rounded-md border border-border bg-surface-alt/60 px-2.5 py-1.5">
-              <span className={`flex min-w-0 items-center gap-2 text-sm ${collapsed ? 'justify-center' : 'text-text'}`}>
-                <span className="grid size-7 place-items-center rounded-md bg-bg text-accent">
-                  <Palette size={15} strokeWidth={1.8} aria-hidden="true" />
-                </span>
-                {!collapsed && <span className="truncate">Appearance</span>}
-              </span>
-              <ThemeToggle />
-            </div>
+            <SidebarThemeToggle collapsed={collapsed} />
           </li>
           <li>
             <SidebarLogout collapsed={collapsed} />

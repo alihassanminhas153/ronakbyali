@@ -268,7 +268,7 @@ export default function Orders() {
       <Tabs iconOnly tabs={tabs} value={filters.status || 'all'} onChange={(id) => applyFilters({ status: id === 'all' ? '' : id })} />
 
       <TabPanel key={filters.status || 'all'} className="space-y-6">
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_12rem_12rem_12rem_12rem]">
+        <div className="space-y-3">
           <SearchInput
             size="sm"
             value={filters.term}
@@ -276,44 +276,46 @@ export default function Orders() {
             loading={loading && searching}
             placeholder="Search order no., name, phone, tracking"
             label="Search orders"
-            className="sm:col-span-2 xl:col-span-1"
+            className="w-full min-w-0"
           />
-          <SelectInput
-            size="sm"
-            aria-label="Filter by payment"
-            placeholder="Any payment"
-            options={PAYMENT_OPTIONS}
-            value={filters.paymentStatus}
-            onChange={(value) => applyFilters({ paymentStatus: value || '' })}
-            clearable
-          />
-          <SelectInput
-            size="sm"
-            aria-label="Filter by delivery"
-            placeholder="Any delivery"
-            options={DELIVERY_OPTIONS}
-            value={filters.deliveryType}
-            onChange={(value) => applyFilters({ deliveryType: value || '' })}
-            clearable
-          />
-          <SelectInput
-            size="sm"
-            aria-label="Filter by payment method"
-            placeholder="Any method"
-            options={METHOD_OPTIONS}
-            value={filters.paymentMethod}
-            onChange={(value) => applyFilters({ paymentMethod: value || '' })}
-            clearable
-          />
-          <SelectInput
-            size="sm"
-            aria-label="Filter by order type"
-            placeholder="All order types"
-            options={TYPE_OPTIONS}
-            value={filters.isCustom === true ? 'custom' : filters.isCustom === false ? 'normal' : ''}
-            onChange={(value) => applyFilters({ isCustom: value ? value === 'custom' : null })}
-            clearable
-          />
+          <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <SelectInput
+              size="sm"
+              aria-label="Filter by payment"
+              placeholder="Any payment"
+              options={PAYMENT_OPTIONS}
+              value={filters.paymentStatus}
+              onChange={(value) => applyFilters({ paymentStatus: value || '' })}
+              clearable
+            />
+            <SelectInput
+              size="sm"
+              aria-label="Filter by delivery"
+              placeholder="Any delivery"
+              options={DELIVERY_OPTIONS}
+              value={filters.deliveryType}
+              onChange={(value) => applyFilters({ deliveryType: value || '' })}
+              clearable
+            />
+            <SelectInput
+              size="sm"
+              aria-label="Filter by payment method"
+              placeholder="Any method"
+              options={METHOD_OPTIONS}
+              value={filters.paymentMethod}
+              onChange={(value) => applyFilters({ paymentMethod: value || '' })}
+              clearable
+            />
+            <SelectInput
+              size="sm"
+              aria-label="Filter by order type"
+              placeholder="All order types"
+              options={TYPE_OPTIONS}
+              value={filters.isCustom === true ? 'custom' : filters.isCustom === false ? 'normal' : ''}
+              onChange={(value) => applyFilters({ isCustom: value ? value === 'custom' : null })}
+              clearable
+            />
+          </div>
         </div>
 
         {status === 'failed' && !rows.length ? (

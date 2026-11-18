@@ -13,7 +13,8 @@ async function pageAll(listFn) {
   const rows = [];
   for (let offset = 0; ; offset += 100) {
     const res = await listFn({ limit: 100, offset });
-    if (!res?.rows?.length) break;
+    if (!res || !Array.isArray(res.rows)) throw new Error('Could not load the paginated records.');
+    if (!res.rows.length) break;
     rows.push(...res.rows);
     if (rows.length >= res.total) break;
   }
@@ -31,7 +32,7 @@ export default function useOverviewData() {
 
   const reload = useCallback(async () => {
     setLoading(true);
-    const [orders, products, users, alerts, reviews, carts, wishlists, ledger] = await Promise.all([
+    const results = await Promise.allSettled([
       orderService.searchOrders({}),
       productService.getProducts(),
       userService.getProfiles(),
@@ -39,11 +40,17 @@ export default function useOverviewData() {
       pageAll((o) => reviewService.getReviewsPage(o)),
       pageAll((o) => cartService.listCarts(o)),
       pageAll((o) => wishlistService.listWishlists(o)),
-      financeService.getEntries(), // false until the finance table exists, that is fine
+      financeService.getEntries(),
     ]);
     if (!alive.current) return;
-    const failed = [!orders && 'orders', !products && 'products', !users && 'users', !alerts && 'alerts'].filter(Boolean);
-    setError(failed.length ? `Could not load: ${failed.join(', ')}.` : '');
+    const names = ['orders', 'products', 'users', 'alerts', 'reviews', 'carts', 'wishlists', 'finance entries'];
+    const failed = results.flatMap((result, index) =>
+      result.status === 'rejected' || result.value === false ? [names[index]] : []
+    );
+    const [orders, products, users, alerts, reviews, carts, wishlists, ledger] = results.map((result) =>
+      result.status === 'fulfilled' && result.value !== false ? result.value : null
+    );
+    setError(failed.length ? `Could not load: ${failed.join(', ')}.` : financeService.lastError || '');
     setData({
       orders: orders || [], products: products || [], users: users || [], alerts: alerts || [],
       reviews: reviews || [], carts: carts || [], wishlists: wishlists || [], ledger: ledger || [],

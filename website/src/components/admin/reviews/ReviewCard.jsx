@@ -112,7 +112,7 @@ export default function ReviewCard({ review, busy, index = 0, onApprove, onRejec
             autoFocus
             placeholder="Write a public reply to this customer…"
             aria-label="Reply to review"
-            className="w-full resize-y rounded-lg border border-border bg-surface px-3 py-2.5 text-sm text-text placeholder:text-muted transition-colors duration-200 focus:border-accent-tone-1 focus:outline-none"
+            className="w-full resize-none rounded-lg border border-border bg-surface px-3 py-2.5 text-sm text-text placeholder:text-muted transition-colors duration-200 focus:border-accent-tone-1 focus:outline-none"
           />
           <div className="flex flex-wrap items-center justify-between gap-2">
             <span className="text-xs tabular-nums text-muted">

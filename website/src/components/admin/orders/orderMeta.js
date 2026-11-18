@@ -1,12 +1,13 @@
-import { Clock, Cog, PackageCheck, Truck, Undo2, XCircle } from 'lucide-react';
+import { CheckCircle2, Clock, Cog, PackageCheck, ShoppingBag, Truck, Undo2, XCircle } from 'lucide-react';
 import { entityColorStep, toneColor } from '../../../lib/entityColors';
 
 // tone = the theme accent shade used by the badge, tab, and timeline dot
 export const STATUS_META = {
-  pending: { label: 'Pending', tone: entityColorStep('orderStatus', 'pending'), icon: Clock },
+  placed: { label: 'Placed', tone: entityColorStep('orderStatus', 'placed'), icon: ShoppingBag },
   processing: { label: 'Processing', tone: entityColorStep('orderStatus', 'processing'), icon: Cog },
+  packed: { label: 'Packed', tone: entityColorStep('orderStatus', 'packed'), icon: PackageCheck },
   shipped: { label: 'Shipped', tone: entityColorStep('orderStatus', 'shipped'), icon: Truck },
-  delivered: { label: 'Delivered', tone: entityColorStep('orderStatus', 'delivered'), icon: PackageCheck },
+  delivered: { label: 'Delivered', tone: entityColorStep('orderStatus', 'delivered'), icon: CheckCircle2 },
   cancelled: { label: 'Cancelled', tone: entityColorStep('orderStatus', 'cancelled'), icon: XCircle },
   returned: { label: 'Returned', tone: entityColorStep('orderStatus', 'returned'), icon: Undo2 },
 };
@@ -28,7 +29,7 @@ export const METHOD_LABEL = {
 
 export const DELIVERY_LABEL = { fast: 'Fast', regular: 'Regular', pickup: 'Pickup' };
 
-// ['pending', ...] + labels -> [{ value, label }] for SelectInput
+// Order statuses + labels -> [{ value, label }] for SelectInput
 export const toOptions = (values, labels) =>
   values.map((value) => {
     const l = labels[value];

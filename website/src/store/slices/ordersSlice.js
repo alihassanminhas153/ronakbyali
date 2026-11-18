@@ -1,6 +1,6 @@
 // USAGE (customer)
 //   const res = await dispatch(placeOrder({ form, toast: true }));         // items come from the cart
-//   const res = await dispatch(addCartToOrder({ orderId, toast: true }));  // add the cart to an earlier, unshipped order
+//   const res = await dispatch(addCartToOrder({ orderId, toast: true }));  // add the cart to an order that is still placed
 //   dispatch(fetchOpenOrders());                                           // orders that can still be changed
 //   const open = useSelector(selectOpenOrders);
 //   dispatch(fetchMyOrders({ limit: 10, offset: 0 }));
@@ -8,10 +8,11 @@
 //   dispatch(updateOrderItemQuantity({ orderId, itemKey, quantity }));     // lower or remove (0) a line
 //   dispatch(updateOrderDetails({ orderId, data: { city, address } }));
 //   dispatch(cancelMyOrder({ orderId }));
-//   canEditOrder(order)                                                    // false once it has shipped
+//   dispatch(requestOrderReturn({ orderId, note }));
+//   canEditOrder(order)                                                    // customer details can be changed
 //
 // USAGE (admin, support, manager: every customer's orders)
-//   dispatch(fetchStaffOrders({ limit: 25, offset: 0, status: 'pending' }));
+//   dispatch(fetchStaffOrders({ limit: 25, offset: 0, status: 'placed' }));
 //   dispatch(searchStaffOrders({ term: 'RBA-7K', status: '' }));
 //   dispatch(fetchStaffCounts());
 //   dispatch(updateOrderStatus({ orderId, status: 'shipped' }));
@@ -37,10 +38,11 @@ import {
   PAYMENT_STATUS,
   DELIVERY_TYPES,
   USER_EDITABLE_STATUSES,
+  USER_ITEM_EDITABLE_STATUSES,
   STAFF_ROLES,
 } from '../../lib/appwrite/order';
 
-export { ORDER_STATUS, PAYMENT_METHODS, PAYMENT_STATUS, DELIVERY_TYPES, USER_EDITABLE_STATUSES };
+export { ORDER_STATUS, PAYMENT_METHODS, PAYMENT_STATUS, DELIVERY_TYPES, USER_EDITABLE_STATUSES, USER_ITEM_EDITABLE_STATUSES };
 
 const byNewest = (a, b) => (b.$createdAt || '').localeCompare(a.$createdAt || '');
 const adapter = createEntityAdapter({ selectId: (o) => o.$id, sortComparer: byNewest });
@@ -97,6 +99,8 @@ const initialState = adapter.getInitialState({
 /* ---------- helpers ---------- */
 
 export const canEditOrder = (order) => !!order && USER_EDITABLE_STATUSES.includes(order.status);
+export const canAddItemsToOrder = (order) => !!order && USER_ITEM_EDITABLE_STATUSES.includes(order.status);
+export const canCancelOrder = (order) => !!order && order.status === 'processing' && !order.isConfirmed;
 
 const linesToItems = (lines, paymentType = 'cod', sales = []) =>
   lines.map((l) => ({
@@ -288,8 +292,8 @@ export const addCartToOrder = createAsyncThunk('orders/addCart', async (arg, { g
 
   const current = await loadOrder(state, orderId);
   if (!current) return fail(rejectWithValue, 'We could not find that order.', arg);
-  if (!canEditOrder(current)) {
-    return fail(rejectWithValue, 'That order has already shipped. Place a new order instead.', arg);
+  if (!canAddItemsToOrder(current)) {
+    return fail(rejectWithValue, 'Products can only be added while an order is placed.', arg);
   }
 
   const existing = orderService.parseItems(current);
@@ -378,7 +382,16 @@ export const cancelMyOrder = createAsyncThunk('orders/cancelMine', async (arg, {
   return order;
 });
 
-const customerEdits = [addCartToOrder, updateOrderItemQuantity, updateOrderDetails, cancelMyOrder];
+export const requestOrderReturn = createAsyncThunk('orders/requestReturn', async (arg, { getState, rejectWithValue }) => {
+  const { orderId, note } = stripToast(arg);
+  const userId = getUserId(getState().auth.profile);
+  if (!userId) return rejectWithValue(LOGIN_REQUIRED, { toast: false });
+  const order = await orderService.requestReturn({ userId, orderId, note });
+  if (!order) return fail(rejectWithValue, orderService.lastError || 'Could not request the return.', arg);
+  return order;
+});
+
+const customerEdits = [addCartToOrder, updateOrderItemQuantity, updateOrderDetails, cancelMyOrder, requestOrderReturn];
 
 /* ---------- staff: every customer's orders ---------- */
 // The app only checks the role loosely. The real gate is Appwrite: without the
@@ -564,7 +577,14 @@ export const updateOrderFields = staffThunk(
   refreshTimeline
 );
 
-const staffEdits = [updateOrderStatus, updateOrderConfirmation, updateOrderPayment, setOrderTracking, setOrderAdminNotes, updateOrderFields];
+export const rejectOrderReturn = staffThunk(
+  'orders/staffRejectReturn',
+  ({ orderId }) => orderService.rejectReturnRequest(orderId),
+  'Could not reject the return request.',
+  refreshTimeline
+);
+
+const staffEdits = [updateOrderStatus, updateOrderConfirmation, updateOrderPayment, setOrderTracking, setOrderAdminNotes, updateOrderFields, rejectOrderReturn];
 
 /* ---------- slice ---------- */
 
@@ -891,7 +911,7 @@ export const selectOrderUpdateError = (s) => s.orders.updateError;
 
 // Orders that have not shipped yet, newest first.
 export const selectOpenOrders = (s) =>
-  s.orders.openIds.map((id) => s.orders.entities[id]).filter((o) => o && canEditOrder(o));
+  s.orders.openIds.map((id) => s.orders.entities[id]).filter(canAddItemsToOrder);
 
 export const selectStaffOrders = staffSel.selectAll;
 export const selectStaffTotal = (s) => s.orders.staff.total;

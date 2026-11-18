@@ -228,7 +228,7 @@ export default function Products() {
 
       {tab === 'products' && (
         <TabPanel key="products" className="space-y-6">
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_12rem_12rem_12rem_12rem]">
+          <div className="space-y-3">
             <SearchInput
               size="sm"
               value={filters.searchTerm}
@@ -236,43 +236,45 @@ export default function Products() {
               loading={loading && Boolean(filters.searchTerm)}
               placeholder="Search name, category, tags"
               label="Search products"
-              className="sm:col-span-2 xl:col-span-1"
+              className="w-full min-w-0"
             />
-            <SelectInput
-              size="sm"
-              aria-label="Filter by category"
-              placeholder="All categories"
-              options={categories}
-              value={filters.category || ''}
-              onChange={(category) => applyFilters({ category: category || null })}
-              searchable
-              clearable
-            />
-            <SelectInput
-              size="sm"
-              aria-label="Filter by stock"
-              placeholder="Any stock"
-              options={STATUS_OPTIONS}
-              value={filters.status || ''}
-              onChange={(value) => applyFilters({ status: value || null })}
-              clearable
-            />
-            <SelectInput
-              size="sm"
-              aria-label="Filter by product type"
-              placeholder="All product types"
-              options={TYPE_OPTIONS}
-              value={filters.isCustom === true ? 'custom' : filters.isCustom === false ? 'normal' : ''}
-              onChange={(value) => applyFilters({ isCustom: value ? value === 'custom' : null })}
-              clearable
-            />
-            <SelectInput
-              size="sm"
-              aria-label="Sort products"
-              options={SORT_OPTIONS}
-              value={filters.sortBy}
-              onChange={(sortBy) => applyFilters({ sortBy: sortBy || 'newest' })}
-            />
+            <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              <SelectInput
+                size="sm"
+                aria-label="Filter by category"
+                placeholder="All categories"
+                options={categories}
+                value={filters.category || ''}
+                onChange={(category) => applyFilters({ category: category || null })}
+                searchable
+                clearable
+              />
+              <SelectInput
+                size="sm"
+                aria-label="Filter by stock"
+                placeholder="Any stock"
+                options={STATUS_OPTIONS}
+                value={filters.status || ''}
+                onChange={(value) => applyFilters({ status: value || null })}
+                clearable
+              />
+              <SelectInput
+                size="sm"
+                aria-label="Filter by product type"
+                placeholder="All product types"
+                options={TYPE_OPTIONS}
+                value={filters.isCustom === true ? 'custom' : filters.isCustom === false ? 'normal' : ''}
+                onChange={(value) => applyFilters({ isCustom: value ? value === 'custom' : null })}
+                clearable
+              />
+              <SelectInput
+                size="sm"
+                aria-label="Sort products"
+                options={SORT_OPTIONS}
+                value={filters.sortBy}
+                onChange={(sortBy) => applyFilters({ sortBy: sortBy || 'newest' })}
+              />
+            </div>
           </div>
 
           {status === 'failed' && !products.length ? (

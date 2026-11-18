@@ -37,13 +37,18 @@ export default function SidebarLogout({ collapsed = false }) {
       aria-busy={busy}
       aria-label={collapsed ? 'Sign out' : undefined}
       title={collapsed ? 'Sign out' : undefined}
-      className="flex h-11 w-full items-center rounded-md text-sm text-muted transition-colors hover:bg-error/10 hover:text-error focus-visible:-outline-offset-2 focus-visible:outline-error disabled:opacity-60"
+      className="group flex h-11 w-full items-center rounded-md text-sm text-muted transition-colors duration-200 hover:bg-error/10 hover:text-error focus-visible:-outline-offset-2 focus-visible:outline-error disabled:opacity-60"
     >
       <IconCell>
         {busy ? (
           <Loader2 size={20} className="animate-spin" aria-hidden="true" />
         ) : (
-          <LogOut size={20} strokeWidth={1.75} aria-hidden="true" />
+          <LogOut
+            size={20}
+            strokeWidth={1.75}
+            aria-hidden="true"
+            className="transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:translate-x-0.5 motion-reduce:transition-none"
+          />
         )}
       </IconCell>
       <Fold collapsed={collapsed}>{label}</Fold>

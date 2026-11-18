@@ -254,16 +254,11 @@ export default function SelectInput({
                     i === active ? 'bg-surface-alt text-text' : 'text-text'
                   }`}
                 >
-                  {o.created ? (
+                  {o.created && (
                     <Plus size={15} aria-hidden="true" className="shrink-0 text-accent" />
-                  ) : (
-                    <Check
-                      size={15}
-                      aria-hidden="true"
-                      className={`shrink-0 text-accent ${o.value === value ? 'opacity-100' : 'opacity-0'}`}
-                    />
                   )}
-                  <span className="truncate">{o.label}</span>
+                  <span className="min-w-0 flex-1 truncate">{o.label}</span>
+                  {!o.created && o.value === value && <Check size={15} aria-hidden="true" className="shrink-0 text-accent" />}
                 </li>
               ))}
             </ul>

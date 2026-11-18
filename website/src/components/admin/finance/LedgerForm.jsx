@@ -22,7 +22,7 @@ export default function LedgerForm({ open, entry, defaultType = 'expense', entri
   const [saving, setSaving] = useState(false);
   const [submitError, setSubmitError] = useState('');
 
-  const meta = TYPE_META[form.type];
+  const meta = TYPE_META[form.type] || TYPE_META[defaultType] || TYPE_META.expense;
   const color = toneVar(meta.tone);
 
   // suggestions = the defaults for this type + whatever you already used
@@ -101,7 +101,7 @@ export default function LedgerForm({ open, entry, defaultType = 'expense', entri
             <DatePicker aria-label="Date" value={form.date} onChange={set('date')} max={toDateKey()} error={Boolean(errors.date)} />
           </Field>
           <Field label="Note" optional className="sm:col-span-2">
-            <textarea value={form.note} onChange={on('note')} rows={3} maxLength={1000} placeholder="Invoice number, who was paid…" className={`${inputCls()} resize-y py-2`} />
+            <textarea value={form.note} onChange={on('note')} rows={3} maxLength={1000} placeholder="Invoice number, who was paid…" className={`${inputCls()} resize-none py-2`} />
           </Field>
         </div>
         {form.type === 'expense' && form.category === STOCK_CATEGORY && (

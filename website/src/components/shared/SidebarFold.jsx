@@ -11,14 +11,14 @@ export function IconCell({ children }) {
   return <span className={ICON_CELL}>{children}</span>;
 }
 
-// A label that folds away when the sidebar is collapsed.
-// duration-300 matches DURATION in DashboardShell.jsx.
+// A label that folds away when the sidebar is collapsed: it narrows, fades and
+// drifts left a little. duration-300 matches DURATION in DashboardShell.jsx.
 export default function Fold({ collapsed, children, className = '' }) {
   return (
     <span
       aria-hidden={collapsed || undefined}
-      className={`block min-w-0 overflow-hidden whitespace-nowrap transition-[max-width,opacity] duration-300 ease-out motion-reduce:transition-none ${
-        collapsed ? 'max-w-0 opacity-0' : 'max-w-48 opacity-100'
+      className={`block min-w-0 overflow-hidden whitespace-nowrap transition-[max-width,opacity,transform] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none ${
+        collapsed ? 'max-w-0 -translate-x-2 opacity-0' : 'max-w-48 translate-x-0 opacity-100'
       } ${className}`}
     >
       {children}

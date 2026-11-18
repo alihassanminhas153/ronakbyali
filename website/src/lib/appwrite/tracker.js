@@ -124,7 +124,7 @@ export class TrackerService {
                         this._entry({
                             title: 'Order placed',
                             note: order.orderNumber ? `Order ${order.orderNumber} was received.` : '',
-                            status: 'pending',
+                            status: 'placed',
                             by,
                             at: order.$createdAt,
                         }),

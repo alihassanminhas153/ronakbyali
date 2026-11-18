@@ -9,19 +9,27 @@ import orderConfirmationService from './orderConfirmation';
 import { paidAmountForOrder } from '../orderMath';
 
 // The statuses below are the real enum values of ronakbyali_orders.status.
-export const ORDER_STATUS = ['pending', 'processing', 'shipped', 'delivered', 'cancelled', 'returned'];
+export const ORDER_STATUS = ['placed', 'processing', 'packed', 'shipped', 'cancelled', 'returned', 'delivered'];
 export const PAYMENT_METHODS = ['cod', 'bank_transfer', 'card', 'easypaisa', 'jazzcash'];
 export const PAYMENT_STATUS = ['unpaid', 'partial', 'paid', 'refunded'];
 export const DELIVERY_TYPES = ['fast', 'regular', 'pickup'];
 
-// "Dispatched" in the app = "shipped" in the database.
-// A customer may change or cancel an order only BEFORE it ships.
-export const USER_EDITABLE_STATUSES = ['pending', 'processing'];
+export const USER_EDITABLE_STATUSES = ['placed', 'processing'];
+export const USER_ITEM_EDITABLE_STATUSES = ['placed'];
+export const USER_CANCELLABLE_STATUSES = ['processing'];
 
 // Product stock is taken when an order ships and given back if a shipped or
-// delivered order is cancelled or returned. Because a customer can still edit
-// an order before it ships, nothing about the stock changes while it is editable.
+// delivered order is returned. Nothing changes in stock while an order is being prepared.
 export const STOCK_TAKEN_STATUSES = ['shipped', 'delivered'];
+const ORDER_TRANSITIONS = {
+    placed: ['processing'],
+    processing: ['packed', 'cancelled'],
+    packed: ['shipped'],
+    shipped: ['delivered'],
+    delivered: ['returned'],
+    cancelled: [],
+    returned: [],
+};
 
 // Who counts as staff in the app (Appwrite itself decides by the account labels
 // admin / support / manager, set in the table permissions).
@@ -29,13 +37,13 @@ export const STAFF_ROLES = ['admin', 'support', 'manager'];
 
 // ---------------------------------------------------------------------
 // WHAT STAFF MAY EDIT, BY STATUS  (the only place to change these rules)
-//   pending / processing -> customer details, payment method, delivery time
+//   placed / processing  -> customer details, payment method, delivery time
 //   shipped              -> only the delivery address (and city)
 //   delivered / cancelled / returned -> nothing (read only)
 // Always open to staff: order status, payment status, courier link, tracking
 // number, timeline updates and admin notes. Items and amounts are never edited here.
 // ---------------------------------------------------------------------
-export const FULL_EDIT_STATUSES = ['pending', 'processing'];
+export const FULL_EDIT_STATUSES = ['placed', 'processing'];
 export const ADDRESS_EDIT_STATUSES = ['shipped'];
 const FULL_EDIT_KEYS = [
     'customerName', 'customerPhone', 'customerEmail', 'city', 'address', 'notes',
@@ -54,8 +62,9 @@ const NOT_COUNTED_STATUSES = ['cancelled', 'returned'];
 
 // One timeline step is written for every status change.
 const STATUS_UPDATES = {
-    pending: ['Order placed', 'The order is waiting to be confirmed.'],
+    placed: ['Order placed', 'The order is waiting to be confirmed.'],
     processing: ['Order is being prepared', 'Your items are being packed.'],
+    packed: ['Order packed', 'Your order is packed and ready to ship.'],
     shipped: ['Order shipped', 'Your parcel has been handed to the courier.'],
     delivered: ['Order delivered', 'The parcel was delivered. Thank you for shopping with us.'],
     cancelled: ['Order cancelled', 'This order was cancelled.'],
@@ -86,7 +95,8 @@ const DETAIL_LABELS = {
 //   deliveryCharges, discount, total, advanceAmount, codAmount,
 //   status, paymentMethod, paymentStatus, deliveryType, deliveryTime,
 //   estimatedDelivery, customerName, customerEmail, customerPhone,
-//   city, address, notes, trackingId, adminNotes, customSelections, customFileIds
+//   city, address, notes, trackingId, adminNotes, customSelections, customFileIds,
+//   returnRequestStatus, returnRequestedAt, returnResolvedAt, returnRequestNote
 export class OrderService {
     client = new Client();
     table;
@@ -115,6 +125,10 @@ export class OrderService {
 
     isUserEditable(order) {
         return !!order && USER_EDITABLE_STATUSES.includes(order.status);
+    }
+
+    isUserItemEditable(order) {
+        return !!order && USER_ITEM_EDITABLE_STATUSES.includes(order.status);
     }
 
     // The items column as a real array.
@@ -237,7 +251,11 @@ export class OrderService {
                 username: profile.username || null,
                 items: JSON.stringify(cleanItems),
                 ...totals,
-                status: 'pending',
+                status: 'placed',
+                returnRequestStatus: 'none',
+                returnRequestedAt: null,
+                returnResolvedAt: null,
+                returnRequestNote: null,
                 paymentMethod: form.paymentMethod || 'cod',
                 deliveryType: form.deliveryType || 'regular',
                 deliveryTime: form.deliveryTime || null,
@@ -306,7 +324,7 @@ export class OrderService {
     }
 
     // =====================================================================
-    // CUSTOMER: CHANGE AN ORDER (only until it ships)
+    // CUSTOMER: CHANGE AN ORDER
     // =====================================================================
 
     // The customer's orders that can still be changed, newest first.
@@ -318,7 +336,7 @@ export class OrderService {
                 tableId: this.tableId,
                 queries: [
                     Query.equal('userId', userId),
-                    Query.equal('status', USER_EDITABLE_STATUSES),
+                    Query.equal('status', USER_ITEM_EDITABLE_STATUSES),
                     Query.orderDesc('$createdAt'),
                     Query.limit(25),
                 ],
@@ -395,7 +413,7 @@ export class OrderService {
         return saved;
     }
 
-    // Adds cart items to an earlier order that has not shipped yet.
+    // Adds cart items only while the order is still placed.
     // items: same shape as placeOrder. deliveryCharges: recalculated for the new subtotal.
     // The added products leave the cart, like a normal order.
     async addItemsToOrder({ profile, orderId, items, deliveryCharges }) {
@@ -404,6 +422,7 @@ export class OrderService {
             if (!profile?.$id) return this._fail('Please sign in first.');
             const order = await this._getEditable(profile.$id, orderId);
             if (!order) return false;
+            if (!this.isUserItemEditable(order)) return this._fail('Products can only be added before the order enters processing.');
             if (order.isCustom) return this._fail('This is a customized order. Please contact us to change it.');
 
             const incoming = this._cleanItems(items);
@@ -432,6 +451,7 @@ export class OrderService {
         try {
             const order = await this._getEditable(userId, orderId);
             if (!order) return false;
+            if (!this.isUserItemEditable(order)) return this._fail('Items can only be changed while the order is placed.');
             if (order.isCustom) return this._fail('This is a customized order. Please contact us to change it.');
 
             const items = this.parseItems(order);
@@ -479,19 +499,76 @@ export class OrderService {
         }
     }
 
-    // Customer cancels their own order. Nothing needs undoing on the stock,
-    // because stock is only taken when an order ships.
+    async requestReturn({ userId, orderId, note = '' }) {
+        this.lastError = null;
+        const order = await this.getOrder(orderId);
+        if (!order) return this._fail('We could not find that order.');
+        if (order.userId !== userId) return this._fail('That order belongs to another account.');
+        if (order.status !== 'delivered') return this._fail('A return can only be requested for a delivered order.');
+        if (['requested', 'approved'].includes(order.returnRequestStatus)) {
+            return this._fail('A return request has already been submitted for this order.');
+        }
+        const cleanNote = String(note || '').trim();
+        if (cleanNote.length > 1000) return this._fail('The return note is too long (max 1000 characters).');
+        return this._userUpdate(orderId, {
+            returnRequestStatus: 'requested',
+            returnRequestedAt: new Date().toISOString(),
+            returnResolvedAt: null,
+            returnRequestNote: cleanNote || null,
+        });
+    }
+
+    async rejectReturnRequest(rowId) {
+        this.lastError = null;
+        const order = await this.getOrder(rowId);
+        if (!order) return this._fail('Order not found.');
+        if (order.status !== 'delivered' || order.returnRequestStatus !== 'requested') {
+            return this._fail('There is no pending return request for this order.');
+        }
+        const updated = await this.updateOrder(rowId, {
+            returnRequestStatus: 'rejected',
+            returnResolvedAt: new Date().toISOString(),
+        });
+        if (!updated) return this._fail('Could not reject the return request.');
+        const tracker = await trackerService.addUpdate(rowId, {
+            title: 'Return request declined',
+            note: 'Please contact our team if you have questions.',
+            status: order.status,
+            by: 'staff',
+        }, { order });
+        if (!tracker) this.lastError = 'Return request declined, but the tracking timeline could not be updated.';
+        return updated;
+    }
+
+    // Customer cancellation is limited to unconfirmed processing orders.
     async cancelMyOrder({ userId, orderId }) {
         this.lastError = null;
         try {
             const order = await this._getEditable(userId, orderId);
             if (!order) return false;
+            if (!USER_CANCELLABLE_STATUSES.includes(order.status)) {
+                return this._fail('An order can only be cancelled while it is processing.');
+            }
+            const confirmation = await orderConfirmationService.getByOrderId(orderId);
+            if (confirmation === false) return this._fail('Could not verify the order confirmation before cancelling.');
+            if (order.isConfirmed || confirmation?.isConfirmed || confirmation?.status === 'confirmed') {
+                return this._fail('This order has been confirmed and can no longer be cancelled.');
+            }
             const saved = await this._userUpdate(orderId, { status: 'cancelled' });
             if (saved) {
-                await Promise.allSettled([
+                const results = await Promise.allSettled([
+                    trackerService.addUpdate(orderId, {
+                        title: 'Order cancelled',
+                        note: 'This order was cancelled.',
+                        status: 'cancelled',
+                        by: 'customer',
+                    }, { order }),
                     this._syncProfileCounts(order, order.status, 'cancelled'),
                     this._syncCustomOrderStatus(saved, 'cancelled'),
                 ]);
+                if (results[0].status === 'rejected' || results[0].value === false) {
+                    this.lastError = 'Order cancelled, but the tracking timeline could not be updated.';
+                }
             }
             return saved;
         } catch (error) {
@@ -642,7 +719,7 @@ export class OrderService {
 
     // Changes the status and keeps product stock right:
     //   not shipped/delivered -> shipped/delivered   sold += quantity, remaining -= quantity
-    //   shipped/delivered -> anything else           the stock is given back
+    //   shipped/delivered -> returned                the stock is given back
     // A COD order marked "delivered" is also marked "paid".
     // The staff member's account needs update permission on the products table
     // for the stock part. If the stock cannot be updated the status still
@@ -654,8 +731,31 @@ export class OrderService {
             const order = await this.getOrder(rowId);
             if (!order) return this._fail('Order not found.');
             if (order.status === status) return order;
+            if (!ORDER_TRANSITIONS[order.status]?.includes(status)) {
+                return this._fail(`An order cannot move from ${order.status} to ${status}.`);
+            }
+
+            let confirmation = null;
+            if (status === 'packed' || status === 'cancelled') {
+                confirmation = await orderConfirmationService.getByOrderId(rowId);
+                if (confirmation === false) return this._fail('Could not verify the order confirmation.');
+            }
+            const confirmed = Boolean(order.isConfirmed) || confirmation?.isConfirmed || confirmation?.status === 'confirmed';
+            if (status === 'packed' && (!order.isConfirmed || !confirmation?.isConfirmed || confirmation.status !== 'confirmed')) {
+                return this._fail('Confirm the order in both confirmation records before marking it packed.');
+            }
+            if (status === 'cancelled' && confirmed) {
+                return this._fail('This order has been confirmed and can no longer be cancelled.');
+            }
+            if (status === 'returned' && order.returnRequestStatus !== 'requested') {
+                return this._fail('A return can only be completed after the customer requests one.');
+            }
 
             const patch = { status };
+            if (status === 'returned') {
+                patch.returnRequestStatus = 'approved';
+                patch.returnResolvedAt = new Date().toISOString();
+            }
             if (status === 'delivered' && order.paymentMethod === 'cod' && order.paymentStatus !== 'paid') {
                 patch.paymentStatus = 'paid';
             }
@@ -697,8 +797,9 @@ export class OrderService {
     async _syncCustomOrderStatus(order, status) {
         if (!order?.isCustom) return true;
         const customStatus = {
-            pending: 'requested',
+            placed: 'requested',
             processing: 'in_progress',
+            packed: 'ready',
             shipped: 'ready',
             delivered: 'ready',
             cancelled: 'cancelled',
@@ -851,10 +952,10 @@ export class OrderService {
         try {
             const order = await this.getOrder(rowId);
             if (!order) return this._fail('Order not found.');
-            if (Boolean(order.isConfirmed) === isConfirmed) return order;
-            if (isConfirmed && order.status !== 'processing') {
-                return this._fail('Only an order being prepared can be confirmed.');
+            if (order.status !== 'processing') {
+                return this._fail('Order confirmation can only be changed while the order is processing.');
             }
+            if (Boolean(order.isConfirmed) === isConfirmed) return order;
 
             const confirmedAt = isConfirmed ? new Date().toISOString() : null;
             const updated = await this.updateOrder(rowId, { isConfirmed, confirmedAt });

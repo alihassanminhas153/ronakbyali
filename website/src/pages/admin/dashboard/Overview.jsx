@@ -108,7 +108,7 @@ export default function Overview() {
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <LinkTile to={link('finance')} label="Revenue" value={fin.now.revenue} format={formatCardMoney} hint={`${fin.paidCount} orders with payment received`} appIcon="pkr" sensitive tone={1} delay={0} />
         <LinkTile to={link('finance')} label={loss ? 'Net loss' : 'Net profit'} value={Math.abs(fin.all.net)} format={formatCardMoney} hint={fin.roi == null ? 'add an investment' : `${Math.round(fin.roi)}% return`} appIcon={loss ? 'arrow_trend_down' : 'arrow_trend_up'} sensitive tone={loss ? 4 : 7} delay={40} />
-        <LinkTile to={link('orders')} label="Pending orders" value={orderStats.pending} hint={`${orderStats.open} open in total`} appIcon="clock" tone={3} delay={80} />
+        <LinkTile to={link('orders')} label="Placed orders" value={orderStats.placed} hint={`${orderStats.open} open in total`} appIcon="clock" tone={3} delay={80} />
         <LinkTile to={link('users')} label="Customers" value={userStats.customers} hint={`${userStats.fresh} new in 30 days`} appIcon="customers" tone={6} delay={120} />
         <LinkTile to={link('products')} label="Products in stock" value={productStats.inStock} hint={`${productStats.out} out of stock`} appIcon="boxes" tone={2} delay={160} />
         <LinkTile to={link('alerts')} label="Active alerts" value={alertStats.active} hint={`${alertStats.popups} popups`} appIcon="alert" tone={5} delay={200} />
@@ -129,7 +129,7 @@ export default function Overview() {
       <div className={grid}>
         <OverviewCard to={link('orders')} cta="All orders" title="Orders" subtitle={`${orderStats.total} in total`} appIcon="list" tone={1} className="lg:col-span-2">
           <Mini items={[
-            { label: 'Pending', value: orderStats.pending, tone: 3 },
+            { label: 'Placed', value: orderStats.placed, tone: 3 },
             { label: 'Open', value: orderStats.open, tone: 5 },
             { label: 'Delivered', value: orderStats.delivered, tone: 7 },
           ]} />
@@ -164,7 +164,7 @@ export default function Overview() {
               )}
               {orderStats.total > orderStats.recent.length && (
                 <div className="mt-3 flex items-center justify-between gap-3 rounded-md border border-border bg-surface-alt/60 px-3 py-2">
-                  <span className="text-xs text-muted">{orderStats.pending} pending</span>
+                  <span className="text-xs text-muted">{orderStats.placed} placed</span>
                   <Link to={link('orders')} className="inline-flex items-center gap-1 text-xs font-medium text-accent hover:underline">
                     View all orders <ArrowRight size={12} />
                   </Link>

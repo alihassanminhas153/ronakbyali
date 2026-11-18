@@ -270,7 +270,7 @@ export default function AlertForm({ open, alert, onClose, onSaved }) {
                 <input value={form.title} onChange={on('title')} maxLength={ALERT_LIMITS.title + 20} placeholder="Eid sale starts tonight" className={inputCls(errors.title)} />
               </Field>
               <Field label="Message" hint={<Count value={form.message.length} max={ALERT_LIMITS.message} />} error={errors.message} className="sm:col-span-2">
-                <textarea value={form.message} onChange={on('message')} rows={4} placeholder="Up to 30% off on all lawn suits until Sunday." className={`${inputCls(errors.message)} resize-y py-2`} />
+                <textarea value={form.message} onChange={on('message')} rows={4} placeholder="Up to 30% off on all lawn suits until Sunday." className={`${inputCls(errors.message)} resize-none py-2`} />
               </Field>
               <div className="sm:col-span-2" role="radiogroup" aria-label="Alert type">
                 <span className="mb-1.5 block text-xs font-medium text-text">Type</span>

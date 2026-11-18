@@ -58,7 +58,7 @@ export default function RestockForm({ open, products = [], preset = null, onClos
         type: 'expense', title: `Restock: ${product.name} x${n}`, category: STOCK_CATEGORY,
         amount: n * cost, date: keyToIso(toDateKey()), note: `${n} units at ${rs(cost)} each`,
       });
-      if (!entry) notes.push('the expense entry');
+      if (!entry) notes.push(financeService.lastError || 'the expense entry');
     }
     setSaving(false);
     if (notes.length) { setSubmitError(`Stock added, but ${notes.join(' and ')} could not be saved.`); onSaved?.(); return; }

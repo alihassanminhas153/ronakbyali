@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Lock, X } from 'lucide-react';
+import { ChevronDown, Lock, X } from 'lucide-react';
 import '../users/userScroll.css';
 
 import AppIcon from '../../../ui/custom/AppIcon';
@@ -36,13 +36,24 @@ export function SectionHead({ icon: Icon, appIcon, title, subtitle, tone, lockLa
 }
 
 export function Section({ title, subtitle, icon, appIcon, tone = 1, lockLabel, children, delay = 0 }) {
+  const [expanded, setExpanded] = useState(true);
   return (
     <section
       style={{ animationDelay: `${delay}ms` }}
       className="group/sec animate-rise rounded-lg border border-border bg-surface-alt/40 p-4"
     >
-      <SectionHead icon={icon} appIcon={appIcon} title={title} subtitle={subtitle} tone={tone} lockLabel={lockLabel} />
-      <div className="mt-4 grid gap-4 sm:grid-cols-2">{children}</div>
+      <button
+        type="button"
+        onClick={() => setExpanded((value) => !value)}
+        aria-expanded={expanded}
+        className="flex w-full items-center gap-3 text-left"
+      >
+        <span className="min-w-0 flex-1">
+          <SectionHead icon={icon} appIcon={appIcon} title={title} subtitle={subtitle} tone={tone} lockLabel={lockLabel} />
+        </span>
+        <ChevronDown size={18} aria-hidden="true" className={`shrink-0 text-muted transition-transform ${expanded ? 'rotate-180' : ''}`} />
+      </button>
+      {expanded && <div className="mt-4 grid gap-4 sm:grid-cols-2">{children}</div>}
     </section>
   );
 }

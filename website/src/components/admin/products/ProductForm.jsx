@@ -472,7 +472,7 @@ export default function ProductForm({ open, product, categories = [], groups = [
               />
             </Field>
             <Field label="Description" optional className="sm:col-span-2">
-              <textarea value={form.description} onChange={on('description')} rows={4} className={`${inputCls()} resize-y py-2`} placeholder="Fabric, fit, care…" />
+              <textarea value={form.description} onChange={on('description')} rows={4} className={`${inputCls()} resize-none py-2`} placeholder="Fabric, fit, care…" />
             </Field>
             <div className="sm:col-span-2">
               <span className="mb-1.5 block text-xs font-medium text-text">Tags <span className="font-normal text-muted">(optional)</span></span>
@@ -544,7 +544,7 @@ export default function ProductForm({ open, product, categories = [], groups = [
                   onChange={on('customDetails')}
                   rows={3}
                   maxLength={1000}
-                  className={`${inputCls()} resize-y py-2`}
+                  className={`${inputCls()} resize-none py-2`}
                   placeholder="What should customers send, which sizes are needed, and what are the deadlines?"
                 />
               </Field>

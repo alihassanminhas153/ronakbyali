@@ -58,8 +58,9 @@ export const prettyDate = (value) =>
   });
 
 export function toForm(entry, type = 'expense') {
+  const entryType = TYPE_META[entry?.type] ? entry.type : TYPE_META[type] ? type : 'expense';
   return {
-    type: entry?.type || type,
+    type: entryType,
     title: entry?.title || '',
     category: entry?.category || '',
     amount: entry?.amount != null ? String(entry.amount) : '',

@@ -6,6 +6,7 @@ import Sidebar from './Sidebar';
 
 const STORAGE_KEY = 'dashboard-sidebar-collapsed';
 const DURATION = 300; // ms: sidebar width, drawer slide and backdrop fade (matches duration-300 in SidebarFold)
+const EASE = 'ease-[cubic-bezier(0.22,1,0.36,1)]';
 const PAGE_TITLES = {
   alerts: 'Alerts',
   cart: 'Cart',
@@ -31,8 +32,8 @@ const readCollapsed = () => {
 
 // Page frame for both dashboards.
 //   >= lg : fixed sidebar on the left, content on the right. The sidebar collapses to a
-//           72px icon rail (remembered between visits). Collapse button: inside the sidebar
-//           header while open, round button outside the sidebar edge while collapsed.
+//           72px icon rail (remembered between visits, Ctrl/Cmd + B toggles it). Collapse
+//           button: inside the sidebar header while open, round button on the edge while collapsed.
 //   <  lg : slim top bar with a menu button; the sidebar slides in as a drawer
 // There is no site header here. Pass children (SlugRoute) or let the route's <Outlet /> render.
 export default function DashboardShell({ area = 'user', children }) {
@@ -59,6 +60,20 @@ export default function DashboardShell({ area = 'user', children }) {
       /* private mode: it just will not be remembered */
     }
   }, [collapsed]);
+
+  // Ctrl/Cmd + B collapses or expands the sidebar on large screens
+  useEffect(() => {
+    const onKey = (e) => {
+      if (!(e.ctrlKey || e.metaKey) || e.key.toLowerCase() !== 'b') return;
+      const el = e.target;
+      if (el instanceof HTMLElement && (el.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName))) return;
+      if (!window.matchMedia('(min-width: 1024px)').matches) return;
+      e.preventDefault();
+      setCollapsed((c) => !c);
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, []);
 
   // close the drawer after navigating
   useEffect(() => {
@@ -112,7 +127,7 @@ export default function DashboardShell({ area = 'user', children }) {
   return (
     <div
       style={speed}
-      className={`min-h-dvh bg-bg text-text transition-[grid-template-columns] ease-out motion-reduce:transition-none lg:grid ${
+      className={`min-h-dvh bg-bg text-text transition-[grid-template-columns] ${EASE} motion-reduce:transition-none lg:grid ${
         collapsed ? 'lg:grid-cols-[4.5rem_minmax(0,1fr)]' : 'lg:grid-cols-[16.5rem_minmax(0,1fr)]'
       }`}
     >
@@ -130,25 +145,29 @@ export default function DashboardShell({ area = 'user', children }) {
             tabIndex={collapsed ? 0 : -1}
             aria-hidden={!collapsed || undefined}
             aria-label="Expand sidebar"
-            title="Expand sidebar"
+            title="Expand sidebar (Ctrl+B)"
             style={{ transitionDuration: '200ms', transitionDelay: collapsed ? `${DURATION / 2}ms` : '0ms' }}
-            className={`absolute -right-4 top-[18px] z-10 flex size-7 items-center justify-center rounded-full border border-border bg-surface text-muted shadow-soft transition-[opacity,color,border-color] hover:border-accent hover:text-accent focus-visible:outline-2 focus-visible:outline-accent motion-reduce:transition-none ${
+            className={`group absolute -right-4 top-[18px] z-10 flex size-7 items-center justify-center rounded-full border border-border bg-surface text-muted shadow-soft transition-[opacity,color,border-color] hover:border-accent hover:text-accent focus-visible:outline-2 focus-visible:outline-accent motion-reduce:transition-none ${
               collapsed ? 'opacity-100' : 'pointer-events-none opacity-0'
             }`}
           >
-            <ChevronsRight size={14} aria-hidden="true" />
+            <ChevronsRight
+              size={14}
+              aria-hidden="true"
+              className="transition-transform duration-200 group-hover:translate-x-0.5 motion-reduce:transition-none"
+            />
           </button>
         </div>
       </aside>
 
       {/* mobile top bar */}
-      <div className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-border bg-surface px-4 lg:hidden">
+      <div className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-border bg-surface/85 px-4 backdrop-blur-md lg:hidden">
         <button
           type="button"
           onClick={() => setOpen(true)}
           aria-label="Open menu"
           aria-expanded={open}
-          className="flex size-10 items-center justify-center rounded-md text-text transition-colors hover:bg-surface-alt focus-visible:outline-2 focus-visible:outline-accent"
+          className="flex size-10 items-center justify-center rounded-md text-text transition-[background-color,transform] hover:bg-surface-alt active:scale-95 focus-visible:outline-2 focus-visible:outline-accent motion-reduce:transition-none"
         >
           <Menu size={20} aria-hidden="true" />
         </button>
@@ -164,7 +183,7 @@ export default function DashboardShell({ area = 'user', children }) {
             tabIndex={-1}
             onClick={() => setOpen(false)}
             style={speed}
-            className={`absolute inset-0 bg-bg/80 backdrop-blur-sm transition-opacity ease-out motion-reduce:transition-none ${
+            className={`absolute inset-0 bg-bg/70 backdrop-blur-sm transition-opacity ${EASE} motion-reduce:transition-none ${
               shown ? 'opacity-100' : 'opacity-0'
             }`}
           />
@@ -175,7 +194,7 @@ export default function DashboardShell({ area = 'user', children }) {
             aria-modal="true"
             aria-label={panelTitle}
             style={speed}
-            className={`absolute inset-y-0 left-0 w-72 max-w-[85%] border-r border-border shadow-soft outline-none transition-transform ease-out motion-reduce:transition-none ${
+            className={`absolute inset-y-0 left-0 w-72 max-w-[85%] overflow-hidden rounded-r-2xl border-r border-border shadow-soft outline-none transition-transform ${EASE} motion-reduce:transition-none ${
               shown ? 'translate-x-0' : '-translate-x-full'
             }`}
           >

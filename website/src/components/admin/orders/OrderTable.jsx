@@ -12,8 +12,7 @@ import { money, STATUS_META } from './orderMeta';
 const COLUMNS = [
   { label: 'Order ID' },
   { label: 'Customer' },
-  { label: 'Payment' },
-  { label: 'Status' },
+  { label: 'Payment / status' },
   { label: 'Customer update' },
   { label: 'Actions', right: true },
 ];
@@ -127,11 +126,13 @@ const OrderRow = memo(function OrderRow({ order, index, onView, detail }) {
         <p className="mt-0.5 max-w-64 truncate text-xs text-muted">{order.customerPhone} · {order.city}</p>
         {detail && <Tooltip label={detail}><p className="mt-1 max-w-64 truncate text-xs text-muted">{detail}</p></Tooltip>}
       </td>
-      <td className={`whitespace-nowrap px-4 py-3 ${dim}`}>
-        <PaymentBadge status={order.paymentStatus} />
+      <td className={`px-4 py-3 ${dim}`}>
+        <div className="flex flex-col items-start gap-1">
+          <PaymentBadge status={order.paymentStatus} />
+          <StatusBadge status={order.status} />
+        </div>
         <p className="mt-1 text-xs tabular-nums text-muted">{money(order.total)}</p>
       </td>
-      <td className="px-4 py-3"><StatusBadge status={order.status} /></td>
       <td className="px-4 py-3" onClick={stop}><QuickUpdate orderId={order.$id} orderNumber={order.orderNumber} /></td>
       <td className="cursor-default px-4 py-3" onClick={stop}>
         <div className="flex justify-end"><ViewButton order={order} onView={onView} /></div>
@@ -164,11 +165,11 @@ const OrderCard = memo(function OrderCard({ order, index, onView, detail }) {
         {detail && <Tooltip label={detail}><p className="mt-1 truncate text-xs text-muted">{detail}</p></Tooltip>}
       </div>
       <div className="mt-3 flex items-center justify-between gap-3 border-t border-border pt-3">
-        <div>
+        <div className="flex min-w-0 flex-col items-start gap-1">
           <PaymentBadge status={order.paymentStatus} />
+          <StatusBadge status={order.status} />
           <p className="mt-1 text-xs tabular-nums text-muted">{money(order.total)}</p>
         </div>
-        <StatusBadge status={order.status} />
         <ViewButton order={order} onView={onView} />
       </div>
       <div className="mt-3 border-t border-border pt-3">

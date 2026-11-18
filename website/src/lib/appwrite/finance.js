@@ -1,33 +1,18 @@
 import envVars from '../../../env/var';
 import { Client, TablesDB, ID, Query } from 'appwrite';
 
-// There is NO finance table. The ledger is built from two sources:
-//
-//  1. AUTOMATIC entries, calculated live from tables you already have
-//     - products -> one "investment" per product:  costPrice x totalAvailable
-//     - orders   -> one "expense" per RETURNED order: its deliveryCharges (lost shipping)
-//     They are read-only (flag `auto: true`); change the product / order instead.
-//
-//  2. MANUAL entries (expenses, withdrawals, other income, extra investments) that the
-//     admin types in. With no table to put them in, they are kept in this browser's
-//     localStorage. They survive refreshes but are NOT shared between devices.
-//     (If you later add a table, only _readManual / _writeManual below need to change.)
-//
-// Sales, cost of goods, carts and wishlists still come from the orders / products /
-// cart / wishlist tables exactly as before, so nothing else on the page changes.
-//
-// Entry shape (same as the old table rows):
-//   { $id, $createdAt, $updatedAt, type, title, category, amount, date (ISO), note, auto? }
 export const LEDGER_TYPES = ['investment', 'expense', 'withdrawal', 'income'];
 
 const STORE_KEY = 'ronakbyali_finance_manual';
 const AUTO_MESSAGE = 'This entry is calculated from your products and orders. Change the product or order instead.';
+const ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]{0,35}$/;
 
 export class FinanceService {
     client = new Client();
     table;
 
     databaseId = envVars.ronakByAliDatabaseId;
+    financeTableId = envVars.ronakByAliFinance || 'ronakbyali_finance';
     productsTableId = envVars.ronakByAliProducts || 'ronakbyali_products';
     ordersTableId = envVars.ronakByAliOrders || 'ronakbyali_orders';
 
@@ -43,28 +28,89 @@ export class FinanceService {
         return false;
     }
 
-    /* ---------- manual entries (browser storage) ---------- */
-
-    _readManual() {
-        try {
-            const list = JSON.parse(localStorage.getItem(STORE_KEY) || '[]');
-            return Array.isArray(list) ? list : [];
-        } catch {
-            return [];
-        }
+    _entryData(data) {
+        const type = String(data?.type || '');
+        const title = String(data?.title || '').trim();
+        const category = String(data?.category || '').trim();
+        const note = String(data?.note || '').trim();
+        const amount = Number(data?.amount);
+        const date = data?.date ? new Date(data.date) : null;
+        if (!LEDGER_TYPES.includes(type)) return { error: 'Unknown entry type.' };
+        if (!title) return { error: 'Give this entry a short title.' };
+        if (title.length > 150) return { error: 'The title is too long (max 150 characters).' };
+        if (category.length > 100) return { error: 'The category is too long (max 100 characters).' };
+        if (note.length > 1000) return { error: 'The note is too long (max 1000 characters).' };
+        if (!Number.isFinite(amount) || amount <= 0) return { error: 'Enter an amount above 0.' };
+        if (!date || Number.isNaN(date.getTime())) return { error: 'Choose a valid date.' };
+        return {
+            data: {
+                type,
+                title,
+                category: category || null,
+                amount,
+                date: date.toISOString(),
+                note: note || null,
+            },
+        };
     }
 
-    _writeManual(rows) {
+    _fromRow(row) {
+        return {
+            ...row,
+            amount: Number(row.amount) || 0,
+            date: row.date,
+            auto: false,
+        };
+    }
+
+    async _migrateLegacyEntries() {
+        if (typeof localStorage === 'undefined') return true;
+        let serialized;
         try {
-            localStorage.setItem(STORE_KEY, JSON.stringify(rows));
+            serialized = localStorage.getItem(STORE_KEY);
+        } catch (error) {
+            console.error(error.message);
+            return this._fail('Could not read the previous finance entries from this browser.');
+        }
+        if (!serialized) return true;
+
+        let rows;
+        try {
+            rows = JSON.parse(serialized);
+        } catch (error) {
+            console.error(error.message);
+            return this._fail('The previous finance entries in this browser are invalid.');
+        }
+        if (!Array.isArray(rows)) return this._fail('The previous finance entries in this browser are invalid.');
+
+        for (const row of rows) {
+            const { data, error } = this._entryData(row);
+            if (error || !ID_PATTERN.test(String(row?.$id || ''))) {
+                return this._fail('A previous finance entry could not be migrated. It has been kept in this browser.');
+            }
+            try {
+                await this.table.createRow({
+                    databaseId: this.databaseId,
+                    tableId: this.financeTableId,
+                    rowId: row.$id,
+                    data,
+                });
+            } catch (createError) {
+                if (createError.code !== 409) {
+                    console.error(createError.message);
+                    return this._fail('Could not migrate the previous finance entries. They have been kept in this browser.');
+                }
+            }
+        }
+
+        try {
+            localStorage.removeItem(STORE_KEY);
             return true;
         } catch (error) {
             console.error(error.message);
-            return false;
+            return this._fail('Finance entries were migrated, but the old browser copy could not be cleared.');
         }
     }
-
-    /* ---------- automatic entries (other tables) ---------- */
 
     async _listAll(tableId) {
         const rows = [];
@@ -129,12 +175,18 @@ export class FinanceService {
     async getEntries() {
         this.lastError = null;
         try {
-            const [products, orders] = await Promise.allSettled([
+            if (!(await this._migrateLegacyEntries())) return false;
+            const [products, orders, entries] = await Promise.allSettled([
                 this._listAll(this.productsTableId),
                 this._listAll(this.ordersTableId),
+                this._listAll(this.financeTableId),
             ]);
             if (products.status === 'rejected') console.error(products.reason?.message);
             if (orders.status === 'rejected') console.error(orders.reason?.message);
+            if (entries.status === 'rejected') {
+                console.error(entries.reason?.message);
+                return this._fail('Could not load the finance entries.');
+            }
             if (products.status === 'rejected' || orders.status === 'rejected') {
                 this.lastError = 'Some automatic entries could not be loaded.';
             }
@@ -143,7 +195,8 @@ export class FinanceService {
                 products.status === 'fulfilled' ? products.value : [],
                 orders.status === 'fulfilled' ? orders.value : []
             );
-            return [...auto, ...this._readManual()].sort((a, b) => new Date(b.date) - new Date(a.date));
+            const manual = entries.value.map((row) => this._fromRow(row));
+            return [...auto, ...manual].sort((a, b) => new Date(b.date) - new Date(a.date));
         } catch (error) {
             console.error(error.message);
             return this._fail('Could not load the finance entries.');
@@ -153,31 +206,55 @@ export class FinanceService {
     // data: { type, title, category, amount, date (ISO), note }
     async addEntry(data) {
         this.lastError = null;
-        if (!LEDGER_TYPES.includes(data?.type)) return this._fail('Unknown entry type.');
-        const now = new Date().toISOString();
-        const row = { ...data, amount: Number(data.amount) || 0, $id: ID.unique(), $createdAt: now, $updatedAt: now };
-        if (!this._writeManual([row, ...this._readManual()])) return this._fail('Could not save the entry in this browser.');
-        return row;
+        const clean = this._entryData(data);
+        if (clean.error) return this._fail(clean.error);
+        try {
+            const row = await this.table.createRow({
+                databaseId: this.databaseId,
+                tableId: this.financeTableId,
+                rowId: ID.unique(),
+                data: clean.data,
+            });
+            return this._fromRow(row);
+        } catch (error) {
+            console.error(error.message);
+            return this._fail('Could not save the finance entry.');
+        }
     }
 
     async updateEntry(rowId, data) {
         this.lastError = null;
         if (String(rowId).startsWith('auto-')) return this._fail(AUTO_MESSAGE);
-        const rows = this._readManual();
-        const i = rows.findIndex((r) => r.$id === rowId);
-        if (i === -1) return this._fail('That entry no longer exists.');
-        const row = { ...rows[i], ...data, amount: Number(data.amount ?? rows[i].amount) || 0, $updatedAt: new Date().toISOString() };
-        rows[i] = row;
-        if (!this._writeManual(rows)) return this._fail('Could not update the entry in this browser.');
-        return row;
+        const clean = this._entryData(data);
+        if (clean.error) return this._fail(clean.error);
+        try {
+            const row = await this.table.updateRow({
+                databaseId: this.databaseId,
+                tableId: this.financeTableId,
+                rowId,
+                data: clean.data,
+            });
+            return this._fromRow(row);
+        } catch (error) {
+            console.error(error.message);
+            return this._fail(error.code === 404 ? 'That entry no longer exists.' : 'Could not update the finance entry.');
+        }
     }
 
     async deleteEntry(rowId) {
         this.lastError = null;
         if (String(rowId).startsWith('auto-')) return this._fail(AUTO_MESSAGE);
-        const rows = this._readManual();
-        if (!this._writeManual(rows.filter((r) => r.$id !== rowId))) return this._fail('Could not delete the entry in this browser.');
-        return true;
+        try {
+            await this.table.deleteRow({
+                databaseId: this.databaseId,
+                tableId: this.financeTableId,
+                rowId,
+            });
+            return true;
+        } catch (error) {
+            console.error(error.message);
+            return this._fail(error.code === 404 ? 'That entry no longer exists.' : 'Could not delete the finance entry.');
+        }
     }
 }
 

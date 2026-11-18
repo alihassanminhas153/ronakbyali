@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Check, ChevronDown, Copy, ExternalLink, Link2Off } from 'lucide-react';
+import { Check, ChevronDown, Copy, ExternalLink } from 'lucide-react';
 
 import Tooltip from '../../../ui/custom/tooltip/Tooltip';
 import { tint } from '../../../ui/graphs/utils';
@@ -54,15 +54,7 @@ export default function OrderTracker({ order, tracker, loading = false }) {
             Open tracking <ExternalLink size={14} aria-hidden="true" />
           </a>
         </div>
-      ) : (
-        <div className="flex items-start gap-3 rounded-md border border-dashed border-border bg-surface px-3 py-3 text-sm text-muted">
-          <Link2Off size={18} className="mt-0.5 shrink-0" aria-hidden="true" />
-          <p>
-            No courier link yet. Once the parcel is handed to TCS (or another courier), paste its tracking link here.
-            Until then the steps below are the only updates.
-          </p>
-        </div>
-      )}
+      ) : null}
 
       {/* timeline */}
       {loading && !updates.length ? (
