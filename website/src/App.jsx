@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useState } from "react";
-import { Routes, Route, useLocation, useParams } from "react-router";
+import { Navigate, Routes, Route, useLocation, useParams } from "react-router";
 import { useDispatch, useSelector } from "react-redux";
 
 import { initAuth } from "./store/slices/authSlice";
@@ -80,13 +80,42 @@ const STATIC_PAGE_TITLES = {
   "/auth/callback": "Signing In",
 };
 
-function ShortProductRoute() {
-  const { productSlug } = useParams();
-  return (
-    <PlainLayout pages={SITE_PAGES} showOffers>
-      <Product slug={productSlug} />
-    </PlainLayout>
-  );
+const LEGACY_ADMIN_ROUTES = [
+  ["", "overview"],
+  ["orders", "orders"],
+  ["products", "products"],
+  ["users", "users"],
+  ["finance", "finance"],
+  ["cart-and-wishlist", "cartAndWishlist"],
+  ["reviews", "reviews"],
+  ["alerts", "alerts"],
+  ["settings", "settings"],
+];
+
+const LEGACY_USER_ROUTES = [
+  ["profile", "profile"],
+  ["orders", "orders"],
+  ["cart", "cart"],
+  ["checkout", "checkout"],
+  ["confirm-order", "confirmOrder"],
+  ["wishlist", "wishlist"],
+  ["reviews", "reviews"],
+  ["alerts", "alerts"],
+];
+
+function LongProductRoute() {
+  const { category = "" } = useParams();
+  if (category.toLowerCase() === "p") return <NotFound />;
+  return <Product />;
+}
+
+function RootSlugRoute() {
+  const { productSlug = "" } = useParams();
+  if (productSlug.toLowerCase() === "p") return <NotFound />;
+  if (productSlug.startsWith("@")) {
+    return <Navigate to={PATHS.user.overview(productSlug)} replace />;
+  }
+  return <Product slug={productSlug} />;
 }
 
 export default function App() {
@@ -183,17 +212,18 @@ export default function App() {
         <Route path="disclaimer" element={<RedirectRoute to={PATHS.disclaimer} />} />
         <Route path="faqs" element={<RedirectRoute to={PATHS.faqs} />} />
         <Route path="custom-studio" element={<RedirectRoute to={PATHS.customStudio} />} />
+        <Route path="products/:productSlug" element={<RedirectRoute to={(p) => PATHS.productShort(p.productSlug)} />} />
         <Route path="products/:category/:group/:productId" element={<RedirectRoute to={(p) => PATHS.product(p.category, p.group, p.productId)} />} />
         <Route element={<PlainLayout pages={SITE_PAGES} showOffers />}>
           <Route path="customize/:slug" element={<CustomizeCheckout />} />
-          <Route path=":category/:group/:productId" element={<Product />} />
+          <Route path=":category/:group/:productId" element={<LongProductRoute />} />
+          <Route path=":productSlug" element={<RootSlugRoute />} />
         </Route>
 
         <Route path="p">
           <Route path="products" element={<RedirectRoute to={PATHS.products} />} />
-          <Route path="customize/:slug" element={<RedirectRoute to={(p) => PATHS.customize(p.slug)} />} />
-          <Route path=":category/:group/:productId" element={<RedirectRoute to={(p) => PATHS.product(p.category, p.group, p.productId)} />} />
           <Route element={<PlainLayout pages={SITE_PAGES} />}>
+            <Route index element={<NotFound />} />
             <Route path="contact" element={<Contact />} />
             <Route path="privacy" element={<Privacy />} />
             <Route path="disclaimer" element={<Disclaimer />} />
@@ -250,35 +280,21 @@ export default function App() {
           </Route>
         </Route>
 
-        <Route path="team/:username" element={<ProtectedRoute area="admin" />}>
-          <Route element={<AdminLayout />}>
-            <Route index element={<AdminOverview />} />
-            <Route path="orders" element={<AdminOrders />} />
-            <Route path="products" element={<AdminProducts />} />
-            <Route path="users" element={<AdminUsers />} />
-            <Route path="finance" element={<AdminFinance />} />
-            <Route path="cart-and-wishlist" element={<AdminCartAndWishlist />} />
-            <Route path="reviews" element={<AdminReviews />} />
-            <Route path="alerts" element={<AdminAlerts />} />
-            <Route path="settings" element={<AdminSettings />} />
-          </Route>
-        </Route>
-
-        <Route path=":username">
-          <Route index element={<ShortProductRoute />} />
-          <Route element={<ProtectedRoute area="user" />}>
-            <Route element={<AccountLayout />}>
-              <Route path="profile" element={<UserProfile />} />
-              <Route path="orders" element={<UserOrders />} />
-              <Route path="cart" element={<UserCart />} />
-              <Route path="checkout" element={<UserCheckout />} />
-              <Route path="confirm-order" element={<ConfirmOrder />} />
-              <Route path="wishlist" element={<UserWishlist />} />
-              <Route path="reviews" element={<UserReviews />} />
-              <Route path="alerts" element={<UserAlerts />} />
-            </Route>
-          </Route>
-        </Route>
+        {LEGACY_ADMIN_ROUTES.map(([suffix, page]) => (
+          <Route
+            key={`legacy-admin-${page}`}
+            path={`team/:username${suffix ? `/${suffix}` : ""}`}
+            element={<RedirectRoute to={(p) => PATHS.admin[page](p.username)} />}
+          />
+        ))}
+        <Route path="team/:username/*" element={<NotFound />} />
+        {LEGACY_USER_ROUTES.map(([suffix, page]) => (
+          <Route
+            key={`legacy-user-${page}`}
+            path={`:username/${suffix}`}
+            element={<RedirectRoute to={(p) => PATHS.user[page](p.username)} />}
+          />
+        ))}
 
         <Route path="*" element={<NotFound />} />
       </Route>

@@ -2,6 +2,7 @@ import { Component } from "react";
 import { Link } from "react-router";
 
 import NotFound from "../pages/shared/structure/NotFound";
+import PageArt from "../ui/art/PageArt";
 import useSession from "./useSession";
 import { PATHS, dashboardHome } from "./path";
 
@@ -15,6 +16,7 @@ function RouteErrorScreen({ error, onReset }) {
 
   return (
     <div className="mx-auto flex min-h-[70vh] max-w-2xl flex-col items-center justify-center gap-6 px-6 py-12 text-center">
+      <PageArt name="notFound" size="md" decorative />
       <div className="space-y-3">
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted">Something went wrong</p>
         <h1 className="font-display text-4xl font-bold tracking-wide text-text sm:text-5xl">We hit a problem</h1>

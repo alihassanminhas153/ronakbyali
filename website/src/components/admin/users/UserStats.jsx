@@ -17,10 +17,10 @@ function Tile({ label, icon: Icon, appIcon, color, tone, index, loading, count, 
     <Tooltip label={hidden ? 'Hidden' : tooltip ?? (text ? formatFullCardMoney(count) : new Intl.NumberFormat('en-PK').format(count || 0))} block className="h-full w-full min-w-0">
       <div
         style={{ animationDelay: `${index * 50}ms` }}
-        className="group/tile flex h-full min-h-[8.5rem] w-full min-w-0 flex-col gap-2.5 rounded-lg border border-border bg-surface p-2.5 shadow-soft transition-colors hover:bg-surface-alt/40 sm:p-3"
+        className="group/tile flex h-full min-h-[6.5rem] w-full min-w-0 flex-col gap-1.5 rounded-lg border border-border bg-surface p-2.5 shadow-soft transition-colors hover:bg-surface-alt/40 sm:gap-2 sm:p-3"
       >
-        <div className="flex min-h-7 min-w-0 items-center justify-between gap-2">
-          <p className="min-w-0 truncate text-xs text-muted">{label}</p>
+        <div className="flex min-h-5 min-w-0 items-center justify-between gap-2">
+          <p className="min-w-0 truncate text-[11px] text-muted sm:text-xs">{label}</p>
           {sensitive && (
             <button
               type="button"
@@ -34,15 +34,15 @@ function Tile({ label, icon: Icon, appIcon, color, tone, index, loading, count, 
             </button>
           )}
         </div>
-        <div className="flex min-w-0 items-start gap-3">
+        <div className="flex min-w-0 items-start gap-2 sm:gap-3">
           {appIcon ? (
-            <AppIcon name={appIcon} tone={tone} className="size-10 shrink-0 object-contain transition-transform duration-300 group-hover/tile:scale-105" />
+            <AppIcon name={appIcon} tone={tone} className="size-8 shrink-0 object-contain transition-transform duration-300 group-hover/tile:scale-105 sm:size-9" />
           ) : Icon ? (
-            <span className="grid size-10 shrink-0 place-items-center rounded-lg" style={{ background: tint(color, 14), color }}>
+            <span className="grid size-8 shrink-0 place-items-center rounded-lg sm:size-9" style={{ background: tint(color, 14), color }}>
               <Icon size={16} aria-hidden="true" />
             </span>
           ) : (
-            <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-surface-alt text-muted">
+            <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-surface-alt text-muted sm:size-9">
               <Activity size={16} aria-hidden="true" />
             </span>
           )}

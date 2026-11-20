@@ -286,7 +286,7 @@ export default function Footer() {
             {loggedIn ? (
               username ? (
                 <li>
-                  <Link to={`/@${username}`} className={linkClass}>
+                  <Link to={PATHS.user.overview(username)} className={linkClass}>
                     @{username}
                   </Link>
                 </li>

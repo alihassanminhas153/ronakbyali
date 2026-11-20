@@ -21,22 +21,35 @@ export default function AccessDrawer({ open, user, locked, onClose }) {
   const [note, setNote] = useState('');
   const [result, setResult] = useState(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [loadFailed, setLoadFailed] = useState(false);
 
   // every time the drawer opens, read the TRUE labels from Auth (the table copy can drift)
   useEffect(() => {
     if (!open || !user) return undefined;
     let live = true;
     setCurrent(null);
+    setLoadFailed(false);
     setResult(null);
     setNote('');
     setRole(user.role || 'new');
     setExtras(splitLabels(user.labels || []).extras);
-    labelService.getAccess({ userId: user.$id }).then((res) => {
+    // If the labels service has no getAccess method (or the call fails) the drawer must not crash, and it must
+    // not offer Save: with unknown live labels a save could remove labels the user really has.
+    const read =
+      typeof labelService?.getAccess === 'function'
+        ? Promise.resolve(labelService.getAccess({ userId: user.$id })).catch((e) => ({ ok: false, message: e?.message || 'Request failed.' }))
+        : Promise.resolve({ ok: false, message: 'lib/appwrite/labels.js has no getAccess method' });
+    read.then((res) => {
       if (!live) return;
-      const labels = res.ok ? res.labels : user.labels || [];
-      setCurrent(labels);
-      setExtras(splitLabels(labels).extras);
-      setNote(res.ok ? '' : `Could not read live labels (${res.message}). Showing the saved copy.`);
+      if (res?.ok) {
+        const labels = res.labels || [];
+        setCurrent(labels);
+        setExtras(splitLabels(labels).extras);
+        setNote('');
+      } else {
+        setLoadFailed(true);
+        setNote(`Could not read the live labels (${res?.message || 'unknown error'}). Saving is turned off so no label is removed by mistake.`);
+      }
     });
     return () => {
       live = false;
@@ -127,7 +140,7 @@ export default function AccessDrawer({ open, user, locked, onClose }) {
           <div className="border-t border-border pt-4 text-sm">
             <p className="mb-2 text-xs font-semibold uppercase tracking-[0.14em] text-muted">What will change</p>
             {current === null ? (
-              <p className="text-muted">Reading current labels…</p>
+              <p className="text-muted">{loadFailed ? 'Live labels are unavailable.' : 'Reading current labels…'}</p>
             ) : (
               <dl className="space-y-3">
                 <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">

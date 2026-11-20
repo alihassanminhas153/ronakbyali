@@ -3,6 +3,7 @@ import { Outlet, useLocation } from 'react-router';
 import { ChevronsRight, Menu } from 'lucide-react';
 
 import Sidebar from './Sidebar';
+import AccessGate from './AccessGate';
 
 const STORAGE_KEY = 'dashboard-sidebar-collapsed';
 const DURATION = 300; // ms: sidebar width, drawer slide and backdrop fade (matches duration-300 in SidebarFold)
@@ -203,7 +204,9 @@ export default function DashboardShell({ area = 'user', children }) {
         </div>
       )}
 
-      <main className="min-w-0 p-4 sm:p-6 lg:p-10">{children ?? <Outlet />}</main>
+      <main className="min-w-0 p-4 sm:p-6 lg:p-10">
+        <AccessGate area={area}>{children ?? <Outlet />}</AccessGate>
+      </main>
     </div>
   );
 }

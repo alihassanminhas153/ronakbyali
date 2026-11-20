@@ -122,15 +122,15 @@ function StatTile({ icon: Icon, label, color, children, tooltip }) {
   return (
     <Tooltip label={tooltip ?? children} block className="h-full w-full">
       <div
-        className="group flex h-full min-h-[8.5rem] w-full min-w-0 flex-col gap-2.5 rounded-xl border border-border bg-surface p-3 shadow-soft transition-all duration-200 hover:-translate-y-0.5 hover:border-[color:var(--tile)] hover:bg-surface-alt/40 sm:p-4"
+        className="group flex h-full min-h-[6.5rem] w-full min-w-0 flex-col gap-1.5 rounded-xl border border-border bg-surface p-2.5 shadow-soft transition-all duration-200 hover:-translate-y-0.5 hover:border-[color:var(--tile)] hover:bg-surface-alt/40 sm:gap-2 sm:p-3"
         style={{ '--tile': color }}
       >
-        <p className="flex min-h-7 min-w-0 items-center truncate text-xs text-muted">{label}</p>
-        <div className="flex min-w-0 items-start gap-3">
-          <span className="grid size-10 shrink-0 place-items-center rounded-lg transition-transform duration-300 group-hover:scale-110 sm:size-11" style={{ background: `color-mix(in srgb, ${color} 15%, transparent)`, color }}>
-            <Icon size={20} aria-hidden="true" />
+        <p className="flex min-h-5 min-w-0 items-center truncate text-[11px] text-muted sm:text-xs">{label}</p>
+        <div className="flex min-w-0 items-start gap-2 sm:gap-3">
+          <span className="grid size-8 shrink-0 place-items-center rounded-lg transition-transform duration-300 group-hover:scale-105 sm:size-9" style={{ background: `color-mix(in srgb, ${color} 15%, transparent)`, color }}>
+            <Icon size={16} aria-hidden="true" />
           </span>
-          <p className="min-w-0 truncate font-display text-xl font-semibold text-text">{children}</p>
+          <p className="heading min-w-0 truncate text-lg leading-tight text-text sm:text-xl">{children}</p>
         </div>
       </div>
     </Tooltip>

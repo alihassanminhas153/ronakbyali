@@ -1,22 +1,6 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Link, NavLink, useLocation } from 'react-router';
-import {
-  Bell,
-  BadgeCheck,
-  Heart,
-  LayoutDashboard,
-  Package,
-  Settings,
-  ShoppingBag,
-  ShoppingCart,
-  Star,
-  Store,
-  UserRound,
-  Users,
-  Wallet,
-  X,
-  ChevronsLeft,
-} from 'lucide-react';
+import { X, ChevronsLeft, Store } from 'lucide-react';
 
 import useSession from '../../router/useSession';
 import { PATHS } from '../../router/path';
@@ -24,30 +8,9 @@ import { getAvatarUrl } from '../../store/slices/authSlice';
 import Fold, { IconCell } from './SidebarFold';
 import SidebarLogout from './SidebarLogout';
 import SidebarThemeToggle from './SidebarThemeToggle';
-
-// ---------- links (all URLs come from router/path.js) ----------
-const userLinks = (u) => [
-  { to: PATHS.user.overview(u), label: 'Overview', icon: LayoutDashboard, end: true },
-  { to: PATHS.user.profile(u), label: 'Profile', icon: UserRound },
-  { to: PATHS.user.orders(u), label: 'Orders', icon: Package },
-  { to: PATHS.user.confirmOrder(u), label: 'Confirm orders', icon: BadgeCheck },
-  { to: PATHS.user.cart(u), label: 'Cart', icon: ShoppingCart },
-  { to: PATHS.user.wishlist(u), label: 'Wishlist', icon: Heart },
-  { to: PATHS.user.reviews(u), label: 'Reviews', icon: Star },
-  { to: PATHS.user.alerts(u), label: 'Alerts', icon: Bell },
-];
-
-const adminLinks = (u) => [
-  { to: PATHS.admin.overview(u), label: 'Overview', icon: LayoutDashboard, end: true },
-  { to: PATHS.admin.orders(u), label: 'Orders', icon: Package },
-  { to: PATHS.admin.products(u), label: 'Products', icon: Store },
-  { to: PATHS.admin.users(u), label: 'Users', icon: Users },
-  { to: PATHS.admin.finance(u), label: 'Finance', icon: Wallet },
-  { to: PATHS.admin.cartAndWishlist(u), label: 'Cart & wishlist', icon: ShoppingBag },
-  { to: PATHS.admin.reviews(u), label: 'Reviews', icon: Star },
-  { to: PATHS.admin.alerts(u), label: 'Alerts', icon: Bell },
-  { to: PATHS.admin.settings(u), label: 'Settings', icon: Settings },
-];
+import usePanelAccess from '../../lib/layout/usePanelAccess';
+import useUserLabels from '../../lib/layout/useUserLabels';
+import { visiblePages } from '../../lib/layout/layoutRegistry';
 
 // ---------- motion ----------
 const EASE = 'ease-[cubic-bezier(0.22,1,0.36,1)]';
@@ -129,9 +92,9 @@ function Item({ to, icon: Icon, label, end, collapsed, onNavigate, slide = true,
 function Brand() {
   const [failed, setFailed] = useState(false);
   return failed ? (
-    <Link to="/" title="Ronak By Ali" className="flex size-9 items-center justify-center rounded-md bg-accent text-on-accent shadow-soft">
+    <span title="Ronak By Ali" className="flex size-9 items-center justify-center rounded-md bg-accent text-on-accent shadow-soft">
       <Store size={18} strokeWidth={1.75} aria-hidden="true" />
-    </Link>
+    </span>
   ) : (
     <img
       src="/images/icons/branding/favicon.ico"
@@ -193,7 +156,22 @@ export default function Sidebar({ area = 'user', collapsed = false, onNavigate, 
   const isAdminArea = area === 'admin';
   const title = isAdminArea ? 'Admin panel' : 'My account';
 
-  const links = isAdminArea ? adminLinks(username) : userLinks(username);
+  // Which pages show up comes from Settings > Layout & access (Appwrite `ronakbyali_panel_access` table).
+  // The page list itself lives in lib/layout/layoutRegistry.js. Without saved rows every page shows.
+  const { rows: layoutRows } = usePanelAccess();
+  const userLabels = useUserLabels();
+  const links = useMemo(
+    () =>
+      visiblePages(area, layoutRows, userLabels).map((p) => ({
+        id: p.key,
+        to: p.to(username),
+        label: p.label,
+        icon: p.icon,
+        end: p.end,
+      })),
+    [area, layoutRows, userLabels, username]
+  );
+  const linkKey = links.map((l) => l.id).join('|');
   const profileTo = isAdminArea ? PATHS.admin.settings(username) : PATHS.user.profile(username);
 
   // ---- gliding active pill ----
@@ -219,7 +197,7 @@ export default function Sidebar({ area = 'user', collapsed = false, onNavigate, 
     const observer = new ResizeObserver(measure);
     observer.observe(wrap);
     return () => observer.disconnect();
-  }, [pathname, isAdminArea, username]);
+  }, [pathname, isAdminArea, username, linkKey]);
 
   return (
     <div className="flex h-full min-h-0 flex-col bg-surface">
@@ -309,7 +287,17 @@ export default function Sidebar({ area = 'user', collapsed = false, onNavigate, 
           />
           <ul className="flex flex-col gap-1">
             {links.map((l, i) => (
-              <Item key={l.to} {...l} collapsed={collapsed} onNavigate={onNavigate} ready={ready} index={i + 2} />
+              <Item
+                key={l.id}
+                to={l.to}
+                icon={l.icon}
+                label={l.label}
+                end={l.end}
+                collapsed={collapsed}
+                onNavigate={onNavigate}
+                ready={ready}
+                index={i + 2}
+              />
             ))}
           </ul>
         </div>

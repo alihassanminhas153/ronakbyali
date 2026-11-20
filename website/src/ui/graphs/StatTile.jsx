@@ -27,10 +27,10 @@ export default function StatTile({
     <Tooltip label={hidden ? 'Hidden' : fullCardValue(value, format)} block className="h-full w-full min-w-0">
     <div
       style={{ animationDelay: `${delay}ms`, '--tile-tone': color }}
-      className="group/tile flex h-full min-h-[8.5rem] w-full min-w-0 flex-col gap-2.5 rounded-xl border border-border bg-surface p-2.5 shadow-soft transition-all duration-300 hover:-translate-y-0.5 hover:border-[color-mix(in_srgb,var(--tile-tone)_45%,var(--border))] hover:bg-surface-alt/30 sm:p-3"
+      className="group/tile flex h-full min-h-[6.5rem] w-full min-w-0 flex-col gap-1.5 rounded-xl border border-border bg-surface p-2.5 shadow-soft transition-all duration-300 hover:-translate-y-0.5 hover:border-[color-mix(in_srgb,var(--tile-tone)_45%,var(--border))] hover:bg-surface-alt/30 sm:gap-2 sm:p-3"
     >
-      <div className="flex min-h-7 min-w-0 items-center justify-between gap-2">
-        <p className="min-w-0 truncate text-xs text-muted">{label}</p>
+      <div className="flex min-h-5 min-w-0 items-center justify-between gap-2">
+        <p className="min-w-0 truncate text-[11px] text-muted sm:text-xs">{label}</p>
         {sensitive && (
           <button
             type="button"
@@ -44,23 +44,23 @@ export default function StatTile({
           </button>
         )}
       </div>
-      <div className="flex min-w-0 items-start gap-3">
+      <div className="flex min-w-0 items-start gap-2 sm:gap-3">
         {appIcon ? (
           <AppIcon
             name={appIcon}
             tone={tone}
-            className="size-10 shrink-0 object-contain transition-transform duration-300 group-hover/tile:scale-105 sm:size-11"
+            className="size-8 shrink-0 object-contain transition-transform duration-300 group-hover/tile:scale-105 sm:size-9"
           />
         ) : (
           <span
-            className="grid size-10 shrink-0 place-items-center rounded-xl transition-transform duration-300 group-hover/tile:rotate-3 group-hover/tile:scale-105 sm:size-11"
+            className="grid size-8 shrink-0 place-items-center rounded-lg transition-transform duration-300 group-hover/tile:rotate-3 group-hover/tile:scale-105 sm:size-9"
             style={{ background: tint(color, 14), color }}
           >
-            {Icon ? <Icon size={20} aria-hidden="true" /> : <Activity size={20} aria-hidden="true" />}
+            {Icon ? <Icon size={16} aria-hidden="true" /> : <Activity size={16} aria-hidden="true" />}
           </span>
         )}
         <div className="min-w-0 flex-1">
-          <p className={`heading leading-tight text-text ${valueClassName || 'truncate text-xl sm:text-2xl'}`} aria-live={sensitive ? 'polite' : undefined}>
+          <p className={`heading leading-tight text-text ${valueClassName || 'truncate text-lg sm:text-xl'}`} aria-live={sensitive ? 'polite' : undefined}>
             <span className={`inline-block transition-all duration-300 motion-reduce:transition-none ${hidden ? 'scale-95 blur-[2px] opacity-60' : 'scale-100 blur-0 opacity-100'}`}>
               {hidden ? '*'.repeat(maskLength(value)) : typeof value === 'number' ? <CountUp value={value} format={(n) => formatCardNumber(n, format)} /> : value}
             </span>

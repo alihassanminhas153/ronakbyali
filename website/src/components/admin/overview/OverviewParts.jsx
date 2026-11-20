@@ -19,23 +19,23 @@ export function LinkTile({ to, label, value, format, hint, icon: Icon, appIcon, 
       <Link
         to={to}
         style={{ animationDelay: `${delay}ms`, '--tile-tone': color }}
-        className={`group/tile relative flex h-full min-h-[8.5rem] w-full min-w-0 flex-col gap-2.5 rounded-xl border border-border bg-surface p-2.5 shadow-soft transition-all duration-300 hover:-translate-y-0.5 hover:border-[color-mix(in_srgb,var(--tile-tone)_45%,var(--border))] hover:bg-surface-alt/30 sm:p-3 ${sensitive ? 'pr-9' : ''}`}
+        className={`group/tile relative flex h-full min-h-[6.5rem] w-full min-w-0 flex-col gap-1.5 rounded-xl border border-border bg-surface p-2.5 shadow-soft transition-all duration-300 hover:-translate-y-0.5 hover:border-[color-mix(in_srgb,var(--tile-tone)_45%,var(--border))] hover:bg-surface-alt/30 sm:gap-2 sm:p-3 ${sensitive ? 'pr-9' : ''}`}
       >
-        <p className="flex min-h-7 min-w-0 items-center truncate pr-6 text-xs text-muted">{label}</p>
-        <div className="flex min-w-0 items-start gap-3">
+        <p className="flex min-h-5 min-w-0 items-center truncate pr-6 text-[11px] text-muted sm:text-xs">{label}</p>
+        <div className="flex min-w-0 items-start gap-2 sm:gap-3">
           {appIcon ? (
             <AppIcon
               name={appIcon}
               tone={tone}
-              className="size-10 shrink-0 object-contain transition-transform duration-300 group-hover/tile:scale-105 sm:size-11"
+              className="size-8 shrink-0 object-contain transition-transform duration-300 group-hover/tile:scale-105 sm:size-9"
             />
           ) : (
-            <span className="grid size-10 shrink-0 place-items-center rounded-xl transition-transform duration-300 group-hover/tile:rotate-3 group-hover/tile:scale-105 sm:size-11" style={{ background: tint(color, 14), color }}>
-              {Icon ? <Icon size={20} aria-hidden="true" /> : <Activity size={20} aria-hidden="true" />}
+            <span className="grid size-8 shrink-0 place-items-center rounded-lg transition-transform duration-300 group-hover/tile:rotate-3 group-hover/tile:scale-105 sm:size-9" style={{ background: tint(color, 14), color }}>
+              {Icon ? <Icon size={16} aria-hidden="true" /> : <Activity size={16} aria-hidden="true" />}
             </span>
           )}
           <div className="min-w-0 flex-1">
-          <p className="heading truncate text-xl leading-tight text-text sm:text-2xl">
+          <p className="heading truncate text-lg leading-tight text-text sm:text-xl">
             <span className={`inline-block transition-all duration-300 motion-reduce:transition-none ${hidden ? 'scale-95 blur-[2px] opacity-60' : 'scale-100 blur-0 opacity-100'}`}>
               {hidden ? '*'.repeat(maskLength(value)) : typeof value === 'number' ? <CountUp value={value} format={(n) => formatCardNumber(n, format)} /> : value}
             </span>
