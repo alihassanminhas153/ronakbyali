@@ -1,0 +1,13 @@
+User-agent: *
+Allow: /
+Disallow: /p/team/
+Disallow: /p/@
+Disallow: /@
+Disallow: /welcome-back
+Disallow: /create-account
+Disallow: /p/welcome-back
+Disallow: /p/create-account
+Disallow: /auth/
+Disallow: /customize/
+
+Sitemap: https://ronakbyali.com/sitemap.xml

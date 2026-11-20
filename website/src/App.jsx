@@ -59,6 +59,8 @@ import Disclaimer from "./pages/static/Disclaimer";
 import FAQs from "./pages/static/FAQs";
 import CustomStudioPage from "./pages/static/CustomStudio";
 
+const SITE_URL = "https://ronakbyali.com";
+
 const SITE_PAGES = [
   { name: "Shop", link: PATHS.products },
   { name: "Contact", link: PATHS.contact },
@@ -141,6 +143,26 @@ export default function App() {
         document.title = `${pageTitle} | Ronak By Ali`
         break;
     }
+  }, [pathname]);
+
+  // Keep the canonical URL and og:url in sync with the current page.
+  useEffect(() => {
+    const route = pathname.replace(/\/+$/, "") || "/";
+    const url = `${SITE_URL}${route}`;
+    let canonical = document.querySelector('link[rel="canonical"]');
+    if (!canonical) {
+      canonical = document.createElement("link");
+      canonical.setAttribute("rel", "canonical");
+      document.head.appendChild(canonical);
+    }
+    canonical.setAttribute("href", url);
+    let ogUrl = document.querySelector('meta[property="og:url"]');
+    if (!ogUrl) {
+      ogUrl = document.createElement("meta");
+      ogUrl.setAttribute("property", "og:url");
+      document.head.appendChild(ogUrl);
+    }
+    ogUrl.setAttribute("content", url);
   }, [pathname]);
 
   useLayoutEffect(() => {

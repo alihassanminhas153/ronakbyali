@@ -24,6 +24,7 @@ appwrite.config.json
 !README.md
 *.txt
 !websiteFileStructure.txt
+!public/robots.txt
 !extras/
 !extras/*.md
 !extras/*.txt
