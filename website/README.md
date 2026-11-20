@@ -25,6 +25,12 @@ authentication, database tables, file storage, and server-side functions.
 - Appwrite for auth, database, storage, and functions
 - Tailwind CSS 4 for styling
 
+## Reference material
+
+Project notes, prompts, schema and design documentation, and the generated file
+structure are kept in the root `extras/` folder. The `README.md` stays at the
+project root as the main setup and usage guide.
+
 ## Run locally
 
 1. Install Node.js and npm.

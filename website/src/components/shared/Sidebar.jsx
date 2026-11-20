@@ -203,13 +203,20 @@ export default function Sidebar({ area = 'user', collapsed = false, onNavigate, 
     <div className="flex h-full min-h-0 flex-col bg-surface">
       {/* header: favicon + brand name + panel name, collapse button inside while open */}
       <div className="flex h-16 shrink-0 items-center border-b border-border bg-linear-to-b from-accent-soft/60 to-surface px-3">
-        <IconCell>
-          <Brand />
-        </IconCell>
-        <Fold collapsed={collapsed} className="min-w-0 flex-1">
-          <span className="block truncate font-heading text-base font-semibold leading-tight text-text">Ronak By Ali</span>
-          <span className="block truncate text-xs text-muted">{title}</span>
-        </Fold>
+        <Link
+          to={PATHS.home}
+          onClick={onNavigate}
+          aria-label="Ronak By Ali, home"
+          className="group flex min-w-0 flex-1 items-center rounded-md transition-opacity hover:opacity-80 focus-visible:-outline-offset-2 focus-visible:outline-accent"
+        >
+          <IconCell>
+            <Brand />
+          </IconCell>
+          <Fold collapsed={collapsed} className="min-w-0 flex-1">
+            <span className="block truncate font-heading text-base font-semibold leading-tight text-text">Ronak By Ali</span>
+            <span className="block truncate text-xs text-muted">{title}</span>
+          </Fold>
+        </Link>
         {onClose ? (
           <button
             type="button"

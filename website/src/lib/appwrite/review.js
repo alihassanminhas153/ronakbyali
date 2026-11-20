@@ -17,7 +17,7 @@ export const MAX_REVIEW_IMAGES = 3;
 // those array columns never grow without limit.
 export const MAX_REVIEW_IDS_STORED = 50;
 
-// Columns (full list in detail.md):
+// Columns (full list in extras/Detail.md):
 //   productId, productName, productSlug, userId, username, reviewerName,
 //   reviewerAvatarId, rating (1-5), title, message, imageIds (array),
 //   isVerifiedPurchase, orderId, status, adminReply, repliedAt

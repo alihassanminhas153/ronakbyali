@@ -5,6 +5,17 @@ Generated from the current project tree. Local .env files, dependencies, generat
 
 |-- env
 |  \-- var.js
+|-- extras
+|  |-- APPWRITE TABLES.md
+|  |-- CODEBASE_BRIEF.md
+|  |-- copilot custom product prompt.md
+|  |-- COPILOT PROMPT.md
+|  |-- DESIGN.md
+|  |-- Detail.md
+|  |-- new Copilot prompt.md
+|  |-- THEME.md
+|  |-- w.txt
+|  \-- websiteFileStructure.txt
 |-- functions
 |  \-- manage-user-labels
 |     |-- src
@@ -208,7 +219,6 @@ Generated from the current project tree. Local .env files, dependencies, generat
 |  |  |  |-- auth.js
 |  |  |  |-- cart.js
 |  |  |  |-- customOrder.js
-|  |  |  |-- Detail.md
 |  |  |  |-- finance.js
 |  |  |  |-- index.js
 |  |  |  |-- labels.js
@@ -234,6 +244,7 @@ Generated from the current project tree. Local .env files, dependencies, generat
 |  |  |-- imageOptimizer.js
 |  |  |-- orderDelivery.js
 |  |  |-- orderMath.js
+|  |  |-- phone.js
 |  |  |-- saleMath.js
 |  |  |-- siteInfo.js
 |  |  \-- useCopied.js
@@ -282,7 +293,8 @@ Generated from the current project tree. Local .env files, dependencies, generat
 |  |  |  |  |-- Blocked.jsx
 |  |  |  |  |-- Home.jsx
 |  |  |  |  |-- index.js
-|  |  |  |  \-- NotFound.jsx
+|  |  |  |  |-- NotFound.jsx
+|  |  |  |  \-- ServerError.jsx
 |  |  |  \-- index.js
 |  |  |-- static
 |  |  |  |-- Contact.jsx
@@ -307,6 +319,7 @@ Generated from the current project tree. Local .env files, dependencies, generat
 |  |  |  \-- index.js
 |  |  \-- index.js
 |  |-- router
+|  |  |-- AppErrorBoundry.jsx
 |  |  |-- BlockedGate.jsx
 |  |  |-- CatchAllRoute.jsx
 |  |  |-- GuestRoute.jsx
@@ -344,7 +357,9 @@ Generated from the current project tree. Local .env files, dependencies, generat
 |  |  |  |-- BlockedArt.jsx
 |  |  |  |-- CartArt.jsx
 |  |  |  |-- CheckoutArt.jsx
+|  |  |  |-- DinoGame.jsx
 |  |  |  |-- EmptyState.jsx
+|  |  |  |-- ErrorArt.jsx
 |  |  |  |-- FinanceArt.jsx
 |  |  |  |-- FishingDino404.jsx
 |  |  |  |-- index.js
@@ -418,23 +433,14 @@ Generated from the current project tree. Local .env files, dependencies, generat
 |  |     \-- utils.js
 |  |-- App.jsx
 |  |-- index.css
-|  |-- main.jsx
-|  \-- THEME.md
+|  \-- main.jsx
 |-- .env.sample
 |-- .gitignore
-|-- APPWRITE TABLES.md
 |-- appwrite.config.json
-|-- CODEBASE_BRIEF.md
-|-- copilot custom product prompt.md
-|-- COPILOT PROMPT.md
-|-- DESIGN.md
 |-- eslint.config.js
 |-- index.html
-|-- new Copilot prompt.md
 |-- package-lock.json
 |-- package.json
 |-- README.md
 |-- vercel.json
-|-- vite.config.js
-|-- w.txt
-\-- websiteFileStructure.txt
+\-- vite.config.js

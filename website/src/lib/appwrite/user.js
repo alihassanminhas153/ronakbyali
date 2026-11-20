@@ -28,7 +28,7 @@ export const SELF_EDITABLE_FIELDS = ['name', 'username', 'phone', 'lastAddress',
 // in Appwrite Auth (see auth.js). Each profile row uses the auth user's $id
 // as its rowId, so lookups are direct.
 //
-// Columns (full list in detail.txt):
+// Columns (full list in extras/Detail.md):
 //   name, email, username(unique), phone, role, avatarFileId, isBlocked,
 //   lastAddress, lastCity, cartId, wishlistId, ordersCount, totalSpent,
 //   authProvider, lastLoginAt

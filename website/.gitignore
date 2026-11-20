@@ -24,6 +24,9 @@ appwrite.config.json
 !README.md
 *.txt
 !websiteFileStructure.txt
+!extras/
+!extras/*.md
+!extras/*.txt
 
 # Editor and operating-system files
 .vscode/*

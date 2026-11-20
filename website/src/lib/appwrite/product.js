@@ -7,7 +7,7 @@ export const PRODUCT_STATUS = { IN_STOCK: 'inStock', OUT_OF_STOCK: 'outOfStock' 
 
 // Everything for the PRODUCTS table (+ product images in the bucket).
 // Functions never name individual columns: they take the whole `data`
-// object the frontend arranged and pass it to Appwrite. Column list: detail.txt
+// object the frontend arranged and pass it to Appwrite. Column list: extras/Detail.md
 export class ProductService {
     client = new Client();
     table;

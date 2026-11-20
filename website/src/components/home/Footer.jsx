@@ -279,6 +279,11 @@ export default function Footer() {
                 Disclaimer
               </Link>
             </li>
+            <li>
+              <Link to="/p/dino-game" className={linkClass}>
+                Dino 404 game
+              </Link>
+            </li>
           </Column>
 
           {/* Account: sign-in pages for guests, own page for signed-in users */}

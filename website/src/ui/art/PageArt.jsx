@@ -11,6 +11,7 @@ import ProfileArt from "./ProfileArt";
 import ReviewsArt from "./ReviewsArt";
 import BlockedArt from "./BlockedArt";
 import NotFoundArt from "./NotFoundArt";
+import ErrorArt from "./ErrorArt";
 import NoProductsArt from "./NoProductsArt";
 import OrderFormArt from "./OrderFormArt";
 import OrderSuccessArt from "./OrderSuccessArt";
@@ -24,7 +25,7 @@ import NoResultsArt from "./NoResultsArt";
      <PageArt name="cart" className="hidden sm:block" />   hide it on phones
 
    names: overview, products, orders, settings, cart, wishlist, checkout, finance,
-          alerts, profile, reviews, blocked, notFound, noResults, noProducts,
+          alerts, profile, reviews, blocked, notFound, error, noResults, noProducts,
           orderForm, orderSuccess
    ========================================================================== */
 
@@ -42,6 +43,7 @@ const ARTS = {
   reviews: ReviewsArt,
   blocked: BlockedArt,
   notFound: NotFoundArt,
+  error: ErrorArt,
   noProducts: NoProductsArt,
   orderForm: OrderFormArt,
   orderSuccess: OrderSuccessArt,

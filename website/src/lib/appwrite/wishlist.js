@@ -5,7 +5,7 @@ import productService from './product';
 // ONE wishlist row per user. rowId = the user's $id (same value stored in
 // users.wishlistId).
 //
-// Columns (full list in detail.txt):
+// Columns (full list in extras/Detail.md):
 //   userId, username, name, email, phone, city, address   <- copied from the user
 //   productIds (array)           wished products
 //   itemCount                    how many
