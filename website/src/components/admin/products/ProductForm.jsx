@@ -1,24 +1,22 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { Boxes, FileText, ImagePlus, Star, Truck, Wallet, X, Image as ImageIcon } from 'lucide-react';
+import { AlertTriangle, Check, CheckCircle2, ChevronDown, ChevronRight, ImagePlus, Loader2, Plus, Search, Star, X } from 'lucide-react';
 
-import { addProduct, updateProduct } from '../../../store/slices/productsSlice';
+import { addProduct, updateProduct, fetchAllProducts, selectAllProducts } from '../../../store/slices/productsSlice';
 import { fetchSales, selectSaleOptions, selectSalesList } from '../../../store/slices/saleSlice';
 import productService from '../../../lib/appwrite/product';
 import ActionButton from '../../../ui/custom/button/ActionButton';
 import SearchSelect from '../../../ui/custom/input/SearchSelect';
 import SelectInput from '../../../ui/custom/input/SelectInput';
 import ImageUploader from '../../../ui/custom/input/ImageUploader';
-import AppIcon, { resolveAppIconName } from '../../../ui/custom/AppIcon';
-import { colorFor, tint, toneVar } from '../../../ui/graphs/utils';
 import { getSaleStatus } from '../../../lib/saleMath';
 import { autoPrice, slugify, toForm, toPayload, validate } from './productSchema';
 
-/* ---------- small field helpers (self-contained, theme tokens only) ---------- */
+/* ---------- small helpers (theme tokens only) ---------- */
 
 const inputCls = (err) =>
-  `w-full rounded-md border bg-surface px-3 text-sm text-text transition-colors placeholder:text-muted/70 focus:border-accent-tone-1 ${
-    err ? 'border-error' : 'border-border hover:border-accent-tone-1/50'
+  `w-full rounded-md border bg-surface px-3 text-sm text-text transition-colors placeholder:text-muted/70 focus:border-accent ${
+    err ? 'border-error' : 'border-border hover:border-accent/50'
   }`;
 const optionDraft = () => ({
   id: `draft-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
@@ -26,6 +24,21 @@ const optionDraft = () => ({
   price: '',
 });
 const optionId = () => globalThis.crypto?.randomUUID?.() || `c-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+const rs = (n) => `Rs ${(Number(n) || 0).toLocaleString('en-PK')}`;
+
+// Number fields that start at 0 are left EMPTY so "0" shows as a placeholder
+// (an empty box is saved as 0 by toPayload / validate).
+const ZERO_BLANK = ['order', 'discountPercentage', 'deliveryCharges', 'totalAvailable', 'sold'];
+const blankZeros = (f) => {
+  const next = { ...f };
+  ZERO_BLANK.forEach((k) => {
+    if (next[k] === '' || Number(next[k]) === 0) next[k] = '';
+  });
+  return next;
+};
+const initialForm = (product) => blankZeros(toForm(product));
+const zeroBlank = (v) => (v == null || Number(v) === 0 ? '' : String(v));
+const text = (v) => (v == null ? '' : String(v));
 
 function Field({ label, hint, error, optional, children, className = '', as: Tag = 'label' }) {
   return (
@@ -42,30 +55,13 @@ function Field({ label, hint, error, optional, children, className = '', as: Tag
   );
 }
 
-function SectionHead({ icon: Icon, title, subtitle, tone }) {
-  const color = toneVar(tone);
+function Section({ title, subtitle, children, delay = 0, className = '' }) {
   return (
-    <div className="flex items-center gap-3">
-      <AppIcon
-        name={resolveAppIconName(Icon)}
-        tone={tone}
-        className="h-9 w-9 shrink-0 object-contain transition-transform duration-300 group-hover/sec:-rotate-6 group-hover/sec:scale-110"
-      />
-      <div className="min-w-0">
-        <h3 className="heading-sm" style={{ color }}>{title}</h3>
-        {subtitle && <p className="text-xs text-muted">{subtitle}</p>}
+    <section style={{ animationDelay: `${delay}ms` }} className={`animate-rise rounded-xl border border-border bg-surface p-4 sm:p-5 ${className}`}>
+      <div>
+        <h3 className="text-sm font-semibold text-text">{title}</h3>
+        {subtitle && <p className="mt-0.5 text-xs text-muted">{subtitle}</p>}
       </div>
-    </div>
-  );
-}
-
-function Section({ title, subtitle, icon, tone = 1, children, delay = 0 }) {
-  return (
-    <section
-      style={{ animationDelay: `${delay}ms` }}
-      className="group/sec animate-rise rounded-lg border border-border bg-surface-alt/40 p-4"
-    >
-      <SectionHead icon={icon} title={title} subtitle={subtitle} tone={tone} />
       <div className="mt-4 grid gap-4 sm:grid-cols-2">{children}</div>
     </section>
   );
@@ -78,13 +74,13 @@ function Switch({ checked, onChange, label, hint }) {
       role="switch"
       aria-checked={checked}
       onClick={() => onChange(!checked)}
-      className="flex w-full items-center justify-between gap-3 rounded-md border border-border bg-surface px-3 py-2.5 text-left transition-colors hover:border-accent-tone-3/60"
+      className="flex w-full items-center justify-between gap-3 rounded-md border border-border bg-bg px-3 py-2 text-left transition-colors hover:border-accent/50"
     >
       <span>
         <span className="block text-sm font-medium text-text">{label}</span>
         {hint && <span className="block text-xs text-muted">{hint}</span>}
       </span>
-      <span className={`relative h-6 w-11 shrink-0 rounded-full transition-colors duration-200 ${checked ? 'bg-accent-tone-3' : 'bg-border'}`}>
+      <span className={`relative h-6 w-11 shrink-0 rounded-full transition-colors duration-200 ${checked ? 'bg-accent' : 'bg-border'}`}>
         <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-all duration-200 ${checked ? 'left-[1.375rem]' : 'left-0.5'}`} />
       </span>
     </button>
@@ -99,12 +95,12 @@ function TagsField({ value, onChange }) {
     setDraft('');
   };
   return (
-    <div className="rounded-md border border-border bg-surface p-2 transition-colors focus-within:border-accent-tone-1">
+    <div className="rounded-md border border-border bg-surface p-2 transition-colors focus-within:border-accent">
       <div className="flex flex-wrap gap-1.5">
         {value.map((t) => (
-          <span key={t} className="animate-rise inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium" style={{ background: tint(colorFor(t), 14), color: colorFor(t) }}>
+          <span key={t} className="animate-rise inline-flex items-center gap-1 rounded-full bg-surface-alt px-2.5 py-1 text-xs font-medium text-text">
             {t}
-            <button type="button" aria-label={`Remove ${t}`} onClick={() => onChange(value.filter((x) => x !== t))}>
+            <button type="button" aria-label={`Remove ${t}`} onClick={() => onChange(value.filter((x) => x !== t))} className="text-muted hover:text-error">
               <X size={12} />
             </button>
           </span>
@@ -125,19 +121,254 @@ function TagsField({ value, onChange }) {
   );
 }
 
+/* ---------- floating notice (slides in from the right edge) ---------- */
+
+function Notice({ notice, onClose }) {
+  const [shown, setShown] = useState(false);
+  useEffect(() => {
+    const raf = requestAnimationFrame(() => setShown(true));
+    const hide = setTimeout(() => setShown(false), 6500);
+    const gone = setTimeout(() => onClose(notice.id), 6850);
+    return () => { cancelAnimationFrame(raf); clearTimeout(hide); clearTimeout(gone); };
+  }, [notice.id, onClose]);
+
+  const warn = notice.tone !== 'success';
+  const Icon = warn ? AlertTriangle : CheckCircle2;
+  return (
+    <div
+      role={warn ? 'alert' : 'status'}
+      className={`pointer-events-auto flex items-start gap-2.5 rounded-lg border p-3 text-sm shadow-soft transition-all duration-300 ease-out ${
+        warn ? 'border-warning/40 bg-warning-soft text-warning-fg' : 'border-success/40 bg-success-soft text-success-fg'
+      } ${shown ? 'translate-x-0 opacity-100' : 'translate-x-[110%] opacity-0'}`}
+    >
+      <Icon size={17} className="mt-0.5 shrink-0" aria-hidden="true" />
+      <p className="min-w-0 flex-1">{notice.text}</p>
+      <button type="button" aria-label="Dismiss" onClick={() => { setShown(false); setTimeout(() => onClose(notice.id), 300); }} className="shrink-0 opacity-70 hover:opacity-100">
+        <X size={15} />
+      </button>
+    </div>
+  );
+}
+
+// Thumbnail: small server-resized preview first, full file if that fails.
+function Thumb({ id, url, className }) {
+  const thumb = id ? productService.getThumbUrl?.(id) ?? null : null;
+  const [src, setSrc] = useState(thumb || url);
+  const failed = useRef(false);
+  return (
+    <img
+      src={src}
+      alt=""
+      loading="lazy"
+      decoding="async"
+      className={className}
+      onError={() => { if (!failed.current && url && src !== url) { failed.current = true; setSrc(url); } }}
+    />
+  );
+}
+
+/* ---------- product picker (opens like a file-chooser box) ---------- */
+
+const PAGE = 12;
+
+function ProductPicker({ open, customMode, onClose, onPick }) {
+  const [term, setTerm] = useState('');
+  const dispatch = useDispatch();
+  const all = useSelector(selectAllProducts); // instant: rows already in the store
+  const [shown, setShown] = useState(PAGE);
+  const [status, setStatus] = useState('idle'); // idle | refreshing | failed
+  const [selected, setSelected] = useState(null);
+
+  // Show the store rows right away, then top up with any rows it does not have yet.
+  const load = useCallback(async () => {
+    setStatus('refreshing');
+    try {
+      await dispatch(fetchAllProducts()).unwrap();
+      setStatus('idle');
+    } catch {
+      setStatus('failed');
+    }
+  }, [dispatch]);
+
+  // The store already has the products: only hit the network if it is empty.
+  // (Re-fetching all rows replaced every product in the store and re-rendered
+  // the whole admin page behind this drawer, which froze the UI on pick.)
+  const hadRows = useRef(false);
+  hadRows.current = all.length > 0;
+  useEffect(() => {
+    if (open && !hadRows.current) load();
+  }, [open, load]);
+
+  const query = term.trim().toLowerCase();
+  const matches = useMemo(() => {
+    const list = all
+      .filter((p) => Boolean(p.isCustom) === Boolean(customMode))
+      .filter((p) => !query || [p.name, p.category, p.group, p.description, ...(p.tags || [])]
+        .some((v) => String(v || '').toLowerCase().includes(query)))
+      .sort((a, b) => new Date(b.$createdAt) - new Date(a.$createdAt));
+    return list;
+  }, [all, customMode, query]);
+  const rows = matches.slice(0, shown);
+  const total = matches.length;
+
+  useEffect(() => { setShown(PAGE); }, [query, customMode, open]);
+
+  useEffect(() => {
+    if (!open) { setTerm(''); setSelected(null); return undefined; }
+    const onKey = (e) => { if (e.key === 'Escape') { e.stopPropagation(); onClose(); } };
+    window.addEventListener('keydown', onKey, true);
+    return () => window.removeEventListener('keydown', onKey, true);
+  }, [open, onClose]);
+
+  if (!open) return null;
+  const hasMore = rows.length < total;
+
+  return (
+    <div
+      className="fixed inset-0 z-[60] flex items-end justify-center bg-black/50 p-0 sm:items-center sm:p-4"
+      onClick={onClose}
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Choose a product"
+        onClick={(e) => e.stopPropagation()}
+        className="animate-rise flex h-[min(85vh,640px)] w-full max-w-2xl flex-col overflow-hidden rounded-t-2xl border border-border bg-bg shadow-soft sm:rounded-2xl"
+      >
+        <header className="flex items-center justify-between gap-3 border-b border-border px-4 py-3">
+          <div className="min-w-0">
+            <h3 className="text-sm font-semibold text-text">Choose a product</h3>
+            <p className="text-xs text-muted">Its details and images will be copied into this form.</p>
+          </div>
+          <button type="button" onClick={onClose} aria-label="Close" className="grid size-9 place-items-center rounded-md text-muted hover:bg-surface-alt hover:text-text">
+            <X size={18} />
+          </button>
+        </header>
+
+        <div className="flex-1 overflow-y-auto p-4">
+          {status === 'refreshing' && all.length === 0 && (
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+              {Array.from({ length: 6 }, (_, i) => (
+                <div key={i} className="animate-pulse rounded-lg border border-border bg-surface p-2">
+                  <div className="aspect-square rounded-md bg-surface-alt" />
+                  <div className="mt-2 h-3 w-3/4 rounded bg-surface-alt" />
+                </div>
+              ))}
+            </div>
+          )}
+
+          {status === 'failed' && all.length === 0 && (
+            <div className="grid h-full place-items-center text-center">
+              <div>
+                <p className="text-sm text-text">Could not load products.</p>
+                <button type="button" onClick={load} className="mt-2 text-sm font-medium text-accent hover:underline">Try again</button>
+              </div>
+            </div>
+          )}
+
+          {!(status === 'refreshing' && all.length === 0) && !(status === 'failed' && all.length === 0) && rows.length === 0 && (
+            <div className="grid h-full place-items-center text-center text-sm text-muted">
+              {query ? `No products match “${term.trim()}”.` : 'No products yet.'}
+            </div>
+          )}
+
+          {rows.length > 0 && (
+            <>
+              <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                {rows.map((p) => {
+                  const active = selected?.$id === p.$id;
+                  const img = productService.getMainImageUrl(p);
+                  const imgId = p.imageIds?.[0];
+                  return (
+                    <li key={p.$id}>
+                      <button
+                        type="button"
+                        aria-pressed={active}
+                        onClick={() => setSelected(p)}
+                        onDoubleClick={() => onPick(p)}
+                        className={`group relative block w-full rounded-lg border p-2 text-left transition-all ${
+                          active ? 'border-accent bg-accent-soft ring-2 ring-accent/40' : 'border-border bg-surface hover:border-accent/50'
+                        }`}
+                      >
+                        <span className="relative block aspect-square overflow-hidden rounded-md bg-surface-alt">
+                          {img ? (
+                            <Thumb id={imgId} url={img} className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" />
+                          ) : (
+                            <span className="grid h-full w-full place-items-center text-muted"><ImagePlus size={22} aria-hidden="true" /></span>
+                          )}
+                          {active && (
+                            <span className="absolute right-1.5 top-1.5 grid size-6 place-items-center rounded-full bg-accent text-white shadow-soft">
+                              <Check size={14} aria-hidden="true" />
+                            </span>
+                          )}
+                        </span>
+                        <span className="mt-2 block truncate text-sm font-medium text-text">{p.name}</span>
+                        <span className="block truncate text-xs text-muted">{rs(p.price)}</span>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+              {hasMore && (
+                <button
+                  type="button"
+                  onClick={() => setShown((n) => n + PAGE)}
+                  className="mt-4 w-full rounded-md border border-border py-2 text-sm font-medium text-muted transition-colors hover:border-accent hover:text-accent"
+                >
+                  Load more
+                </button>
+              )}
+            </>
+          )}
+        </div>
+
+        {/* search sits at the bottom, like the file name bar of a file chooser */}
+        <footer className="space-y-3 border-t border-border bg-surface px-4 py-3">
+          <div className="relative">
+            <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted" aria-hidden="true" />
+            <input
+              value={term}
+              onChange={(e) => setTerm(e.target.value)}
+              placeholder="Search products by name…"
+              aria-label="Search products"
+              className={`${inputCls()} h-10 pl-9`}
+            />
+          </div>
+          <div className="flex items-center justify-between gap-3">
+            <p className="min-w-0 flex-1 truncate text-xs text-muted">{selected ? selected.name : 'Select one product'}</p>
+            <div className="flex gap-2">
+              <button type="button" onClick={onClose} className="btn btn-ghost">Cancel</button>
+              <button
+                type="button"
+                disabled={!selected}
+                onClick={() => onPick(selected)}
+                style={{ background: 'linear-gradient(120deg, var(--brown), var(--accent))', color: 'var(--on-brown)' }}
+                className="btn min-w-28 transition-[filter,transform] hover:brightness-110 active:scale-95 disabled:opacity-50"
+              >
+                Use product
+              </button>
+            </div>
+          </div>
+        </footer>
+      </div>
+    </div>
+  );
+}
+
 /* ---------- the drawer ---------- */
 
 // props: open, product (null = add), categories[], groups[], onClose, onSaved
 export default function ProductForm({ open, product, categories = [], groups = [], onClose, onSaved, mode = 'normal' }) {
   const dispatch = useDispatch();
   const sales = useSelector(selectSalesList);
+  const allProducts = useSelector(selectAllProducts);
   const allSaleOptions = useSelector(selectSaleOptions);
   const editing = Boolean(product);
   const customMode = mode === 'custom';
   const fileInput = useRef(null);
   const optionRowRef = useRef(null);
 
-  const [form, setForm] = useState(() => toForm(product));
+  const [form, setForm] = useState(() => initialForm(product));
   const [customOptions, setCustomOptions] = useState(() => toForm(product).customOptions);
   const [optionDrafts, setOptionDrafts] = useState(() => [optionDraft()]);
   const [optionErrors, setOptionErrors] = useState({});
@@ -149,6 +380,12 @@ export default function ProductForm({ open, product, categories = [], groups = [
   const [saving, setSaving] = useState(false);
   const [submitError, setSubmitError] = useState('');
   const [dragOver, setDragOver] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [copying, setCopying] = useState(false);
+  const [notices, setNotices] = useState([]);
+  const [moreOpen, setMoreOpen] = useState(() =>
+    Boolean(product && (product.discountName || product.costPrice || product.priceAdvance || product.priceCOD))
+  );
 
   // Images in display order. Existing: { key, id, url }  New (uploaded on save): { key, file, url }
   const [images, setImages] = useState(() =>
@@ -162,6 +399,11 @@ export default function ProductForm({ open, product, categories = [], groups = [
   const imagesRef = useRef(images);
   imagesRef.current = images;
 
+  const pushNotice = useCallback((message, tone = 'warning') => {
+    setNotices((cur) => [...cur, { id: `${Date.now()}-${Math.random().toString(36).slice(2, 6)}`, text: message, tone }]);
+  }, []);
+  const closeNotice = useCallback((id) => setNotices((cur) => cur.filter((n) => n.id !== id)), []);
+
   // Slide-in: mount closed, flip to open on the next frame so the transition runs.
   const [shown, setShown] = useState(false);
   useEffect(() => {
@@ -173,11 +415,11 @@ export default function ProductForm({ open, product, categories = [], groups = [
 
   useEffect(() => {
     if (!open) return undefined;
-    const onKey = (e) => e.key === 'Escape' && !saving && onClose();
+    const onKey = (e) => e.key === 'Escape' && !saving && !pickerOpen && onClose();
     window.addEventListener('keydown', onKey);
     document.body.style.overflow = 'hidden';
     return () => { window.removeEventListener('keydown', onKey); document.body.style.overflow = ''; };
-  }, [open, saving, onClose]);
+  }, [open, saving, pickerOpen, onClose]);
 
   useEffect(() => () => imagesRef.current.forEach((i) => i.file && URL.revokeObjectURL(i.url)), []);
 
@@ -205,8 +447,8 @@ export default function ProductForm({ open, product, categories = [], groups = [
           ...f,
           saleId: '',
           discountName: '',
-          discountPercentage: '0',
-          price: String(Number(f.originalPrice) || 0),
+          discountPercentage: '',
+          price: f.originalPrice === '' ? '' : String(Number(f.originalPrice) || 0),
         };
       }
       const percentage = Number(sale.discountPercentage) || 0;
@@ -229,11 +471,114 @@ export default function ProductForm({ open, product, categories = [], groups = [
   });
   const selectedSale = sales.find((item) => item.$id === form.saleId);
   const salePriceHint = selectedSale
-    ? `Price after sale: Rs ${Math.round((Number(form.originalPrice) || 0) * (1 - (Number(selectedSale.discountPercentage) || 0) / 100)).toLocaleString('en-PK')}`
+    ? `Price after sale: ${rs(Math.round((Number(form.originalPrice) || 0) * (1 - (Number(selectedSale.discountPercentage) || 0) / 100)))}`
     : '';
   const total = Number(form.totalAvailable) || 0;
   const sold = Number(form.sold) || 0;
   const remaining = Math.max(0, total - sold);
+
+  /* ----- copy everything from a picked product ----- */
+
+  const applyProduct = (p) => {
+    setPickerOpen(false);
+    setCopying(true);
+    try {
+      /* sale: never apply one that has ended or no longer exists */
+      let saleId = '';
+      let discountName = '';
+      let discountPercentage = '';
+      let price = '';
+      const original = Number(p.originalPrice) || 0;
+      if (p.saleId) {
+        const sale = sales.find((s) => s.$id === p.saleId);
+        if (!sale) {
+          pushNotice('The sale on that product no longer exists, so no sale was applied.');
+          price = String(original);
+        } else if (getSaleStatus(sale) === 'ended') {
+          pushNotice(`The sale “${sale.name || 'Sale'}” has ended, so it was not applied.`);
+          price = String(original);
+        } else {
+          const pct = Number(sale.discountPercentage) || 0;
+          saleId = sale.$id;
+          discountName = sale.name || '';
+          discountPercentage = zeroBlank(pct);
+          price = String(Math.round(original * (1 - pct / 100)));
+        }
+      } else {
+        discountName = text(p.discountName);
+        discountPercentage = zeroBlank(p.discountPercentage);
+        price = p.price != null ? String(p.price) : String(autoPrice({ originalPrice: original, discountPercentage: p.discountPercentage }));
+      }
+
+      /* slug: unique against the products already in the store (re-checked on save) */
+      const base = slugify(p.name) || 'product';
+      const taken = new Set(allProducts.map((x) => x.slug).filter(Boolean));
+      let slug = base;
+      for (let n = 2; taken.has(slug); n++) slug = `${base}-${n}`;
+
+      /* images: reuse the SAME bucket file ids (nothing is downloaded or re-uploaded) */
+      const ids = (Array.isArray(p.imageIds) ? p.imageIds : []).filter(Boolean);
+      const copied = ids.map((id) => ({ key: id, id, url: productService.getImageUrl(id) }));
+
+      let sample = [];
+      if (customMode && p.customFileId) {
+        sample = [{ key: p.customFileId, kind: 'existing', id: p.customFileId, url: productService.getImageUrl(p.customFileId) }];
+      }
+
+      imagesRef.current.forEach((i) => i.file && URL.revokeObjectURL(i.url));
+      setImages(copied);
+      if (customMode) setSampleImages(sample);
+
+      setForm((f) => blankZeros({
+        ...f,
+        name: text(p.name),
+        slug,
+        description: text(p.description),
+        category: text(p.category),
+        group: text(p.group),
+        tags: Array.isArray(p.tags) ? [...p.tags] : [],
+        featured: Boolean(p.featured),
+        order: zeroBlank(p.order),
+        saleId,
+        discountName,
+        discountPercentage,
+        originalPrice: text(p.originalPrice),
+        price,
+        costPrice: text(p.costPrice),
+        priceAdvance: text(p.priceAdvance),
+        priceCOD: text(p.priceCOD),
+        deliveryCharges: zeroBlank(p.deliveryCharges),
+        deliveryTime: text(p.deliveryTime),
+        deliveryFrom: text(p.deliveryFrom),
+        totalAvailable: zeroBlank(p.totalAvailable),
+        sold: '', // a new product has sold nothing yet
+        customDetails: customMode ? text(p.customDetails) : '',
+      }));
+      if (customMode) {
+        let source = [];
+        try {
+          const raw = typeof p.customOptions === 'string' ? JSON.parse(p.customOptions || '[]') : p.customOptions;
+          source = Array.isArray(raw) ? raw : [];
+        } catch {
+          source = [];
+        }
+        setCustomOptions(source.map((o) => ({ ...o, id: optionId() })));
+        setOptionDrafts([optionDraft()]);
+        setOptionErrors({});
+        setEditingOptionId(null);
+      }
+      setSlugTouched(false); // editing the name keeps the slug in sync again
+      setErrors({});
+      setSubmitError('');
+      setMoreOpen(Boolean(p.discountName || p.costPrice || p.priceAdvance || p.priceCOD));
+
+      pushNotice(`Details copied from “${p.name}”. Check the slug and price, then save.`, 'success');
+    } finally {
+      setCopying(false);
+    }
+  };
+
+  /* ----- custom options (unchanged behaviour) ----- */
 
   const validateOption = (labelValue, priceValue, skipId = null) => {
     const label = String(labelValue || '').trim();
@@ -299,6 +644,8 @@ export default function ProductForm({ open, product, categories = [], groups = [
     setOptionErrors((current) => ({ ...current, [editingOptionId]: undefined }));
   };
 
+  /* ----- images ----- */
+
   const addFiles = (list) => {
     const picked = Array.from(list || []).filter((f) => f.type.startsWith('image/'));
     setImages((cur) => [...cur, ...picked.map((file) => {
@@ -312,8 +659,11 @@ export default function ProductForm({ open, product, categories = [], groups = [
   };
   const makeMain = (img) => setImages((cur) => [img, ...cur.filter((x) => x !== img)]);
 
+  /* ----- save ----- */
+
   const submit = async (e) => {
     e.preventDefault();
+    if (copying) return;
     const formForValidation = customMode ? { ...form, totalAvailable: '0', sold: '0' } : { ...form, isCustom: false };
     const found = validate(formForValidation);
     const partialOptions = optionDrafts.some((row) => row.label.trim() || row.price !== '');
@@ -375,9 +725,10 @@ export default function ProductForm({ open, product, categories = [], groups = [
 
       // 4. remove images the admin deleted from the bucket
       const removed = (product?.imageIds || []).filter((id) => !imageIds.includes(id));
-      if (removed.length) await productService.deleteImages(removed);
+      // images may be shared with products that were copied from this one
+      if (removed.length) await productService.deleteImagesIfUnused(removed);
       if (product?.customFileId && product.customFileId !== customFileId) {
-        await productService.deleteImage(product.customFileId);
+        await productService.deleteImagesIfUnused([product.customFileId]);
       }
 
       onSaved?.();
@@ -404,6 +755,8 @@ export default function ProductForm({ open, product, categories = [], groups = [
     />
   );
 
+  const noun = customMode ? 'custom product' : 'product';
+
   return (
     <div
       className="fixed inset-0 z-50"
@@ -419,16 +772,14 @@ export default function ProductForm({ open, product, categories = [], groups = [
         noValidate
         role="dialog"
         aria-modal="true"
-        aria-label={editing ? `Edit ${customMode ? 'custom product' : 'product'}` : `Add ${customMode ? 'custom product' : 'product'}`}
+        aria-label={editing ? `Edit ${noun}` : `Add ${noun}`}
         className={`absolute right-0 top-0 flex h-full w-full max-w-2xl flex-col border-l border-border bg-bg shadow-soft transition-transform duration-[350ms] ease-[cubic-bezier(0.22,0.8,0.2,1)] ${
           shown ? 'translate-x-0' : 'translate-x-full'
         }`}
       >
         <header className="flex items-center justify-between gap-3 border-b border-border px-4 py-3 sm:px-6">
           <div className="min-w-0">
-            <h2 className="heading truncate text-text">
-              {editing ? `Edit ${customMode ? 'custom product' : 'product'}` : `Add ${customMode ? 'custom product' : 'product'}`}
-            </h2>
+            <h2 className="heading truncate text-text">{editing ? `Edit ${noun}` : `Add ${noun}`}</h2>
             <p className="truncate text-xs text-muted">{editing ? product.name : 'Fill in the details, then save.'}</p>
           </div>
           <button type="button" onClick={onClose} disabled={saving} aria-label="Close" className="grid h-10 w-10 place-items-center rounded-md text-muted transition-colors hover:bg-surface-alt hover:text-text">
@@ -437,7 +788,28 @@ export default function ProductForm({ open, product, categories = [], groups = [
         </header>
 
         <div className="flex-1 space-y-4 overflow-y-auto px-4 py-4 sm:px-6">
-          <Section title="Basics" subtitle="What the shopper sees first." icon={FileText} tone={1} delay={0}>
+          {/* hero: start from an existing product (new products only) */}
+          {!editing && (
+            <button
+              type="button"
+              onClick={() => setPickerOpen(true)}
+              disabled={copying || saving}
+              className="group flex w-full items-center gap-3 rounded-xl border border-dashed border-border bg-surface p-3 text-left transition-colors hover:border-accent hover:bg-accent-soft disabled:cursor-wait disabled:opacity-70 sm:p-4"
+            >
+              <span className="grid size-11 shrink-0 place-items-center rounded-lg bg-surface-alt text-accent transition-transform duration-200 group-hover:scale-105">
+                {copying ? <Loader2 size={20} className="animate-spin" aria-hidden="true" /> : <Plus size={22} aria-hidden="true" />}
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm font-semibold text-text">{copying ? 'Copying product…' : 'Pick data from a product'}</span>
+                <span className="block text-xs text-muted">
+                  {copying ? 'Copying details and images, one moment.' : 'Start from an existing product. Its details and images are copied.'}
+                </span>
+              </span>
+              <ChevronRight size={16} className="shrink-0 text-muted transition-transform group-hover:translate-x-0.5 group-hover:text-accent" aria-hidden="true" />
+            </button>
+          )}
+
+          <Section title="Basics" subtitle="What the shopper sees first." delay={0}>
             <Field label="Name" error={errors.name} className="sm:col-span-2">
               <input value={form.name} onChange={on('name')} maxLength={255} placeholder="Rose lawn suit" className={inputCls(errors.name)} />
             </Field>
@@ -478,13 +850,13 @@ export default function ProductForm({ open, product, categories = [], groups = [
               <span className="mb-1.5 block text-xs font-medium text-text">Tags <span className="font-normal text-muted">(optional)</span></span>
               <TagsField value={form.tags} onChange={set('tags')} />
             </div>
-            <Field label="Display order" hint="lower shows first" error={errors.order}>{num('order', { step: 1 })}</Field>
+            <Field label="Display order" hint="lower shows first" error={errors.order}>{num('order', { step: 1, placeholder: '0' })}</Field>
             <div className="flex items-end">
               <Switch checked={form.featured} onChange={set('featured')} label="Featured" hint="Show on the home page" />
             </div>
           </Section>
 
-          <Section title="Pricing" subtitle="Final price and the formatted label are calculated for you." icon={Wallet} tone={3} delay={60}>
+          <Section title="Pricing" subtitle="The final price is worked out for you if you leave it empty." delay={60}>
             <div className="sm:col-span-2">
               <SelectInput
                 label="Sale"
@@ -499,34 +871,53 @@ export default function ProductForm({ open, product, categories = [], groups = [
             </div>
             <Field label={`${customMode ? 'Starting' : 'Original'} price (Rs)`} error={errors.originalPrice}>{num('originalPrice', { placeholder: '3000' })}</Field>
             <Field label="Discount %" error={errors.discountPercentage}>{num('discountPercentage', { max: 100, placeholder: '0', disabled: Boolean(form.saleId) })}</Field>
-            <Field label="Discount name" optional>
-              <input value={form.discountName} onChange={on('discountName')} maxLength={100} placeholder="Eid sale" disabled={Boolean(form.saleId)} className={inputCls()} />
-            </Field>
-            <Field label="Final price (Rs)" hint={`auto: ${computedPrice.toLocaleString('en-PK')}`} error={errors.price}>
+            <Field label="Final price (Rs)" hint={`auto: ${computedPrice.toLocaleString('en-PK')}`} error={errors.price} className="sm:col-span-2">
               {num('price', { placeholder: String(computedPrice) })}
             </Field>
-            <Field label="Cost price (Rs)" hint="admin only" optional error={errors.costPrice}>{num('costPrice')}</Field>
-            <Field label="Advance payment (Rs)" optional error={errors.priceAdvance}>{num('priceAdvance')}</Field>
-            <Field label="Cash on delivery price (Rs)" optional error={errors.priceCOD}>{num('priceCOD')}</Field>
+
+            <div className="sm:col-span-2">
+              <button
+                type="button"
+                onClick={() => setMoreOpen((v) => !v)}
+                aria-expanded={moreOpen}
+                className="flex items-center gap-1.5 text-xs font-medium text-muted transition-colors hover:text-accent"
+              >
+                <ChevronDown size={14} className={`transition-transform duration-200 ${moreOpen ? 'rotate-180' : ''}`} aria-hidden="true" />
+                {moreOpen ? 'Hide' : 'Show'} more pricing options
+              </button>
+              {moreOpen && (
+                <div className="animate-rise mt-3 grid gap-4 sm:grid-cols-2">
+                  <Field label="Discount name" optional className="sm:col-span-2">
+                    <input value={form.discountName} onChange={on('discountName')} maxLength={100} placeholder="Eid sale" disabled={Boolean(form.saleId)} className={inputCls()} />
+                  </Field>
+                  <Field label="Cost price (Rs)" hint="admin only" optional error={errors.costPrice}>{num('costPrice', { placeholder: '0' })}</Field>
+                  <Field label="Advance payment (Rs)" optional error={errors.priceAdvance}>{num('priceAdvance', { placeholder: '0' })}</Field>
+                  <Field label="Cash on delivery price (Rs)" optional error={errors.priceCOD} className="sm:col-span-2">{num('priceCOD', { placeholder: '0' })}</Field>
+                </div>
+              )}
+            </div>
           </Section>
 
-          {!customMode && (
-            <Section title="Stock" subtitle="Remaining and stock status update automatically." icon={Boxes} tone={2} delay={120}>
-              <Field label="Total available" error={errors.totalAvailable}>{num('totalAvailable', { step: 1, placeholder: '0' })}</Field>
-              <Field label="Sold" error={errors.sold}>{num('sold', { step: 1, placeholder: '0' })}</Field>
-              <div className="flex items-center justify-between rounded-md bg-surface px-3 py-2.5 text-sm sm:col-span-2">
-                <span className="text-muted">Remaining</span>
-                <span className="flex items-center gap-2">
-                  <b className="text-text tabular-nums">{remaining}</b>
-                  <span className={`rounded-full px-2 py-0.5 text-xs transition-colors ${remaining > 0 ? 'bg-accent-tone-2/10 text-accent-tone-2' : 'bg-accent-tone-4/10 text-accent-tone-4'}`}>
-                    {remaining > 0 ? 'In stock' : 'Out of stock'}
+          <Section
+            title={customMode ? 'Delivery' : 'Stock & delivery'}
+            subtitle={customMode ? 'Charges, time and where it ships from.' : 'Remaining and stock status update automatically.'}
+            delay={120}
+          >
+            {!customMode && (
+              <>
+                <Field label="Total available" error={errors.totalAvailable}>{num('totalAvailable', { step: 1, placeholder: '0' })}</Field>
+                <Field label="Sold" error={errors.sold}>{num('sold', { step: 1, placeholder: '0' })}</Field>
+                <div className="flex items-center justify-between rounded-md bg-bg px-3 py-2.5 text-sm sm:col-span-2">
+                  <span className="text-muted">Remaining</span>
+                  <span className="flex items-center gap-2">
+                    <b className="tabular-nums text-text">{remaining}</b>
+                    <span className={`rounded-full px-2 py-0.5 text-xs transition-colors ${remaining > 0 ? 'bg-success-soft text-success-fg' : 'bg-error-soft text-error-fg'}`}>
+                      {remaining > 0 ? 'In stock' : 'Out of stock'}
+                    </span>
                   </span>
-                </span>
-              </div>
-            </Section>
-          )}
-
-          <Section title="Delivery" subtitle="Charges, time and where it ships from." icon={Truck} tone={5} delay={180}>
+                </div>
+              </>
+            )}
             <Field label="Delivery charges (Rs)" error={errors.deliveryCharges}>{num('deliveryCharges', { placeholder: '0' })}</Field>
             <Field label="Delivery time" optional>
               <input value={form.deliveryTime} onChange={on('deliveryTime')} maxLength={100} placeholder="3-5 working days" className={inputCls()} />
@@ -537,7 +928,7 @@ export default function ProductForm({ open, product, categories = [], groups = [
           </Section>
 
           {customMode && (
-            <Section title="Customizations" subtitle="Give customers clear choices and prices for their made-to-order product." icon={Star} tone={7} delay={210}>
+            <Section title="Customizations" subtitle="Give customers clear choices and prices for their made-to-order product." delay={150}>
               <Field label="Instructions for the customer" hint={`${form.customDetails.length}/1000`} className="sm:col-span-2">
                 <textarea
                   value={form.customDetails}
@@ -581,13 +972,13 @@ export default function ProductForm({ open, product, categories = [], groups = [
                       </div>
                     </div>
                   ) : (
-                    <div key={option.id} className="flex items-center gap-2 rounded-md border border-border bg-surface px-3 py-2">
+                    <div key={option.id} className="flex items-center gap-2 rounded-md border border-border bg-bg px-3 py-2">
                       <button
                         type="button"
                         onClick={() => { setEditingOptionId(option.id); setOptionEdit({ label: option.label, price: String(option.price) }); }}
                         className="min-w-0 flex-1 truncate text-left text-sm font-medium text-text hover:text-accent"
                       >
-                        {option.label} · + Rs {option.price.toLocaleString('en-PK')}
+                        {option.label} · + Rs {Number(option.price).toLocaleString('en-PK')}
                       </button>
                       <button
                         type="button"
@@ -656,9 +1047,9 @@ export default function ProductForm({ open, product, categories = [], groups = [
             </Section>
           )}
 
-          <section style={{ animationDelay: '240ms' }} className="group/sec animate-rise rounded-lg border border-border bg-surface-alt/40 p-4">
-            <SectionHead icon={ImageIcon} tone={6} title="Images" subtitle="The first image is the main one. Tap the star on an image to make it main." />
-            {/* full-width rectangular upload button + drop zone */}
+          <section style={{ animationDelay: '180ms' }} className="animate-rise rounded-xl border border-border bg-surface p-4 sm:p-5">
+            <h3 className="text-sm font-semibold text-text">Images</h3>
+            <p className="mt-0.5 text-xs text-muted">The first image is the main one. Tap the star on an image to make it main.</p>
             <button
               type="button"
               onClick={() => fileInput.current?.click()}
@@ -666,7 +1057,7 @@ export default function ProductForm({ open, product, categories = [], groups = [
               onDragLeave={() => setDragOver(false)}
               onDrop={(e) => { e.preventDefault(); setDragOver(false); addFiles(e.dataTransfer.files); }}
               className={`mt-4 flex w-full items-center justify-center gap-3 rounded-md border border-dashed px-4 py-5 text-sm transition-colors ${
-                dragOver ? 'border-accent-tone-6 bg-accent-tone-6/10 text-accent-tone-6' : 'border-border bg-surface text-muted hover:border-accent-tone-6 hover:bg-accent-tone-6/10 hover:text-accent-tone-6'
+                dragOver ? 'border-accent bg-accent-soft text-accent' : 'border-border bg-bg text-muted hover:border-accent hover:bg-accent-soft hover:text-accent'
               }`}
             >
               <ImagePlus size={22} className="shrink-0" />
@@ -676,12 +1067,14 @@ export default function ProductForm({ open, product, categories = [], groups = [
               </span>
             </button>
 
+            {errors.images && <p className="mt-2 text-xs text-error">{errors.images}</p>}
+
             {images.length > 0 && (
               <div className="mt-3 grid grid-cols-3 gap-3 sm:grid-cols-4">
                 {images.map((img, i) => (
-                  <div key={img.key} className="group animate-rise relative aspect-square overflow-hidden rounded-md border border-border bg-surface">
-                    <img src={img.url} alt="" className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" />
-                    {i === 0 && <span className="absolute left-1.5 top-1.5 rounded-full bg-accent-tone-6 px-2 py-0.5 text-[10px] font-medium text-white">Main</span>}
+                  <div key={img.key} className="group animate-rise relative aspect-square overflow-hidden rounded-md border border-border bg-bg">
+                    <Thumb id={img.id} url={img.url} className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" />
+                    {i === 0 && <span className="absolute left-1.5 top-1.5 rounded-full bg-accent px-2 py-0.5 text-[10px] font-medium text-white">Main</span>}
                     <div className="absolute inset-x-0 bottom-0 flex justify-end gap-1 bg-gradient-to-t from-black/50 to-transparent p-1.5 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100">
                       {i !== 0 && (
                         <button type="button" aria-label="Make main" onClick={() => makeMain(img)} className="grid h-7 w-7 place-items-center rounded bg-white/90 text-black"><Star size={14} /></button>
@@ -708,15 +1101,22 @@ export default function ProductForm({ open, product, categories = [], groups = [
             <button type="button" onClick={onClose} disabled={saving} className="btn btn-ghost">Cancel</button>
             <button
               type="submit"
-              disabled={saving}
+              disabled={saving || copying}
               style={{ background: 'linear-gradient(120deg, var(--brown), var(--accent))', color: 'var(--on-brown)' }}
               className="btn min-w-32 transition-[filter,transform] hover:brightness-110 active:scale-95 disabled:opacity-60"
             >
-              {saving ? 'Saving…' : editing ? 'Save changes' : 'Create product'}
+              {saving ? 'Saving…' : copying ? 'Copying…' : editing ? 'Save changes' : 'Create product'}
             </button>
           </div>
         </footer>
+
+        {/* floating notices slide in from the right edge, under the header */}
+        <div className="pointer-events-none fixed right-0 top-20 z-[80] flex w-full max-w-sm flex-col gap-2 overflow-hidden p-3">
+          {notices.map((n) => <Notice key={n.id} notice={n} onClose={closeNotice} />)}
+        </div>
       </form>
+
+      <ProductPicker open={pickerOpen} customMode={customMode} onClose={() => setPickerOpen(false)} onPick={applyProduct} />
     </div>
   );
 }

@@ -608,6 +608,24 @@ export class ProductService {
         }
     }
 
+    // Small preview for grids / thumbnails (server resizes to webp). Falls back to
+    // the full file in <Thumb> if the project's plan has no image transformations.
+    getThumbUrl(fileId, width = 320) {
+        try {
+            const id = this._extractFileId(fileId);
+            if (!id) return null;
+            return this.bucket.getFilePreview({
+                bucketId: this.bucketId,
+                fileId: id,
+                width,
+                quality: 70,
+                output: 'webp',
+            });
+        } catch (error) {
+            return this.getImageUrl(fileId);
+        }
+    }
+
     // Main image url of a product row.
     getMainImageUrl(product) {
         return this.getImageUrl(product?.imageIds?.[0]);
@@ -650,7 +668,7 @@ export class ProductService {
                 imageIds: (current.imageIds || []).filter((id) => id !== fileId),
             });
             if (!product) return false;
-            await this.deleteImage(fileId);
+            await this.deleteImagesIfUnused([fileId]);
             return product;
         } catch (error) {
             console.error(error.message);
@@ -781,9 +799,37 @@ export class ProductService {
         return results;
     }
 
+    // Every file id still used by some product row (imageIds + customFileId).
+    // Returns null when it cannot be checked, so callers never delete by mistake.
+    async _getReferencedFileIds() {
+        try {
+            const rows = await this._listAllRows([Query.select(['$id', 'imageIds', 'customFileId'])]);
+            const used = new Set();
+            rows.forEach((r) => {
+                (r.imageIds || []).forEach((id) => used.add(this._extractFileId(id)));
+                if (r.customFileId) used.add(this._extractFileId(r.customFileId));
+            });
+            return used;
+        } catch (error) {
+            console.error(error.message);
+            return null;
+        }
+    }
+
+    // Deletes bucket files ONLY if no product row references them any more.
+    // Needed because a product copied from another one shares the same file ids.
+    // Call it AFTER the row has been updated / deleted.
+    async deleteImagesIfUnused(fileIds) {
+        const ids = [...new Set((fileIds || []).filter(Boolean).map((id) => this._extractFileId(id)))];
+        if (!ids.length) return true;
+        const used = await this._getReferencedFileIds();
+        if (!used) return false; // could not verify -> keep the files
+        return this.deleteImages(ids.filter((id) => !used.has(id)));
+    }
+
     async _deleteProductFiles(product) {
-        const ids = (product.imageIds || []).filter(Boolean);
-        await Promise.all(ids.map((id) => this.deleteImage(id)));
+        const ids = [...(product.imageIds || []), product.customFileId].filter(Boolean);
+        await this.deleteImagesIfUnused(ids);
     }
 
     // If a row ever stores a full file URL instead of the raw id, pull the

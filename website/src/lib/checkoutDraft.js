@@ -59,6 +59,8 @@ export const fillFromProfile = (form = {}, profile = {}) => ({
 
 // Returns { field: message }. Empty object = ready to send.
 // needEmail: true for guests (email is what we log them in / create them with).
+import { isValidPhoneNumber } from './phone';
+
 export const validateDetails = (form = {}, { needEmail = false } = {}) => {
   const errors = {};
   const text = (key) => String(form[key] ?? '').trim();
@@ -66,7 +68,7 @@ export const validateDetails = (form = {}, { needEmail = false } = {}) => {
   if (!text('customerName')) errors.customerName = 'Enter your name.';
   const phoneDigits = text('customerPhone').replace(/\D/g, '');
   if (!text('customerPhone')) errors.customerPhone = 'Enter your phone number.';
-  else if (phoneDigits.length < 7) errors.customerPhone = 'Enter a valid phone number.';
+  else if (!isValidPhoneNumber(form.customerPhone) || phoneDigits.length < 10) errors.customerPhone = 'Enter a valid phone number with 10 to 15 digits.';
   if (needEmail) {
     if (!text('customerEmail')) errors.customerEmail = 'Enter your email.';
     else if (!isEmail(form.customerEmail)) errors.customerEmail = 'Enter a valid email.';

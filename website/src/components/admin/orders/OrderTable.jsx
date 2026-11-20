@@ -1,26 +1,69 @@
 import { memo, useState } from 'react';
 import { useDispatch } from 'react-redux';
-import { Eye } from 'lucide-react';
 import '../users/userScroll.css';
 
 import AppIcon from '../../../ui/custom/AppIcon';
-import Tooltip from '../../../ui/custom/tooltip/Tooltip';
 import { postOrderDetail } from '../../../store/slices/ordersSlice';
+import orderService from '../../../lib/appwrite/order';
+import { buildWhatsAppUrl } from '../../../lib/phone';
+import { PATHS } from '../../../router/path';
 import { DeliveryChip, PaymentBadge, StatusBadge } from './OrderBadges';
 import { money, STATUS_META } from './orderMeta';
 
 const COLUMNS = [
   { label: 'Order ID' },
-  { label: 'Customer' },
   { label: 'Payment / status' },
   { label: 'Customer update' },
-  { label: 'Actions', right: true },
+  { label: 'Confirmation', right: true },
 ];
 
 const stop = (e) => e.stopPropagation(); // controls inside a clickable row must not open it
 const rise = (i) => ({ animationDelay: `${Math.min(i, 12) * 35}ms` });
-const ICON_BTN =
-  'grid size-9 place-items-center rounded-md text-muted transition-colors hover:bg-surface-alt hover:text-text focus-visible:outline-2 focus-visible:outline-accent';
+function confirmationUrl(order) {
+  if (!order.username || typeof window === 'undefined') return null;
+  const path = PATHS.user.confirmOrder(order.username);
+  return `${window.location.origin}${path}?orderId=${encodeURIComponent(order.$id)}`;
+}
+
+function ConfirmationAction({ order }) {
+  if (order.isConfirmed) {
+    return (
+      <span className="inline-flex items-center justify-center rounded-md bg-success/10 px-3 py-2 text-xs font-semibold text-success">
+        Confirmed
+      </span>
+    );
+  }
+
+  const link = confirmationUrl(order);
+  const whatsappUrl = buildWhatsAppUrl(order.customerPhone);
+  if (!link || !whatsappUrl) {
+    return <span className="text-xs text-muted">Unavailable</span>;
+  }
+
+  const items = orderService.parseItems(order)
+    .map((item) => `${item.name || 'Product'} x${Number(item.quantity) || 0}`)
+    .filter(Boolean)
+    .join(', ');
+  const message = [
+    `Assalamualaikum ${order.customerName || 'Customer'},`,
+    `please confirm order ${order.orderNumber || order.$id}.`,
+    `Total: Rs ${Number(order.total || 0).toLocaleString('en-PK')}.`,
+    items ? `Items: ${items}.` : null,
+    `Open this link to confirm your order: ${link}`,
+  ].filter(Boolean).join('\n');
+
+  return (
+    <a
+      href={buildWhatsAppUrl(order.customerPhone, message)}
+      target="_blank"
+      rel="noopener noreferrer"
+      onClick={stop}
+      className="btn btn-primary inline-flex min-h-9 items-center justify-center px-3 py-1.5 text-xs"
+    >
+      Confirm via WhatsApp
+    </a>
+  );
+}
 
 // Table on larger screens, cards below. Clicking a row opens the order drawer.
 function Shell({ children, always = false }) {
@@ -39,16 +82,6 @@ function Shell({ children, always = false }) {
         </table>
       </div>
     </div>
-  );
-}
-
-function ViewButton({ order, onView }) {
-  return (
-    <Tooltip label="View order">
-      <button type="button" onClick={(e) => { stop(e); onView?.(order); }} aria-label={`View order ${order.orderNumber}`} className={ICON_BTN}>
-        <Eye size={18} aria-hidden="true" />
-      </button>
-    </Tooltip>
   );
 }
 
@@ -104,7 +137,7 @@ function QuickUpdate({ orderId, orderNumber }) {
   );
 }
 
-const OrderRow = memo(function OrderRow({ order, index, onView, detail }) {
+const OrderRow = memo(function OrderRow({ order, index, onView }) {
   const dim = ['cancelled', 'returned'].includes(order.status) ? 'opacity-60' : '';
   const iconTone = STATUS_META[order.status]?.tone || 1;
   return (
@@ -122,11 +155,6 @@ const OrderRow = memo(function OrderRow({ order, index, onView, detail }) {
         <div className="mt-1"><DeliveryChip type={order.deliveryType} /></div>
       </td>
       <td className={`px-4 py-3 ${dim}`}>
-        <p className="max-w-64 truncate text-sm font-medium text-text">{order.customerName}</p>
-        <p className="mt-0.5 max-w-64 truncate text-xs text-muted">{order.customerPhone} · {order.city}</p>
-        {detail && <Tooltip label={detail}><p className="mt-1 max-w-64 truncate text-xs text-muted">{detail}</p></Tooltip>}
-      </td>
-      <td className={`px-4 py-3 ${dim}`}>
         <div className="flex flex-col items-start gap-1">
           <PaymentBadge status={order.paymentStatus} />
           <StatusBadge status={order.status} />
@@ -135,13 +163,13 @@ const OrderRow = memo(function OrderRow({ order, index, onView, detail }) {
       </td>
       <td className="px-4 py-3" onClick={stop}><QuickUpdate orderId={order.$id} orderNumber={order.orderNumber} /></td>
       <td className="cursor-default px-4 py-3" onClick={stop}>
-        <div className="flex justify-end"><ViewButton order={order} onView={onView} /></div>
+        <div className="flex justify-end"><ConfirmationAction order={order} /></div>
       </td>
     </tr>
   );
 });
 
-const OrderCard = memo(function OrderCard({ order, index, onView, detail }) {
+const OrderCard = memo(function OrderCard({ order, index, onView }) {
   const iconTone = STATUS_META[order.status]?.tone || 1;
   return (
     <li
@@ -159,18 +187,13 @@ const OrderCard = memo(function OrderCard({ order, index, onView, detail }) {
           {order.isCustom && <span className="mt-1 inline-flex rounded-full bg-accent-tone-6/10 px-2 py-0.5 text-[11px] font-medium text-accent-tone-6">Custom</span>}
         </div>
       </div>
-      <div className="mt-3 min-w-0">
-        <p className="truncate text-sm font-medium text-text">{order.customerName}</p>
-        <p className="mt-0.5 truncate text-xs text-muted">{order.customerPhone} · {order.city}</p>
-        {detail && <Tooltip label={detail}><p className="mt-1 truncate text-xs text-muted">{detail}</p></Tooltip>}
-      </div>
       <div className="mt-3 flex items-center justify-between gap-3 border-t border-border pt-3">
         <div className="flex min-w-0 flex-col items-start gap-1">
           <PaymentBadge status={order.paymentStatus} />
           <StatusBadge status={order.status} />
           <p className="mt-1 text-xs tabular-nums text-muted">{money(order.total)}</p>
         </div>
-        <ViewButton order={order} onView={onView} />
+        <ConfirmationAction order={order} />
       </div>
       <div className="mt-3 border-t border-border pt-3">
         <QuickUpdate orderId={order.$id} orderNumber={order.orderNumber} />
@@ -179,14 +202,14 @@ const OrderCard = memo(function OrderCard({ order, index, onView, detail }) {
   );
 });
 
-export default function OrderTable({ orders, onView, trackerDetails = {} }) {
+export default function OrderTable({ orders, onView }) {
   return (
     <>
       <ul className="grid gap-3 sm:grid-cols-2 lg:hidden">
-        {orders.map((o, i) => <OrderCard key={o.$id} order={o} index={i} onView={onView} detail={trackerDetails[o.$id]} />)}
+        {orders.map((o, i) => <OrderCard key={o.$id} order={o} index={i} onView={onView} />)}
       </ul>
       <Shell>
-        {orders.map((o, i) => <OrderRow key={o.$id} order={o} index={i} onView={onView} detail={trackerDetails[o.$id]} />)}
+        {orders.map((o, i) => <OrderRow key={o.$id} order={o} index={i} onView={onView} />)}
       </Shell>
     </>
   );

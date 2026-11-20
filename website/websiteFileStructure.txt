@@ -53,16 +53,18 @@ Generated from the current project tree. Local .env files, dependencies, generat
 |     |  |  |-- wallet.ico
 |     |  |  \-- wrist_watch.ico
 |     |  \-- branding
-|     |     |-- favicon.ico
 |     |     |-- favicon-orange.ico
-|     |     |-- logo.webp
-|     |     \-- logo-orange.webp
+|     |     |-- favicon.ico
+|     |     |-- logo-orange.webp
+|     |     \-- logo.webp
 |     \-- webp
 |        |-- transparent
 |        |  \-- hero.webp
 |        \-- showcase.webp
 |-- src
 |  |-- assets
+|  |  |-- auth
+|  |  |  \-- auth.webp
 |  |  \-- hero
 |  |     |-- 01-denim-bag.webp
 |  |     |-- 02-mobile-pouch.webp
@@ -127,6 +129,7 @@ Generated from the current project tree. Local .env files, dependencies, generat
 |  |  |  |  |-- AccessDrawer.jsx
 |  |  |  |  |-- AccessTab.jsx
 |  |  |  |  |-- DevicesTab.jsx
+|  |  |  |  |-- LayoutTab.jsx
 |  |  |  |  |-- PasswordDrawer.jsx
 |  |  |  |  |-- ProfileDrawer.jsx
 |  |  |  |  |-- ProfileTab.jsx
@@ -163,12 +166,14 @@ Generated from the current project tree. Local .env files, dependencies, generat
 |  |  |  |  |-- index.js
 |  |  |  |  |-- useHeaderData.js
 |  |  |  |  \-- useSeenAlerts.js
+|  |  |  |-- AccessGate.jsx
 |  |  |  |-- AlertPopupHost.jsx
 |  |  |  |-- DashboardShell.jsx
 |  |  |  |-- index.js
 |  |  |  |-- Sidebar.jsx
 |  |  |  |-- SidebarFold.jsx
 |  |  |  |-- SidebarLogout.jsx
+|  |  |  |-- SidebarThemeToggle.jsx
 |  |  |  \-- usePageAlerts.js
 |  |  |-- shop
 |  |  |  |-- CategoryNav.jsx
@@ -208,6 +213,7 @@ Generated from the current project tree. Local .env files, dependencies, generat
 |  |  |  |-- index.js
 |  |  |  |-- labels.js
 |  |  |  |-- layout.js
+|  |  |  |-- navLayout.js
 |  |  |  |-- order.js
 |  |  |  |-- orderConfirm.js
 |  |  |  |-- orderConfirmation.js
@@ -218,6 +224,11 @@ Generated from the current project tree. Local .env files, dependencies, generat
 |  |  |  |-- tracker.js
 |  |  |  |-- user.js
 |  |  |  \-- wishlist.js
+|  |  |-- layout
+|  |  |  |-- accessRules.js
+|  |  |  |-- layoutRegistry.js
+|  |  |  |-- usePanelAccess.js
+|  |  |  \-- useUserLabels.js
 |  |  |-- checkoutDraft.js
 |  |  |-- entityColors.js
 |  |  |-- imageOptimizer.js
@@ -267,6 +278,7 @@ Generated from the current project tree. Local .env files, dependencies, generat
 |  |  |  |  |-- Product.jsx
 |  |  |  |  \-- ProductCheckoutDrawer.jsx
 |  |  |  |-- structure
+|  |  |  |  |-- AccessDenied.jsx
 |  |  |  |  |-- Blocked.jsx
 |  |  |  |  |-- Home.jsx
 |  |  |  |  |-- index.js
@@ -326,6 +338,7 @@ Generated from the current project tree. Local .env files, dependencies, generat
 |  |  \-- store.js
 |  |-- ui
 |  |  |-- art
+|  |  |  |-- AccessDeniedArt.jsx
 |  |  |  |-- AlertsArt.jsx
 |  |  |  |-- ArtFrame.jsx
 |  |  |  |-- BlockedArt.jsx
@@ -418,8 +431,8 @@ Generated from the current project tree. Local .env files, dependencies, generat
 |-- eslint.config.js
 |-- index.html
 |-- new Copilot prompt.md
-|-- package.json
 |-- package-lock.json
+|-- package.json
 |-- README.md
 |-- vercel.json
 |-- vite.config.js

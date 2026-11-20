@@ -112,6 +112,12 @@ export const fetchProductsByIds = createAsyncThunk('products/fetchByIds', async 
   return Array.isArray(rows) ? rows : [];
 });
 
+// Loads EVERY product row into the store (used by the admin product picker).
+export const fetchAllProducts = createAsyncThunk('products/fetchAll', async () => {
+  const rows = await productService.getProducts();
+  return Array.isArray(rows) ? rows : [];
+});
+
 export const fetchFeaturedProducts = createAsyncThunk('products/fetchFeatured', async (limit = 8) => {
   const rows = await productService.getFeaturedProducts(limit);
   return Array.isArray(rows) ? rows : [];
@@ -211,6 +217,7 @@ const productsSlice = createSlice({
         state.detail = block({ id: null, status: 'failed', error: action.payload || action.error?.message });
       })
       .addCase(fetchProductsByIds.fulfilled, (state, action) => { adapter.upsertMany(state, action.payload); })
+      .addCase(fetchAllProducts.fulfilled, (state, action) => { adapter.upsertMany(state, action.payload); })
       // featured
       .addCase(fetchFeaturedProducts.pending, (state) => { state.featured.status = 'loading'; })
       .addCase(fetchFeaturedProducts.fulfilled, (state, action) => {
@@ -274,6 +281,8 @@ export default productsSlice.reducer;
 const selectEntities = (s) => s.products.entities;
 const pick = (entities, ids) => ids.map((id) => entities[id]).filter(Boolean);
 
+// every product row the store knows about
+export const selectAllProducts = createSelector([selectEntities], (e) => Object.values(e));
 export const selectProductsList = createSelector([selectEntities, (s) => s.products.list.ids], pick);
 export const selectFeaturedProducts = createSelector([selectEntities, (s) => s.products.featured.ids], pick);
 export const selectRelatedProducts = createSelector([selectEntities, (s) => s.products.related.ids], pick);

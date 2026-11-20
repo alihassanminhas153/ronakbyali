@@ -7,6 +7,7 @@ import productService from './product';
 import trackerService from './tracker';
 import orderConfirmationService from './orderConfirmation';
 import { paidAmountForOrder } from '../orderMath';
+import { isValidPhoneNumber } from '../phone';
 
 // The statuses below are the real enum values of ronakbyali_orders.status.
 export const ORDER_STATUS = ['placed', 'processing', 'packed', 'shipped', 'cancelled', 'returned', 'delivered'];
@@ -208,6 +209,9 @@ export class OrderService {
             }
             if (value.length > DETAIL_LIMITS[key]) {
                 return { error: `The ${DETAIL_LABELS[key]} is too long (max ${DETAIL_LIMITS[key]} characters).` };
+            }
+            if (key === 'customerPhone' && value && !isValidPhoneNumber(value)) {
+                return { error: 'Please enter a valid phone number with 10 to 15 digits.' };
             }
             data[key] = value || null;
         }

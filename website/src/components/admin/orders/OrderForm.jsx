@@ -36,6 +36,7 @@ import customOrderService from '../../../lib/appwrite/customOrder';
 import ConfirmDialog from '../../../ui/custom/modal/ConfirmDialog';
 import SelectInput from '../../../ui/custom/input/SelectInput';
 import TextInput from '../../../ui/custom/input/TextInput';
+import { buildWhatsAppUrl } from '../../../lib/phone';
 
 import { DrawerShell, Field, ReadValue, Section, inputCls } from './FormParts';
 import { DeliveryChip } from './OrderBadges';
@@ -64,12 +65,7 @@ const CONTACT_CHOICES = [
   { value: 'other', label: 'Other' },
 ];
 
-const customerWhatsAppUrl = (phone) => {
-  const digits = String(phone || '').replace(/\D/g, '');
-  if (!digits) return null;
-  const number = digits.startsWith('92') ? digits : `92${digits.replace(/^0/, '')}`;
-  return `https://wa.me/${number}`;
-};
+const customerWhatsAppUrl = (phone) => buildWhatsAppUrl(phone);
 
 // cancelled / returned change stock and the customer's totals, so they ask first
 const CONFIRM_STATUSES = ['cancelled', 'returned'];
