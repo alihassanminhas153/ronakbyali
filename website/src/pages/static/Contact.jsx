@@ -45,10 +45,10 @@ export default function Contact() {
     <main>
       <section
         aria-labelledby="contact-title"
-        className={`mx-auto grid w-full max-w-[90rem] gap-5 px-4 py-6 sm:px-6 sm:py-8 lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] lg:gap-12 ${SECTION_HEIGHT}`}
+        className={`mx-auto grid w-full max-w-[90rem] content-start gap-5 px-4 py-6 sm:px-6 sm:py-8 lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] lg:content-center lg:items-center lg:gap-12 ${SECTION_HEIGHT}`}
       >
         {/* Left: heading + animated envelope */}
-        <div className="flex min-h-0 items-end justify-between gap-3 lg:flex-col lg:items-stretch lg:gap-6">
+        <div className="flex items-end justify-between gap-3 lg:flex-col lg:items-stretch lg:justify-start lg:gap-8">
           <h1
             id="contact-title"
             className="min-w-0 font-display text-[2.75rem] leading-[0.85] font-bold tracking-[0.01em] text-text uppercase sm:text-7xl lg:text-8xl xl:text-9xl"
@@ -56,11 +56,11 @@ export default function Contact() {
             <span className="block">Let&rsquo;s</span>
             <span className="block">talk</span>
           </h1>
-          <ContactArt className="w-[40%] max-w-[10rem] shrink-0 text-text sm:w-[32%] sm:max-w-[16rem] lg:mt-auto lg:max-h-[42dvh] lg:w-full lg:max-w-[34rem]" />
+          <ContactArt className="w-[40%] max-w-[10rem] shrink-0 text-text sm:w-[32%] sm:max-w-[16rem] lg:max-h-[42dvh] lg:w-full lg:max-w-[34rem]" />
         </div>
 
         {/* Right: the details */}
-        <div className="flex flex-col justify-center gap-4 lg:self-center">
+        <div className="flex flex-col justify-center gap-4">
           <ul className="m-0 flex list-none flex-col gap-2 p-0 sm:gap-3">
             <Row icon={MessageCircle} label="WhatsApp, the fastest way" value={WHATSAPP_SHOWN}>
               <a href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer" className={pillPrimary}>
