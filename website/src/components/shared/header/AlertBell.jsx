@@ -5,7 +5,6 @@ import { Bell, CheckCheck } from 'lucide-react';
 import { alertText, alertTitle } from './useHeaderData';
 
 const FOCUS = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent';
-const PREVIEW_LIMIT = 6;
 const rtf = new Intl.RelativeTimeFormat('en', { numeric: 'auto' });
 
 function timeAgo(value) {
@@ -18,6 +17,45 @@ function timeAgo(value) {
     if (abs >= size) return rtf.format(Math.round(seconds / size), unit);
   }
   return 'Just now';
+}
+
+function AlertGroup({ title, alerts, unread, open, onOpen }) {
+  if (alerts.length === 0) return null;
+  return (
+    <section aria-label={title}>
+      <h3 className="sticky top-0 z-10 border-b border-border bg-surface px-4 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted">
+        {title} · {alerts.length}
+      </h3>
+      <ul className="divide-y divide-border">
+        {alerts.map((alert) => (
+          <li key={alert.$id}>
+            <button
+              type="button"
+              onClick={() => onOpen(alert)}
+              tabIndex={open ? 0 : -1}
+              className={`flex w-full items-start gap-3 px-4 py-3 text-left transition-colors duration-200 hover:bg-border/40 motion-reduce:transition-none ${
+                unread ? 'bg-accent/5' : ''
+              } ${FOCUS}`}
+            >
+              <span
+                aria-hidden="true"
+                className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${unread ? 'bg-accent' : 'bg-transparent'}`}
+              />
+              <span className="min-w-0 flex-1">
+                <span className={`block truncate text-sm ${unread ? 'font-semibold text-text' : 'text-muted'}`}>
+                  {alertTitle(alert)}
+                </span>
+                {alertText(alert) && (
+                  <span className="mt-0.5 line-clamp-2 block break-words text-sm text-muted">{alertText(alert)}</span>
+                )}
+                <span className="mt-1 block text-xs text-muted">{timeAgo(alert.$createdAt)}</span>
+              </span>
+            </button>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
 }
 
 export default function AlertBell({ data }) {
@@ -56,7 +94,9 @@ export default function AlertBell({ data }) {
     navigate(`${alertPath}?alert=${encodeURIComponent(alert.$id)}`);
   };
 
-  const preview = alerts.filter(isUnread).slice(0, PREVIEW_LIMIT);
+  // Every alert is listed: new ones first, then the ones already read.
+  const newAlerts = alerts.filter(isUnread);
+  const earlierAlerts = alerts.filter((alert) => !isUnread(alert));
   const badge = unreadCount > 9 ? '9+' : String(unreadCount);
 
   return (
@@ -81,15 +121,16 @@ export default function AlertBell({ data }) {
         )}
       </button>
 
+      {/* Fixed size: the panel never grows or shrinks with the number of alerts. */}
       <div
         id="alert-popup"
         role="region"
         aria-label="Recent alerts"
-        className={`fixed inset-x-3 top-[4.25rem] z-50 origin-top-right overflow-hidden rounded-xl border border-border bg-surface shadow-xl transition-[opacity,transform,visibility] duration-200 ease-out motion-reduce:transition-none sm:absolute sm:inset-x-auto sm:right-0 sm:top-full sm:mt-2 sm:w-96 ${
+        className={`fixed inset-x-3 top-[4.25rem] z-50 flex h-[min(30rem,calc(100dvh_-_6rem))] origin-top-right flex-col overflow-hidden rounded-xl border border-border bg-surface shadow-xl transition-[opacity,transform,visibility] duration-200 ease-out motion-reduce:transition-none sm:absolute sm:inset-x-auto sm:right-0 sm:top-full sm:mt-2 sm:w-96 ${
           open ? 'visible translate-y-0 scale-100 opacity-100' : 'invisible -translate-y-1 scale-95 opacity-0'
         }`}
       >
-        <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-3">
+        <div className="flex shrink-0 items-center justify-between gap-3 border-b border-border px-4 py-3">
           <div>
             <h2 className="text-sm font-semibold text-text">Alerts</h2>
             <p className="text-xs text-muted">
@@ -108,57 +149,34 @@ export default function AlertBell({ data }) {
           )}
         </div>
 
-        {preview.length === 0 ? (
-          <div className="flex flex-col items-center gap-2 px-6 py-10 text-center">
-            <Bell size={24} className="text-muted" aria-hidden="true" />
-            <p className="text-sm font-medium text-text">
-              {alertsStatus === 'loading' ? 'Loading alerts…' : alertsStatus === 'failed' ? 'Could not load alerts' : alerts.length ? 'You are all caught up' : 'No alerts yet'}
-            </p>
-            <p className="text-sm text-muted">
-              {alertsStatus === 'failed'
-                ? 'Please try opening the notification panel again.'
-                : alerts.length
-                  ? 'You have read all your recent alerts.'
+        {/* The only part that scrolls. thin-scroll = themed slim scrollbar from index.css;
+            show-scrollbar = opts out of the app-wide "hide all scrollbars" rule. */}
+        <div className="thin-scroll show-scrollbar min-h-0 flex-1 overflow-y-auto overscroll-contain text-text">
+          {alerts.length === 0 ? (
+            <div className="flex h-full flex-col items-center justify-center gap-2 px-6 text-center">
+              <Bell size={24} className="text-muted" aria-hidden="true" />
+              <p className="text-sm font-medium text-text">
+                {alertsStatus === 'loading' ? 'Loading alerts…' : alertsStatus === 'failed' ? 'Could not load alerts' : 'No alerts yet'}
+              </p>
+              <p className="text-sm text-muted">
+                {alertsStatus === 'failed'
+                  ? 'Please try opening the notification panel again.'
                   : 'Updates about your orders and the store will appear here.'}
-            </p>
-          </div>
-        ) : (
-          <ul className="max-h-[min(24rem,60vh)] divide-y divide-border overflow-y-auto overscroll-contain">
-            {preview.map((alert) => {
-              const unread = isUnread(alert);
-              return (
-                <li key={alert.$id}>
-                  <button
-                    type="button"
-                    onClick={() => openAlert(alert)}
-                    tabIndex={open ? 0 : -1}
-                    className={`flex w-full items-start gap-3 px-4 py-3 text-left transition-colors duration-200 hover:bg-border/40 motion-reduce:transition-none ${FOCUS}`}
-                  >
-                    <span
-                      aria-hidden="true"
-                      className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${unread ? 'bg-accent' : 'bg-transparent'}`}
-                    />
-                    <span className="min-w-0 flex-1">
-                      <span className={`block truncate text-sm ${unread ? 'font-semibold text-text' : 'text-muted'}`}>
-                        {alertTitle(alert)}
-                      </span>
-                      {alertText(alert) && (
-                        <span className="mt-0.5 line-clamp-2 block text-sm text-muted">{alertText(alert)}</span>
-                      )}
-                      <span className="mt-1 block text-xs text-muted">{timeAgo(alert.$createdAt)}</span>
-                    </span>
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
-        )}
+              </p>
+            </div>
+          ) : (
+            <>
+              <AlertGroup title="New" alerts={newAlerts} unread open={open} onOpen={openAlert} />
+              <AlertGroup title="Earlier" alerts={earlierAlerts} unread={false} open={open} onOpen={openAlert} />
+            </>
+          )}
+        </div>
 
         <Link
           to={alertPath}
           onClick={() => setOpen(false)}
           tabIndex={open ? 0 : -1}
-          className={`block border-t border-border px-4 py-3 text-center text-sm font-medium text-text transition-colors duration-200 hover:bg-border/40 motion-reduce:transition-none ${FOCUS}`}
+          className={`block shrink-0 border-t border-border px-4 py-3 text-center text-sm font-medium text-text transition-colors duration-200 hover:bg-border/40 motion-reduce:transition-none ${FOCUS}`}
         >
           View all alerts
         </Link>

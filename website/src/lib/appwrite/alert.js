@@ -74,12 +74,14 @@ export class AlertService {
         }
     }
 
-    // All currently active alerts for the header notification feed.
+    // All currently active alerts for the header notification feed (the bell).
+    // Dismissed alerts are kept on purpose: the X button, an outside click, Escape and
+    // "Learn more" only hide a bar or popup on screen (see getActiveAlerts / getPopupAlerts).
+    // The bell is the history, so it must still list them.
     async getActiveNotifications({ userId } = {}) {
         this.lastError = null;
         try {
-            const rows = await this._listLive({ userId });
-            return rows.filter((alert) => !this._isDismissed(alert.$id, userId));
+            return await this._listLive({ userId });
         } catch (error) {
             return this._fail(error, 'Could not load alerts.');
         }

@@ -188,8 +188,8 @@ const alertSlice = createSlice({
         state.visitor.notifications = action.payload;
         state.visitor.notificationsStatus = 'succeeded';
       })
+      // keep the last good list: one failed refresh must not empty the bell
       .addCase(fetchAlertNotifications.rejected, (state) => {
-        state.visitor.notifications = [];
         state.visitor.notificationsStatus = 'failed';
       })
       // gone from the screen at once; the saving happens in the background

@@ -29,7 +29,6 @@ export default function useHeaderData({ showOffers = false } = {}) {
   const list = useAppSelector(selectAlertNotifications);
   const pageBars = usePageAlerts(bars);
   const visibleBar = pageBars[0] ?? null;
-  const pageAlerts = usePageAlerts(list);
   const alertsStatus = useAppSelector(selectAlertNotificationsStatus);
   const userId = authProfile?.userId ?? authProfile?.$id ?? user?.$id ?? null;
   const { seen, markSeen } = useSeenAlerts(userId);
@@ -63,12 +62,14 @@ export default function useHeaderData({ showOffers = false } = {}) {
     }
   }, [dispatch, showOffers, visibleBar]);
 
+  // The bell is a full history, so it is NOT filtered by the page the visitor is on
+  // (the page filter only decides where a bar or popup is shown on screen).
   const alerts = useMemo(
     () =>
-      [...(Array.isArray(pageAlerts) ? pageAlerts : [])].sort(
+      [...(Array.isArray(list) ? list : [])].sort(
         (a, b) => new Date(b.$createdAt).getTime() - new Date(a.$createdAt).getTime(),
       ),
-    [pageAlerts],
+    [list],
   );
 
   const isUnread = useCallback((alert) => !seen.includes(alert.$id), [seen]);
