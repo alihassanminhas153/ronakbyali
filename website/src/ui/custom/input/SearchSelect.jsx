@@ -1,6 +1,7 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { Check, ChevronDown, Plus, Search, X } from 'lucide-react';
 import { colorFor, tint } from '../../graphs/utils';
+import { toTitleCase } from '../../../lib/textCase';
 
 // Searchable dropdown. Pick an existing option or (creatable) type a new one.
 //   <SearchSelect options={['Lawn','Kurta']} value={v} onChange={setV} placeholder="Select category" />
@@ -31,7 +32,7 @@ export default function SearchSelect({
   const rows = canCreate ? [...filtered, { create: query.trim() }] : filtered;
 
   const close = () => { setOpen(false); setQuery(''); };
-  const choose = (v) => { onChange(v); close(); };
+  const choose = (v) => { onChange(options.includes(v) ? v : toTitleCase(v)); close(); };
 
   useEffect(() => {
     if (!open) return undefined;
@@ -76,7 +77,7 @@ export default function SearchSelect({
           {value ? (
             <span className="inline-flex max-w-full items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium" style={{ background: tint(colorFor(value), 14), color: colorFor(value) }}>
               <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: colorFor(value) }} />
-              <span className="truncate">{value}</span>
+              <span className="truncate">{toTitleCase(value)}</span>
             </span>
           ) : (
             <span className="block truncate text-muted/70">{placeholder}</span>
@@ -107,7 +108,7 @@ export default function SearchSelect({
           <input
             ref={searchRef}
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e) => setQuery(toTitleCase(e.target.value))}
             onKeyDown={onKey}
             placeholder={searchPlaceholder}
             className="min-h-10 flex-1 border-0 bg-transparent p-0 text-sm"
@@ -118,14 +119,14 @@ export default function SearchSelect({
           {rows.length === 0 && <li className="px-3 py-6 text-center text-xs text-muted">No matches</li>}
           {rows.map((r, i) => {
             const isCreate = typeof r !== 'string';
-            const label = isCreate ? r.create : r;
+            const label = isCreate ? r.create : toTitleCase(r);
             return (
               <li
                 key={isCreate ? '__create' : r}
                 role="option"
                 aria-selected={!isCreate && r === value}
                 onMouseEnter={() => setCursor(i)}
-                onClick={() => choose(label)}
+                onClick={() => choose(isCreate ? r.create : r)}
                 className={`flex items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors ${i === cursor ? 'bg-surface-alt' : ''}`}
               >
                 {isCreate ? (

@@ -1,6 +1,7 @@
 import { createAsyncThunk, createEntityAdapter, createSelector, createSlice, isAnyOf } from '@reduxjs/toolkit';
 import saleService from '../../lib/appwrite/sale';
 import { getSaleStatus } from '../../lib/saleMath';
+import { toTitleCase } from '../../lib/textCase';
 
 const isRow = (value) => Boolean(value) && typeof value === 'object' && typeof value.$id === 'string';
 
@@ -78,7 +79,7 @@ export const selectSaleById = (id) => (state) => state.sales.entities[id] ?? nul
 export const selectSaleOptions = createSelector([selectSalesList], (sales) =>
     sales.map((sale) => ({
         value: sale.$id,
-        label: `${sale.name} (${Number(sale.discountPercentage) || 0}%)`,
+        label: `${toTitleCase(sale.name)} (${Number(sale.discountPercentage) || 0}%)`,
     }))
 );
 export const selectActiveSales = createSelector([selectSalesList], (sales) =>

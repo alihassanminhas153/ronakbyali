@@ -62,11 +62,6 @@ function useInView(rootMargin = '0px 0px -10% 0px') {
   return [ref, seen];
 }
 
-// Duplicate groups are only there for the loop: hide them from keyboard and screen readers
-const markInert = (el) => {
-  if (el) el.setAttribute('inert', '');
-};
-
 /* ---------- The marquee row ----------
    The list is repeated enough times to always fill the screen. The track slides
    left by exactly ONE list width and starts over, so the loop has no jump. */
@@ -132,12 +127,12 @@ function MarqueeRow({ products, speed = SPEED, reverse = false }) {
         {Array.from({ length: reduced ? 1 : copies }).map((_, c) => (
           <ul
             key={c}
-            ref={c === 0 ? groupRef : markInert}
+            ref={c === 0 ? groupRef : undefined}
             aria-hidden={c === 0 ? undefined : 'true'}
             className={`flex shrink-0 gap-4 pr-4 ${ITEM_WIDTH}`}
           >
             {products.map((product, i) => (
-              <ProductCard key={product.$id} product={product} index={i} />
+              <ProductCard key={product.$id} product={product} index={i} isDuplicate={c !== 0} />
             ))}
           </ul>
         ))}

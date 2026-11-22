@@ -9,6 +9,7 @@ import DatePicker from '../../../ui/custom/input/DatePicker';
 import SelectInput from '../../../ui/custom/input/SelectInput';
 import SwitchField from '../../../ui/custom/input/SwitchField';
 import TextInput from '../../../ui/custom/input/TextInput';
+import { toTitleCase } from '../../../lib/textCase';
 
 const toDateTimeInput = (value) => {
   if (!value) return '';
@@ -18,7 +19,7 @@ const toDateTimeInput = (value) => {
 };
 
 const initialForm = (sale) => ({
-  name: sale?.name || '',
+  name: toTitleCase(sale?.name || ''),
   startsAt: toDateTimeInput(sale?.startsAt),
   endsAt: toDateTimeInput(sale?.endsAt),
   discountPercentage: sale?.discountPercentage == null ? '' : String(sale.discountPercentage),
@@ -65,7 +66,8 @@ export default function SaleForm({ sale, onCancel, onSaved }) {
   const [submitError, setSubmitError] = useState('');
 
   const set = (key) => (value) => {
-    setForm((current) => ({ ...current, [key]: value }));
+    const normalized = key === 'name' ? toTitleCase(value) : value;
+    setForm((current) => ({ ...current, [key]: normalized }));
     setErrors((current) => ({ ...current, [key]: undefined }));
   };
   const onChange = (key) => (event) => set(key)(event.target.value);

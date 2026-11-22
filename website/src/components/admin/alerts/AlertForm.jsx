@@ -11,6 +11,7 @@ import { StateBadge } from './AlertBadges';
 import AlertPreview from './AlertPreview';
 import { TYPE_META, describeSchedule, formatDateTime, seenRate } from './alertMeta';
 import { toForm, toPayload, validate } from './alertSchema';
+import { toTitleCase } from '../../../lib/textCase';
 
 /* ---------- small field helpers (self-contained, theme tokens only) ---------- */
 
@@ -67,6 +68,14 @@ const PAGE_OPTIONS = [
   { value: 'products', label: 'Products list' },
   { value: 'product', label: 'Product page' },
 ];
+
+const initialForm = (alert) => {
+  const form = toForm(alert);
+  form.title = toTitleCase(form.title);
+  form.message = toTitleCase(form.message);
+  form.buttonText = toTitleCase(form.buttonText);
+  return form;
+};
 
 function Chip({ active, onClick, children }) {
   return (
@@ -212,7 +221,7 @@ export default function AlertForm({ open, alert, onClose, onSaved }) {
   const editing = Boolean(alert);
   const readOnly = editing && alertState(alert) === 'expired';
 
-  const [form, setForm] = useState(() => toForm(alert));
+  const [form, setForm] = useState(() => initialForm(alert));
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
   const [submitError, setSubmitError] = useState('');
@@ -243,7 +252,8 @@ export default function AlertForm({ open, alert, onClose, onSaved }) {
   }, [confirmReset]);
 
   const set = (key) => (value) => {
-    setForm((f) => ({ ...f, [key]: value }));
+    const normalized = ['title', 'message', 'buttonText'].includes(key) ? toTitleCase(value) : value;
+    setForm((f) => ({ ...f, [key]: normalized }));
     if (errors[key]) setErrors((e) => ({ ...e, [key]: undefined }));
   };
   const on = (key) => (e) => set(key)(e.target.value);

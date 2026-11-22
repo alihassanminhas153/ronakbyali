@@ -10,6 +10,7 @@ import SearchSelect from '../../../ui/custom/input/SearchSelect';
 import SelectInput from '../../../ui/custom/input/SelectInput';
 import ImageUploader from '../../../ui/custom/input/ImageUploader';
 import { getSaleStatus } from '../../../lib/saleMath';
+import { toTitleCase } from '../../../lib/textCase';
 import { autoPrice, slugify, toForm, toPayload, validate } from './productSchema';
 
 /* ---------- small helpers (theme tokens only) ---------- */
@@ -36,9 +37,32 @@ const blankZeros = (f) => {
   });
   return next;
 };
-const initialForm = (product) => blankZeros(toForm(product));
+const initialForm = (product) => {
+  const form = blankZeros(toForm(product));
+  PRODUCT_TEXT_FIELDS.forEach((key) => { form[key] = toTitleCase(form[key]); });
+  form.tags = form.tags.map(toTitleCase);
+  form.customOptions = form.customOptions.map((option) => ({ ...option, label: toTitleCase(option.label) }));
+  return { ...form, slug: slugify(form.slug || form.name) };
+};
 const zeroBlank = (v) => (v == null || Number(v) === 0 ? '' : String(v));
 const text = (v) => (v == null ? '' : String(v));
+const PRODUCT_TEXT_FIELDS = new Set([
+  'name',
+  'description',
+  'category',
+  'group',
+  'discountName',
+  'deliveryTime',
+  'deliveryFrom',
+  'customDetails',
+]);
+const editingSlug = (value) =>
+  String(value ?? '')
+    .toLowerCase()
+    .replace(/[^a-z0-9-]+/g, '-')
+    .replace(/-{2,}/g, '-')
+    .replace(/^-+/, '');
+const nameFromSlug = (value) => toTitleCase(value.split('-').filter(Boolean).join(' '));
 
 function Field({ label, hint, error, optional, children, className = '', as: Tag = 'label' }) {
   return (
@@ -90,7 +114,7 @@ function Switch({ checked, onChange, label, hint }) {
 function TagsField({ value, onChange }) {
   const [draft, setDraft] = useState('');
   const add = () => {
-    const t = draft.trim().replace(/,$/, '');
+    const t = toTitleCase(draft).trim().replace(/,$/, '');
     if (t && t.length <= 50 && !value.includes(t)) onChange([...value, t]);
     setDraft('');
   };
@@ -107,7 +131,7 @@ function TagsField({ value, onChange }) {
         ))}
         <input
           value={draft}
-          onChange={(e) => setDraft(e.target.value)}
+          onChange={(e) => setDraft(toTitleCase(e.target.value))}
           onKeyDown={(e) => {
             if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); add(); }
             if (e.key === 'Backspace' && !draft && value.length) onChange(value.slice(0, -1));
@@ -328,7 +352,7 @@ function ProductPicker({ open, customMode, onClose, onPick }) {
             <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted" aria-hidden="true" />
             <input
               value={term}
-              onChange={(e) => setTerm(e.target.value)}
+              onChange={(e) => setTerm(toTitleCase(e.target.value))}
               placeholder="Search products by name…"
               aria-label="Search products"
               className={`${inputCls()} h-10 pl-9`}
@@ -369,13 +393,12 @@ export default function ProductForm({ open, product, categories = [], groups = [
   const optionRowRef = useRef(null);
 
   const [form, setForm] = useState(() => initialForm(product));
-  const [customOptions, setCustomOptions] = useState(() => toForm(product).customOptions);
+  const [customOptions, setCustomOptions] = useState(() => initialForm(product).customOptions);
   const [optionDrafts, setOptionDrafts] = useState(() => [optionDraft()]);
   const [optionErrors, setOptionErrors] = useState({});
   const [optionListError, setOptionListError] = useState('');
   const [editingOptionId, setEditingOptionId] = useState(null);
   const [optionEdit, setOptionEdit] = useState({ label: '', price: '' });
-  const [slugTouched, setSlugTouched] = useState(editing);
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
   const [submitError, setSubmitError] = useState('');
@@ -424,19 +447,55 @@ export default function ProductForm({ open, product, categories = [], groups = [
   useEffect(() => () => imagesRef.current.forEach((i) => i.file && URL.revokeObjectURL(i.url)), []);
 
   const set = (key) => (value) => {
+    const normalized = key === 'slug'
+      ? editingSlug(value)
+      : key === 'tags'
+        ? value.map(toTitleCase)
+        : PRODUCT_TEXT_FIELDS.has(key)
+          ? toTitleCase(value)
+          : value;
     setForm((f) => {
-      const next = { ...f, [key]: value };
-      if (key === 'name' && !slugTouched) next.slug = slugify(value);
-      if (key === 'originalPrice' && f.saleId) {
-        const sale = sales.find((item) => item.$id === f.saleId);
-        if (sale) {
-          const percentage = Number(sale.discountPercentage) || 0;
-          next.price = String(Math.round((Number(value) || 0) * (1 - percentage / 100)));
+      const next = { ...f, [key]: normalized };
+      if (key === 'name') next.slug = slugify(normalized);
+      if (key === 'slug') next.name = nameFromSlug(normalized);
+      if (key === 'originalPrice') {
+        next.price = String(autoPrice(next));
+      }
+      if (key === 'discountPercentage') {
+        next.saleId = '';
+        next.discountName = '';
+        next.price = String(autoPrice(next));
+      }
+      if (key === 'price' && normalized !== '') {
+        next.saleId = '';
+        next.discountName = '';
+        const original = Number(f.originalPrice) || 0;
+        const final = Number(normalized) || 0;
+        if (original > 0 && final <= original) {
+          const percentage = ((original - final) / original) * 100;
+          next.discountPercentage = String(Math.round(percentage * 1_000_000) / 1_000_000);
+        } else {
+          next.originalPrice = String(final);
+          next.discountPercentage = '0';
         }
       }
       return next;
     });
-    if (errors[key]) setErrors((e) => ({ ...e, [key]: undefined }));
+    const clearErrors = new Set([key]);
+    if (key === 'name') clearErrors.add('slug');
+    if (key === 'slug') clearErrors.add('name');
+    if (key === 'originalPrice' || key === 'discountPercentage') clearErrors.add('price');
+    if (key === 'price') {
+      clearErrors.add('originalPrice');
+      clearErrors.add('discountPercentage');
+    }
+    if (Array.from(clearErrors).some((field) => errors[field])) {
+      setErrors((current) => {
+        const next = { ...current };
+        clearErrors.forEach((field) => { next[field] = undefined; });
+        return next;
+      });
+    }
   };
   const selectSale = (saleId) => {
     const sale = sales.find((item) => item.$id === saleId);
@@ -455,7 +514,7 @@ export default function ProductForm({ open, product, categories = [], groups = [
       return {
         ...f,
         saleId,
-        discountName: sale.name || '',
+        discountName: toTitleCase(sale.name || ''),
         discountPercentage: String(percentage),
         price: String(Math.round((Number(f.originalPrice) || 0) * (1 - percentage / 100))),
       };
@@ -531,16 +590,16 @@ export default function ProductForm({ open, product, categories = [], groups = [
 
       setForm((f) => blankZeros({
         ...f,
-        name: text(p.name),
+        name: toTitleCase(text(p.name)),
         slug,
-        description: text(p.description),
-        category: text(p.category),
-        group: text(p.group),
-        tags: Array.isArray(p.tags) ? [...p.tags] : [],
+        description: toTitleCase(text(p.description)),
+        category: toTitleCase(text(p.category)),
+        group: toTitleCase(text(p.group)),
+        tags: Array.isArray(p.tags) ? p.tags.map(toTitleCase) : [],
         featured: Boolean(p.featured),
         order: zeroBlank(p.order),
         saleId,
-        discountName,
+        discountName: toTitleCase(discountName),
         discountPercentage,
         originalPrice: text(p.originalPrice),
         price,
@@ -548,11 +607,11 @@ export default function ProductForm({ open, product, categories = [], groups = [
         priceAdvance: text(p.priceAdvance),
         priceCOD: text(p.priceCOD),
         deliveryCharges: zeroBlank(p.deliveryCharges),
-        deliveryTime: text(p.deliveryTime),
-        deliveryFrom: text(p.deliveryFrom),
+        deliveryTime: toTitleCase(text(p.deliveryTime)),
+        deliveryFrom: toTitleCase(text(p.deliveryFrom)),
         totalAvailable: zeroBlank(p.totalAvailable),
         sold: '', // a new product has sold nothing yet
-        customDetails: customMode ? text(p.customDetails) : '',
+        customDetails: customMode ? toTitleCase(text(p.customDetails)) : '',
       }));
       if (customMode) {
         let source = [];
@@ -562,12 +621,11 @@ export default function ProductForm({ open, product, categories = [], groups = [
         } catch {
           source = [];
         }
-        setCustomOptions(source.map((o) => ({ ...o, id: optionId() })));
+        setCustomOptions(source.map((o) => ({ ...o, label: toTitleCase(o.label), id: optionId() })));
         setOptionDrafts([optionDraft()]);
         setOptionErrors({});
         setEditingOptionId(null);
       }
-      setSlugTouched(false); // editing the name keeps the slug in sync again
       setErrors({});
       setSubmitError('');
       setMoreOpen(Boolean(p.discountName || p.costPrice || p.priceAdvance || p.priceCOD));
@@ -595,7 +653,8 @@ export default function ProductForm({ open, product, categories = [], groups = [
   };
 
   const updateDraft = (id, key, value) => {
-    setOptionDrafts((rows) => rows.map((row) => row.id === id ? { ...row, [key]: value } : row));
+    const normalized = key === 'label' ? toTitleCase(value) : value;
+    setOptionDrafts((rows) => rows.map((row) => row.id === id ? { ...row, [key]: normalized } : row));
     setOptionErrors((current) => ({ ...current, [id]: undefined }));
     setOptionListError('');
   };
@@ -638,7 +697,7 @@ export default function ProductForm({ open, product, categories = [], groups = [
       return;
     }
     setCustomOptions((items) => items.map((item) => item.id === editingOptionId
-      ? { ...item, label: optionEdit.label.trim(), price: Number(optionEdit.price) }
+      ? { ...item, label: toTitleCase(optionEdit.label).trim(), price: Number(optionEdit.price) }
       : item));
     setEditingOptionId(null);
     setOptionErrors((current) => ({ ...current, [editingOptionId]: undefined }));
@@ -681,7 +740,7 @@ export default function ProductForm({ open, product, categories = [], groups = [
     let uploadedSampleId = null;
     try {
       // 1. unique slug
-      const slug = await productService.generateUniqueSlug(form.slug || form.name, product?.$id);
+      const slug = await productService.generateUniqueSlug(slugify(form.slug || form.name), product?.$id);
       if (!slug) throw new Error('Could not create a unique slug. Try another name.');
 
       // 2. upload new images (kept ones stay as they are)
@@ -813,13 +872,31 @@ export default function ProductForm({ open, product, categories = [], groups = [
             <Field label="Name" error={errors.name} className="sm:col-span-2">
               <input value={form.name} onChange={on('name')} maxLength={255} placeholder="Rose lawn suit" className={inputCls(errors.name)} />
             </Field>
-            <Field label="Slug" hint="used in the product link" error={errors.slug} className="sm:col-span-2">
-              <input
-                value={form.slug}
-                onChange={(e) => { setSlugTouched(true); set('slug')(slugify(e.target.value)); }}
-                placeholder="rose-lawn-suit"
-                className={inputCls(errors.slug)}
-              />
+            <Field as="div" label="Slug" hint="used in the product link" error={errors.slug} className="sm:col-span-2">
+              <div className="relative">
+                <input
+                  aria-label="Slug"
+                  value={form.slug}
+                  onChange={(e) => set('slug')(editingSlug(e.target.value))}
+                  onBlur={() => set('slug')(slugify(form.slug))}
+                  placeholder="rose-lawn-suit"
+                  className={`${inputCls(errors.slug)} pr-10`}
+                />
+                {form.slug && (
+                  <button
+                    type="button"
+                    aria-label="Clear slug"
+                    title="Clear slug"
+                    onClick={() => {
+                      setForm((current) => ({ ...current, slug: '' }));
+                      setErrors((current) => ({ ...current, slug: undefined }));
+                    }}
+                    className="absolute inset-y-0 right-1 grid w-9 place-items-center rounded text-muted transition-colors hover:bg-surface-alt hover:text-text focus-visible:outline-2 focus-visible:outline-accent"
+                  >
+                    <X size={15} aria-hidden="true" />
+                  </button>
+                )}
+              </div>
             </Field>
             <Field as="div" label="Category" error={errors.category}>
               <SearchSelect
@@ -856,7 +933,7 @@ export default function ProductForm({ open, product, categories = [], groups = [
             </div>
           </Section>
 
-          <Section title="Pricing" subtitle="The final price is worked out for you if you leave it empty." delay={60}>
+          <Section title="Pricing" subtitle="Original price, discount, and final price stay in sync." delay={60}>
             <div className="sm:col-span-2">
               <SelectInput
                 label="Sale"
@@ -870,8 +947,19 @@ export default function ProductForm({ open, product, categories = [], groups = [
               />
             </div>
             <Field label={`${customMode ? 'Starting' : 'Original'} price (Rs)`} error={errors.originalPrice}>{num('originalPrice', { placeholder: '3000' })}</Field>
-            <Field label="Discount %" error={errors.discountPercentage}>{num('discountPercentage', { max: 100, placeholder: '0', disabled: Boolean(form.saleId) })}</Field>
-            <Field label="Final price (Rs)" hint={`auto: ${computedPrice.toLocaleString('en-PK')}`} error={errors.price} className="sm:col-span-2">
+            <Field
+              label="Discount %"
+              hint={selectedSale ? 'Editing removes the selected sale' : 'Updates the final price'}
+              error={errors.discountPercentage}
+            >
+              {num('discountPercentage', { max: 100, placeholder: '0' })}
+            </Field>
+            <Field
+              label="Final price (Rs)"
+              hint={selectedSale ? 'Editing removes the sale and updates discount' : 'Editing this updates the discount'}
+              error={errors.price}
+              className="sm:col-span-2"
+            >
               {num('price', { placeholder: String(computedPrice) })}
             </Field>
 
@@ -951,7 +1039,7 @@ export default function ProductForm({ open, product, categories = [], groups = [
                         aria-label="Customization name"
                         value={optionEdit.label}
                         maxLength={60}
-                        onChange={(event) => setOptionEdit((current) => ({ ...current, label: event.target.value }))}
+                        onChange={(event) => setOptionEdit((current) => ({ ...current, label: toTitleCase(event.target.value) }))}
                         className={inputCls(optionErrors[option.id]?.label)}
                       />
                       {optionErrors[option.id]?.label && <p className="text-xs text-error">{optionErrors[option.id].label}</p>}
