@@ -542,15 +542,39 @@
   .no-scrollbar { scrollbar-width: none; }
   .no-scrollbar::-webkit-scrollbar { display: none; }
 
-  /* Scrollbars are hidden everywhere, except on elements that opt in with .show-scrollbar
-     (pair it with .thin-scroll for the themed thin scrollbar). */
-  *:not(.show-scrollbar) {
-    scrollbar-width: none !important;
+  /* Theme-aware scrollbar across the app; .no-scrollbar remains an explicit opt-out. */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in srgb, var(--accent) 45%, var(--border)) transparent;
   }
-  *:not(.show-scrollbar)::-webkit-scrollbar {
-    display: none !important;
-    width: 0 !important;
-    height: 0 !important;
+  @supports selector(::-webkit-scrollbar) {
+    * { scrollbar-width: auto; scrollbar-color: auto; }
+    *::-webkit-scrollbar { width: 12px; height: 12px; }
+    *::-webkit-scrollbar-track { background: transparent; }
+    *::-webkit-scrollbar-thumb {
+      background: color-mix(in srgb, var(--accent) 45%, var(--border));
+      border: 2px solid transparent;
+      border-radius: 999px;
+      background-clip: padding-box;
+    }
+    *::-webkit-scrollbar-thumb:hover { background: var(--accent); }
+    *::-webkit-scrollbar-button:single-button:vertical:decrement,
+    *::-webkit-scrollbar-button:single-button:vertical:increment {
+      display: block;
+      height: 16px;
+      background-color: transparent;
+      background-repeat: no-repeat;
+      background-position: center;
+      background-size: 12px 12px;
+    }
+    *::-webkit-scrollbar-button:single-button:vertical:decrement {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='m3 7 3-3 3 3' fill='none' stroke='%23737f91' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5'/%3E%3C/svg%3E");
+    }
+    *::-webkit-scrollbar-button:single-button:vertical:increment {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='m3 5 3 3 3-3' fill='none' stroke='%23737f91' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5'/%3E%3C/svg%3E");
+    }
+    *::-webkit-scrollbar-button:vertical:hover { opacity: 0.7; }
+    *::-webkit-scrollbar-corner { background: transparent; }
   }
 
   @media (prefers-reduced-motion: reduce) {

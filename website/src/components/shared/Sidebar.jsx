@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Link, NavLink, useLocation } from 'react-router';
-import { X, ChevronsLeft, Store } from 'lucide-react';
+import { X, ChevronsLeft, ChevronUp, ChevronDown, Store } from 'lucide-react';
 
 import useSession from '../../router/useSession';
 import { PATHS } from '../../router/path';
@@ -179,6 +179,45 @@ export default function Sidebar({ area = 'user', collapsed = false, onNavigate, 
   const wrapRef = useRef(null);
   const [pill, setPill] = useState({ y: 0, h: 0, visible: false, animate: false });
 
+  const navRef = useRef(null);
+  const [navScroll, setNavScroll] = useState({ canScrollUp: false, canScrollDown: false });
+
+  useEffect(() => {
+    const nav = navRef.current;
+    if (!nav) return undefined;
+
+    const updateScrollState = () => {
+      const maxScroll = nav.scrollHeight - nav.clientHeight;
+      const next = {
+        canScrollUp: nav.scrollTop > 1,
+        canScrollDown: nav.scrollTop < maxScroll - 1,
+      };
+      setNavScroll((current) =>
+        current.canScrollUp === next.canScrollUp && current.canScrollDown === next.canScrollDown
+          ? current
+          : next
+      );
+    };
+
+    updateScrollState();
+    nav.addEventListener('scroll', updateScrollState, { passive: true });
+    const observer = new ResizeObserver(updateScrollState);
+    observer.observe(nav);
+    if (nav.firstElementChild) observer.observe(nav.firstElementChild);
+
+    return () => {
+      nav.removeEventListener('scroll', updateScrollState);
+      observer.disconnect();
+    };
+  }, [linkKey, collapsed]);
+
+  const hasNavOverflow = navScroll.canScrollUp || navScroll.canScrollDown;
+  const scrollNav = (direction) => {
+    const nav = navRef.current;
+    if (!nav) return;
+    nav.scrollBy({ top: direction * Math.max(nav.clientHeight * 0.75, 120), behavior: 'smooth' });
+  };
+
   useLayoutEffect(() => {
     const wrap = wrapRef.current;
     if (!wrap) return undefined;
@@ -279,36 +318,66 @@ export default function Sidebar({ area = 'user', collapsed = false, onNavigate, 
       </div>
 
       {/* main links */}
-      <nav aria-label={title} className="no-scrollbar min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-contain px-3 pb-3">
-        <div ref={wrapRef} className="relative">
-          <span
-            aria-hidden="true"
-            style={{
-              height: pill.h,
-              transform: `translateY(${pill.y}px)`,
-              transitionDuration: pill.animate ? '400ms' : '0ms',
-            }}
-            className={`pointer-events-none absolute left-0 top-0 w-full rounded-md bg-accent-soft transition-[transform,height,opacity] ${EASE} motion-reduce:transition-none ${
-              pill.visible ? 'opacity-100' : 'opacity-0'
-            }`}
-          />
-          <ul className="flex flex-col gap-1">
-            {links.map((l, i) => (
-              <Item
-                key={l.id}
-                to={l.to}
-                icon={l.icon}
-                label={l.label}
-                end={l.end}
-                collapsed={collapsed}
-                onNavigate={onNavigate}
-                ready={ready}
-                index={i + 2}
-              />
-            ))}
-          </ul>
-        </div>
-      </nav>
+      <div className="flex min-h-0 flex-1 flex-col px-3">
+        {hasNavOverflow && (
+          <button
+            type="button"
+            onClick={() => scrollNav(-1)}
+            disabled={!navScroll.canScrollUp}
+            aria-label="Scroll navigation up"
+            title="Scroll up"
+            className="flex h-8 w-full shrink-0 items-center justify-center rounded-md text-muted transition-colors hover:bg-surface-alt hover:text-accent disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            <ChevronUp size={18} aria-hidden="true" />
+          </button>
+        )}
+        <nav
+          ref={navRef}
+          aria-label={title}
+          className="no-scrollbar min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-contain pb-3"
+        >
+          <div ref={wrapRef} className="relative">
+            <span
+              aria-hidden="true"
+              style={{
+                height: pill.h,
+                transform: `translateY(${pill.y}px)`,
+                transitionDuration: pill.animate ? '400ms' : '0ms',
+              }}
+              className={`pointer-events-none absolute left-0 top-0 w-full rounded-md bg-accent-soft transition-[transform,height,opacity] ${EASE} motion-reduce:transition-none ${
+                pill.visible ? 'opacity-100' : 'opacity-0'
+              }`}
+            />
+            <ul className="flex flex-col gap-1">
+              {links.map((l, i) => (
+                <Item
+                  key={l.id}
+                  to={l.to}
+                  icon={l.icon}
+                  label={l.label}
+                  end={l.end}
+                  collapsed={collapsed}
+                  onNavigate={onNavigate}
+                  ready={ready}
+                  index={i + 2}
+                />
+              ))}
+            </ul>
+          </div>
+        </nav>
+        {hasNavOverflow && (
+          <button
+            type="button"
+            onClick={() => scrollNav(1)}
+            disabled={!navScroll.canScrollDown}
+            aria-label="Scroll navigation down"
+            title="Scroll down"
+            className="flex h-8 w-full shrink-0 items-center justify-center rounded-md text-muted transition-colors hover:bg-surface-alt hover:text-accent disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            <ChevronDown size={18} aria-hidden="true" />
+          </button>
+        )}
+      </div>
 
       {/* shop + appearance + sign out */}
       <div

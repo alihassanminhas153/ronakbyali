@@ -149,9 +149,8 @@ export default function AlertBell({ data }) {
           )}
         </div>
 
-        {/* The only part that scrolls. thin-scroll = themed slim scrollbar from index.css;
-            show-scrollbar = opts out of the app-wide "hide all scrollbars" rule. */}
-        <div className="thin-scroll show-scrollbar min-h-0 flex-1 overflow-y-auto overscroll-contain text-text">
+        {/* The alert list uses the slimmer themed scrollbar. */}
+        <div className="thin-scroll min-h-0 flex-1 overflow-y-auto overscroll-contain text-text">
           {alerts.length === 0 ? (
             <div className="flex h-full flex-col items-center justify-center gap-2 px-6 text-center">
               <Bell size={24} className="text-muted" aria-hidden="true" />
