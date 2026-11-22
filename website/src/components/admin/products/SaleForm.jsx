@@ -9,6 +9,7 @@ import DatePicker from '../../../ui/custom/input/DatePicker';
 import SelectInput from '../../../ui/custom/input/SelectInput';
 import SwitchField from '../../../ui/custom/input/SwitchField';
 import TextInput from '../../../ui/custom/input/TextInput';
+import { normalizeNumberInput } from '../../../lib/numberInput';
 import { toTitleCase } from '../../../lib/textCase';
 
 const toDateTimeInput = (value) => {
@@ -71,6 +72,7 @@ export default function SaleForm({ sale, onCancel, onSaved }) {
     setErrors((current) => ({ ...current, [key]: undefined }));
   };
   const onChange = (key) => (event) => set(key)(event.target.value);
+  const onNumberChange = (key) => (event) => set(key)(normalizeNumberInput(event.target.value));
 
   const submit = async (event) => {
     event.preventDefault();
@@ -156,7 +158,7 @@ export default function SaleForm({ sale, onCancel, onSaved }) {
         required
         suffix="%"
         value={form.discountPercentage}
-        onChange={onChange('discountPercentage')}
+        onChange={onNumberChange('discountPercentage')}
         error={errors.discountPercentage}
         onWheel={(event) => event.currentTarget.blur()}
       />

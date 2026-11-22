@@ -10,6 +10,7 @@ import SearchSelect from '../../../ui/custom/input/SearchSelect';
 import SelectInput from '../../../ui/custom/input/SelectInput';
 import ImageUploader from '../../../ui/custom/input/ImageUploader';
 import { getSaleStatus } from '../../../lib/saleMath';
+import { normalizeNumberInput } from '../../../lib/numberInput';
 import { toTitleCase } from '../../../lib/textCase';
 import { autoPrice, slugify, toForm, toPayload, validate } from './productSchema';
 
@@ -497,6 +498,7 @@ export default function ProductForm({ open, product, categories = [], groups = [
       });
     }
   };
+  const onNumber = (key) => (event) => set(key)(normalizeNumberInput(event.target.value));
   const selectSale = (saleId) => {
     const sale = sales.find((item) => item.$id === saleId);
     setErrors((current) => ({ ...current, discountPercentage: undefined, price: undefined }));
@@ -653,7 +655,11 @@ export default function ProductForm({ open, product, categories = [], groups = [
   };
 
   const updateDraft = (id, key, value) => {
-    const normalized = key === 'label' ? toTitleCase(value) : value;
+    const normalized = key === 'label'
+      ? toTitleCase(value)
+      : key === 'price'
+        ? normalizeNumberInput(value)
+        : value;
     setOptionDrafts((rows) => rows.map((row) => row.id === id ? { ...row, [key]: normalized } : row));
     setOptionErrors((current) => ({ ...current, [id]: undefined }));
     setOptionListError('');
@@ -807,7 +813,7 @@ export default function ProductForm({ open, product, categories = [], groups = [
       min="0"
       step="any"
       value={form[key]}
-      onChange={on(key)}
+      onChange={onNumber(key)}
       onWheel={blockWheel}
       className={inputCls(errors[key])}
       {...props}
@@ -1051,7 +1057,10 @@ export default function ProductForm({ open, product, categories = [], groups = [
                           max="1000000"
                           step="1"
                           value={optionEdit.price}
-                          onChange={(event) => setOptionEdit((current) => ({ ...current, price: event.target.value }))}
+                          onChange={(event) => setOptionEdit((current) => ({
+                            ...current,
+                            price: normalizeNumberInput(event.target.value),
+                          }))}
                           className={inputCls(optionErrors[option.id]?.price)}
                         />
                         {optionErrors[option.id]?.price && <p className="text-xs text-error">{optionErrors[option.id].price}</p>}

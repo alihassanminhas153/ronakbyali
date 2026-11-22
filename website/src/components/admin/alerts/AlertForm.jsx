@@ -11,6 +11,7 @@ import { StateBadge } from './AlertBadges';
 import AlertPreview from './AlertPreview';
 import { TYPE_META, describeSchedule, formatDateTime, seenRate } from './alertMeta';
 import { toForm, toPayload, validate } from './alertSchema';
+import { normalizeNumberInput } from '../../../lib/numberInput';
 import { toTitleCase } from '../../../lib/textCase';
 
 /* ---------- small field helpers (self-contained, theme tokens only) ---------- */
@@ -256,7 +257,9 @@ export default function AlertForm({ open, alert, onClose, onSaved }) {
     setForm((f) => ({ ...f, [key]: normalized }));
     if (errors[key]) setErrors((e) => ({ ...e, [key]: undefined }));
   };
-  const on = (key) => (e) => set(key)(e.target.value);
+  const on = (key) => (e) => set(key)(
+    key === 'priority' ? normalizeNumberInput(e.target.value) : e.target.value
+  );
   const blockWheel = (e) => e.currentTarget.blur();
 
   // `set` stores the value it is given, so it must receive the finished array, never a
