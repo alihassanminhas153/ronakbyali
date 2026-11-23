@@ -400,6 +400,7 @@ export default function ConfirmOrder() {
           className="sm:col-span-2 xl:col-span-1"
         />
         <SelectInput
+          className="min-w-0"
           value={period}
           onChange={setPeriod}
           options={PERIOD_OPTIONS}
@@ -407,6 +408,7 @@ export default function ConfirmOrder() {
           aria-label="Filter by order date"
         />
         <SelectInput
+          className="min-w-0"
           value={type}
           onChange={setType}
           options={TYPE_OPTIONS}
@@ -414,6 +416,7 @@ export default function ConfirmOrder() {
           aria-label="Filter by order type"
         />
         <SelectInput
+          className="min-w-0"
           value={sort}
           onChange={setSort}
           options={SORT_OPTIONS}

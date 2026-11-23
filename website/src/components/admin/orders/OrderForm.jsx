@@ -31,16 +31,17 @@ import {
   updateOrderStatus,
   updateStaffCustomOrder,
 } from '../../../store/slices/ordersSlice';
-import { editableKeysFor } from '../../../lib/appwrite/order';
+import { editableKeysFor, nextStatusesFor, normalizeStatus } from '../../../lib/appwrite/order';
 import customOrderService from '../../../lib/appwrite/customOrder';
 import ConfirmDialog from '../../../ui/custom/modal/ConfirmDialog';
-import SelectInput from '../../../ui/custom/input/SelectInput';
+import AdminSearchSelect from '../AdminSearchSelect';
 import TextInput from '../../../ui/custom/input/TextInput';
 import { buildWhatsAppUrl } from '../../../lib/phone';
 
 import { DrawerShell, Field, ReadValue, Section, inputCls } from './FormParts';
 import { DeliveryChip } from './OrderBadges';
 import OrderTracker from './OrderTracker';
+import SendMessageModal from './SendMessageModal';
 import { METHOD_LABEL, PAYMENT_META, STATUS_META, fullDate, money } from './orderMeta';
 
 const STATUS_CHOICES = ORDER_STATUS.map((v) => ({ value: v, label: STATUS_META[v].label, tone: STATUS_META[v].tone }));
@@ -69,6 +70,7 @@ const customerWhatsAppUrl = (phone) => buildWhatsAppUrl(phone);
 
 // cancelled / returned change stock and the customer's totals, so they ask first
 const CONFIRM_STATUSES = ['cancelled', 'returned'];
+const CLOSED_STATUSES = ['cancelled', 'returned'];
 
 const FIELDS = ['customerName', 'customerPhone', 'customerEmail', 'city', 'address', 'paymentMethod', 'deliveryTime', 'estimatedDelivery'];
 
@@ -133,7 +135,7 @@ export default function OrderForm({ open, orderId, onClose }) {
 
   const [form, setForm] = useState(() => fromOrder(order));
   const base = useRef(fromOrder(order));
-  const [nextStatus, setNextStatus] = useState(order?.status || 'placed');
+  const [nextStatus, setNextStatus] = useState(normalizeStatus(order?.status) || 'pending');
   const [nextConfirmation, setNextConfirmation] = useState(order?.isConfirmed ? 'true' : 'false');
   const [nextPayment, setNextPayment] = useState(order?.paymentStatus || 'unpaid');
   const [trackingId, setTrackingId] = useState(order?.trackingId || '');
@@ -148,6 +150,7 @@ export default function OrderForm({ open, orderId, onClose }) {
   const [customAdminNotes, setCustomAdminNotes] = useState('');
   const [busy, setBusy] = useState(''); // which button is working
   const [flash, setFlash] = useState('');
+  const [messageOpen, setMessageOpen] = useState(false);
 
   useEffect(() => {
     dispatch(clearStaffWarning());
@@ -173,7 +176,7 @@ export default function OrderForm({ open, orderId, onClose }) {
   }, [order?.$updatedAt]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    setNextStatus(order?.status || 'placed');
+    setNextStatus(normalizeStatus(order?.status) || 'pending');
     setNextConfirmation(order?.isConfirmed ? 'true' : 'false');
     setNextPayment(order?.paymentStatus || 'unpaid');
   }, [order?.status, order?.isConfirmed, order?.paymentStatus]);
@@ -191,6 +194,10 @@ export default function OrderForm({ open, orderId, onClose }) {
   if (!order) return null;
 
   const allowed = editableKeysFor(order.status);
+  const currentStatus = normalizeStatus(order.status);
+  const nextStatuses = nextStatusesFor(order.status);
+  const statusChoices = STATUS_CHOICES.filter((c) => c.value === currentStatus || nextStatuses.includes(c.value));
+  const confirmationLocked = CLOSED_STATUSES.includes(currentStatus);
   const changed = FIELDS.filter((k) => allowed.includes(k) && form[k] !== base.current[k]);
   const lock = allowed.includes('customerName') ? '' : allowed.includes('address') ? 'Address only' : 'Read only';
   const items = parseOrderItems(order);
@@ -225,7 +232,7 @@ export default function OrderForm({ open, orderId, onClose }) {
 
   const saveCustomStatus = async () => {
     if (!customOrder) return;
-    const mapped = { in_progress: 'processing', ready: 'shipped', cancelled: 'cancelled' }[customStatus];
+    const mapped = { in_progress: 'processing', ready: 'dispatched', cancelled: 'cancelled' }[customStatus];
     if (mapped && mapped !== order.status) {
       setNextStatus(mapped);
       if (mapped === 'cancelled') setConfirmOpen(true);
@@ -301,7 +308,7 @@ export default function OrderForm({ open, orderId, onClose }) {
     );
 
   const problem = updateError || customUpdateError || trackerError;
-  const statusDirty = nextStatus !== order.status;
+  const statusDirty = nextStatus !== currentStatus;
   const paymentDirty = nextPayment !== order.paymentStatus;
 
   return (
@@ -324,7 +331,10 @@ export default function OrderForm({ open, orderId, onClose }) {
             >
               {problem || warning || flash || 'Each section has its own save button.'}
             </p>
-            <Btn onClick={onClose}>Close</Btn>
+            <div className="flex shrink-0 items-center gap-2">
+              <Btn onClick={() => setMessageOpen(true)}>Send message</Btn>
+              <Btn onClick={onClose}>Close</Btn>
+            </div>
           </>
         }
       >
@@ -333,8 +343,8 @@ export default function OrderForm({ open, orderId, onClose }) {
           <Section title="Custom request" subtitle="Manage customer contact and the quote" appIcon="single_box" tone={6}>
             {customOrder ? (
               <>
-                <Field label="Request status" className="sm:col-span-2">
-                  <SelectInput value={customStatus} onChange={setCustomStatus} options={CUSTOM_STATUS_CHOICES} size="md" />
+                <Field label="Request status" className="min-w-0 sm:col-span-2">
+                  <AdminSearchSelect className="min-w-0" aria-label="Request status" value={customStatus} onChange={setCustomStatus} options={CUSTOM_STATUS_CHOICES} size="md" />
                   <div className="mt-3 flex flex-wrap gap-2">
                     <Btn primary busy={busy === 'custom-status' || busy === 'status'} onClick={saveCustomStatus}>Save status</Btn>
                     <Btn busy={busy === 'contacted'} onClick={markContacted}>Contacted</Btn>
@@ -351,8 +361,8 @@ export default function OrderForm({ open, orderId, onClose }) {
                   </div>
                   {customOrder.contactedAt && <p className="mt-2 text-xs text-muted">Contacted {fullDate(customOrder.contactedAt)}</p>}
                 </Field>
-                <Field label="Contact method">
-                  <SelectInput value={customContactMethod} onChange={setCustomContactMethod} options={CONTACT_CHOICES} placeholder="Choose a method" clearable size="md" />
+                <Field label="Contact method" className="min-w-0">
+                  <AdminSearchSelect className="min-w-0" aria-label="Contact method" value={customContactMethod} onChange={setCustomContactMethod} options={CONTACT_CHOICES} placeholder="Choose a method" clearable size="md" />
                 </Field>
                 <TextInput label="Quoted total (Rs)" type="number" min="0" value={customQuotedTotal} onChange={(event) => setCustomQuotedTotal(event.target.value)} />
                 <Field label="Admin notes" className="sm:col-span-2">
@@ -379,22 +389,23 @@ export default function OrderForm({ open, orderId, onClose }) {
               </div>
             </div>
           )}
-          <Field label="Order status" className="sm:col-span-2">
-            <SelectInput aria-label="Order status" value={nextStatus} onChange={setNextStatus} options={STATUS_CHOICES} size="md" />
+          <Field label="Order status" className="min-w-0 sm:col-span-2">
+            <AdminSearchSelect className="min-w-0" aria-label="Order status" value={nextStatus} onChange={setNextStatus} options={statusChoices} size="md" />
             {statusDirty && (
               <div className="mt-3 flex flex-wrap items-center gap-2">
                 <Btn primary busy={busy === 'status'} disabled={nextStatus === 'returned' && order.returnRequestStatus !== 'requested'} onClick={onStatusClick}>
                   Set as {STATUS_META[nextStatus]?.label}
                 </Btn>
-                <Btn onClick={() => setNextStatus(order.status)}>Undo</Btn>
+                <Btn onClick={() => setNextStatus(currentStatus)}>Undo</Btn>
               </div>
             )}
             <p className="mt-2 text-xs text-muted">
-              Stock is deducted when shipped and restored after an approved return. A delivered cash on delivery order is marked paid.
+              A customer or staff member can cancel until the order is dispatched. Stock is deducted when dispatched and restored after an approved return. A delivered cash on delivery order is marked paid.
             </p>
           </Field>
-          <Field label="Order confirmation" className="sm:col-span-2">
-            <SelectInput
+          <Field label="Order confirmation" className="min-w-0 sm:col-span-2">
+            <AdminSearchSelect
+              className="min-w-0"
               aria-label="Order confirmation"
               value={nextConfirmation}
               onChange={setNextConfirmation}
@@ -409,10 +420,15 @@ export default function OrderForm({ open, orderId, onClose }) {
                 <Btn onClick={() => setNextConfirmation(order.isConfirmed ? 'true' : 'false')}>Undo</Btn>
               </div>
             )}
-            {order.confirmedAt && <p className="mt-2 text-xs text-muted">Confirmed {fullDate(order.confirmedAt)}</p>}
+            {order.confirmedAt && order.isConfirmed && <p className="mt-2 text-xs text-muted">Confirmed {fullDate(order.confirmedAt)}</p>}
+            <p className="mt-2 text-xs text-muted">
+              {confirmationLocked
+                ? 'A cancelled or returned order cannot be confirmed.'
+                : 'Orders start confirmed. Customers who cancel more than they buy start as not confirmed and confirm through the link in "Send message".'}
+            </p>
           </Field>
-          <Field label="Payment" className="sm:col-span-2">
-            <SelectInput aria-label="Payment status" value={nextPayment} onChange={setNextPayment} options={PAYMENT_CHOICES} size="md" />
+          <Field label="Payment" className="min-w-0 sm:col-span-2">
+            <AdminSearchSelect className="min-w-0" aria-label="Payment status" value={nextPayment} onChange={setNextPayment} options={PAYMENT_CHOICES} size="md" />
             {paymentDirty && (
               <div className="mt-3 flex flex-wrap items-center gap-2">
                 <Btn primary busy={busy === 'payment'} onClick={savePayment}>
@@ -481,9 +497,10 @@ export default function OrderForm({ open, orderId, onClose }) {
           ) : (
             <ReadValue label="Estimated delivery">{order.estimatedDelivery ? fullDate(order.estimatedDelivery) : '—'}</ReadValue>
           )}
-          <Field label="Payment method" className="sm:col-span-2">
+          <Field label="Payment method" className="min-w-0 sm:col-span-2">
             {allowed.includes('paymentMethod') ? (
-              <SelectInput
+              <AdminSearchSelect
+                className="min-w-0"
                 aria-label="Payment method"
                 value={form.paymentMethod}
                 onChange={(paymentMethod) => setForm((f) => ({ ...f, paymentMethod }))}
@@ -580,7 +597,7 @@ export default function OrderForm({ open, orderId, onClose }) {
         title={`Mark order as ${STATUS_META[nextStatus]?.label.toLowerCase()}?`}
         message={
           nextStatus === 'cancelled'
-            ? 'Only an unconfirmed processing order can be cancelled.'
+            ? 'This cancels the order. It is only possible before the order is dispatched.'
             : nextStatus === 'returned'
               ? 'This completes the customer’s return request and restores the items to stock.'
               : 'Update the order status?'
@@ -589,6 +606,7 @@ export default function OrderForm({ open, orderId, onClose }) {
         onConfirm={() => saveStatus()}
         onCancel={() => setConfirmOpen(false)}
       />
+      <SendMessageModal open={messageOpen} order={order} onClose={() => setMessageOpen(false)} />
       <ConfirmDialog
         open={deleteDetailOpen}
         danger

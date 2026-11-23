@@ -1,5 +1,6 @@
 import envVars from '../../../env/var';
 import { Client, TablesDB, ID, Query } from 'appwrite';
+import { isAccessDeniedError } from './accessErrors';
 
 export const LEDGER_TYPES = ['investment', 'expense', 'withdrawal', 'income'];
 
@@ -17,6 +18,7 @@ export class FinanceService {
     ordersTableId = envVars.ronakByAliOrders || 'ronakbyali_orders';
 
     lastError = null;
+    lastAccessDenied = false;
 
     constructor() {
         this.client.setEndpoint(envVars.ronakByAliUrl).setProject(envVars.ronakByAliProjectId);
@@ -174,6 +176,7 @@ export class FinanceService {
     // lastError explains what is missing.
     async getEntries() {
         this.lastError = null;
+        this.lastAccessDenied = false;
         try {
             if (!(await this._migrateLegacyEntries())) return false;
             const [products, orders, entries] = await Promise.allSettled([
@@ -183,6 +186,9 @@ export class FinanceService {
             ]);
             if (products.status === 'rejected') console.error(products.reason?.message);
             if (orders.status === 'rejected') console.error(orders.reason?.message);
+            this.lastAccessDenied = [products, orders, entries].some(
+                (result) => result.status === 'rejected' && isAccessDeniedError(result.reason)
+            );
             if (entries.status === 'rejected') {
                 console.error(entries.reason?.message);
                 return this._fail('Could not load the finance entries.');
@@ -198,6 +204,7 @@ export class FinanceService {
             const manual = entries.value.map((row) => this._fromRow(row));
             return [...auto, ...manual].sort((a, b) => new Date(b.date) - new Date(a.date));
         } catch (error) {
+            this.lastAccessDenied = isAccessDeniedError(error);
             console.error(error.message);
             return this._fail('Could not load the finance entries.');
         }

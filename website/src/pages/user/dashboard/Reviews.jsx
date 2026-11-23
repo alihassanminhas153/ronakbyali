@@ -568,7 +568,7 @@ function ReviewsView({ me }) {
         <TabPanel key="reviews" className="space-y-4">
           <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_16rem]">
             <SearchInput value={query} onSearch={setQuery} placeholder="Search by product or words" label="Search your reviews" size="sm" />
-            <SelectInput size="sm" value={sort} onChange={setSort} options={SORTS} aria-label="Sort reviews" />
+            <SelectInput className="min-w-0" size="sm" value={sort} onChange={setSort} options={SORTS} aria-label="Sort reviews" />
           </div>
           <Segmented iconOnly options={STATUS_FILTERS} value={filter} onChange={setFilter} aria-label="Filter by status" />
 

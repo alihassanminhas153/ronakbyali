@@ -1,6 +1,7 @@
 import envVars from '../../../env/var';
 import { Client, TablesDB, Permission, Role, Query } from 'appwrite';
 import productService from './product';
+import { isAccessDeniedError } from './accessErrors';
 
 // ONE wishlist row per user. rowId = the user's $id (same value stored in
 // users.wishlistId).
@@ -16,6 +17,7 @@ export class WishlistService {
 
     databaseId = envVars.ronakByAliDatabaseId;
     tableId = envVars.ronakByAliWishlist;
+    lastAccessDenied = false;
 
     constructor() {
         this.client
@@ -205,6 +207,7 @@ export class WishlistService {
 
     // Admin: newest-changed carts first. Returns { rows, total } or false.
     async listWishlists({ limit = 50, offset = 0 } = {}) {
+        this.lastAccessDenied = false;
         try {
             const res = await this.table.listRows({
                 databaseId: this.databaseId,
@@ -213,6 +216,7 @@ export class WishlistService {
             });
             return { rows: res?.rows || [], total: res?.total || 0 };
         } catch (error) {
+            this.lastAccessDenied = isAccessDeniedError(error);
             console.error(error.message);
             return false;
         }

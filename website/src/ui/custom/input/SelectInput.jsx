@@ -1,5 +1,6 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { Check, ChevronDown, Plus, Search, X } from 'lucide-react';
+import useDropdownPosition, { LIST_SCROLL, listHeight } from './useDropdownPosition';
 
 const normalise = (o) => (o !== null && typeof o === 'object' ? o : { value: o, label: String(o) });
 
@@ -9,6 +10,15 @@ const normalise = (o) => (o !== null && typeof o === 'object' ? o : { value: o, 
 //   creatable  : lets the person type a value that is not in the list (also gives the filter box)
 //   clearable  : shows an X that sets the value back to ''
 // Keyboard: Arrow keys move, Enter picks, Esc closes, letters jump (when there is no filter box).
+//
+// Responsive behaviour
+//   - The input fills its parent (w-full min-w-0), so a grid can make it half the width on a phone.
+//     Under ~176px it switches to a compact style (smaller padding and text, text is truncated).
+//   - The option panel is at least `menuMinWidth` wide, even when the input is narrower, and always stays
+//     on the screen: it lines up with the input's right edge when the input is in the right half of the
+//     screen, and with its left edge otherwise. It opens upward when there is no room below.
+//   - The list shows 5 options (`visibleRows`); with more it scrolls with a thin scrollbar.
+// Extra props: align ('auto' | 'left' | 'right'), menuMinWidth (px, default 224), visibleRows (default 5).
 export default function SelectInput({
   label,
   value,
@@ -24,11 +34,15 @@ export default function SelectInput({
   required = false,
   emptyText = 'Nothing found',
   size = 'md', // 'md' for forms, 'sm' for toolbars
+  align = 'auto',
+  menuMinWidth = 224,
+  visibleRows = 5,
   className = '',
   'aria-label': ariaLabel,
 }) {
   const id = useId();
   const rootRef = useRef(null);
+  const anchorRef = useRef(null); // the box around the trigger button: the panel is placed against it
   const triggerRef = useRef(null);
   const searchRef = useRef(null);
   const listRef = useRef(null);
@@ -36,11 +50,19 @@ export default function SelectInput({
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [active, setActive] = useState(0);
-  const [dropUp, setDropUp] = useState(false);
   const [shown, setShown] = useState(false); // drives the open animation
 
   const items = useMemo(() => options.map(normalise), [options]);
   const showSearch = searchable || creatable;
+
+  // reserve = the filter box (53px) when there is one, plus the panel border (2px)
+  const { place, narrow } = useDropdownPosition(anchorRef, open, {
+    minWidth: menuMinWidth,
+    align,
+    reserve: showSearch ? 55 : 2,
+    rows: visibleRows,
+  });
+  const dropUp = Boolean(place?.dropUp);
   const q = query.trim().toLowerCase();
 
   const rows = useMemo(() => {
@@ -56,11 +78,6 @@ export default function SelectInput({
 
   const openList = () => {
     if (disabled) return;
-    const rect = rootRef.current?.getBoundingClientRect();
-    if (rect) {
-      const below = window.innerHeight - rect.bottom;
-      setDropUp(below < 280 && rect.top > below);
-    }
     setQuery('');
     const index = items.findIndex((o) => o.value === value);
     setActive(index >= 0 ? index : 0);
@@ -154,7 +171,8 @@ export default function SelectInput({
   };
 
   const messageId = error ? `${id}-error` : hint ? `${id}-hint` : undefined;
-  const height = size === 'sm' ? 'h-10 text-sm' : 'h-12 text-base lg:h-[3.25rem]';
+  const height = size === 'sm' ? 'h-10 text-sm' : narrow ? 'h-12 text-sm lg:h-[3.25rem]' : 'h-12 text-base lg:h-[3.25rem]';
+  const padLeft = narrow ? 'pl-2.5' : 'pl-3.5';
 
   return (
     <div className={className} ref={rootRef}>
@@ -165,7 +183,7 @@ export default function SelectInput({
         </label>
       )}
 
-      <div className="relative">
+      <div ref={anchorRef} className="relative min-w-0">
         <button
           ref={triggerRef}
           id={`${id}-trigger`}
@@ -181,15 +199,15 @@ export default function SelectInput({
           disabled={disabled}
           onClick={() => (open ? close() : openList())}
           onKeyDown={onTriggerKeyDown}
-          className={`flex w-full items-center justify-between gap-2 rounded-md border bg-bg pl-3.5 text-left outline-none transition focus-visible:border-accent focus-visible:ring-4 focus-visible:ring-accent/15 disabled:opacity-60 ${height} ${
-            clearable && value ? 'pr-16' : 'pr-3.5'
+          className={`flex w-full min-w-0 items-center justify-between gap-2 rounded-md border bg-bg ${padLeft} text-left outline-none transition focus-visible:border-accent focus-visible:ring-4 focus-visible:ring-accent/15 disabled:opacity-60 motion-reduce:transition-none ${height} ${
+            clearable && value ? (narrow ? 'pr-14' : 'pr-16') : narrow ? 'pr-2.5' : 'pr-3.5'
           } ${error ? 'border-error' : 'border-border'}`}
         >
           <span className={`truncate ${display ? 'text-text' : 'text-muted/60'}`}>{display || placeholder}</span>
           <ChevronDown
             size={18}
             aria-hidden="true"
-            className={`shrink-0 text-muted transition-transform ${open ? 'rotate-180' : ''}`}
+            className={`shrink-0 text-muted transition-transform motion-reduce:transition-none ${open ? 'rotate-180' : ''}`}
           />
         </button>
 
@@ -198,7 +216,7 @@ export default function SelectInput({
             type="button"
             aria-label="Clear selection"
             onClick={() => onChange?.('')}
-            className="absolute inset-y-0 right-9 flex w-7 items-center justify-center rounded-sm text-muted transition-colors hover:text-text focus-visible:outline-2 focus-visible:outline-accent"
+            className={`absolute inset-y-0 flex w-7 items-center justify-center ${narrow ? 'right-7' : 'right-9'} rounded-sm text-muted transition-colors hover:text-text focus-visible:outline-2 focus-visible:outline-accent`}
           >
             <X size={16} aria-hidden="true" />
           </button>
@@ -207,8 +225,10 @@ export default function SelectInput({
         {open && (
           <div
             onKeyDown={onListKeyDown}
-            className={`absolute left-0 right-0 z-30 overflow-hidden rounded-md border border-border bg-surface shadow-soft transition duration-150 ease-out motion-reduce:transition-none ${
-              dropUp ? 'bottom-full mb-1.5 origin-bottom' : 'top-full mt-1.5 origin-top'
+            style={place ? { left: place.left, width: place.width } : undefined}
+            className={`absolute z-30 overflow-hidden rounded-md border border-border bg-surface shadow-soft transition duration-150 ease-out motion-reduce:transition-none ${
+              place ? '' : 'left-0 right-0'
+            } ${dropUp ? 'bottom-full mb-1.5 origin-bottom' : 'top-full mt-1.5 origin-top'
             } ${shown ? 'translate-y-0 scale-100 opacity-100' : `scale-95 opacity-0 ${dropUp ? 'translate-y-1' : '-translate-y-1'}`}`}
           >
             {showSearch && (
@@ -237,9 +257,10 @@ export default function SelectInput({
               tabIndex={-1}
               aria-label={label || ariaLabel}
               aria-activedescendant={rows.length ? `${id}-opt-${active}` : undefined}
-              className="max-h-60 overflow-y-auto p-1 outline-none"
+              style={{ maxHeight: place?.listMax ?? listHeight(visibleRows) }}
+              className={`p-1 outline-none ${LIST_SCROLL}`}
             >
-              {rows.length === 0 && <li className="px-3 py-2 text-sm text-muted">{emptyText}</li>}
+              {rows.length === 0 && <li className="flex h-9 items-center px-3 text-sm text-muted">{emptyText}</li>}
               {rows.map((o, i) => (
                 <li
                   key={`${o.created ? 'new:' : ''}${o.value}`}
@@ -250,7 +271,7 @@ export default function SelectInput({
                   onMouseEnter={() => setActive(i)}
                   onMouseDown={(e) => e.preventDefault()}
                   onClick={() => choose(o)}
-                  className={`flex cursor-pointer items-center gap-2 rounded-sm px-3 py-2 text-sm ${
+                  className={`flex h-9 cursor-pointer items-center gap-2 rounded-sm px-3 text-sm ${
                     i === active ? 'bg-surface-alt text-text' : 'text-text'
                   }`}
                 >

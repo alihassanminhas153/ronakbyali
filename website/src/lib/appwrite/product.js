@@ -2,6 +2,7 @@ import envVars from '../../../env/var';
 import { Client, Storage, TablesDB, Query, ID } from 'appwrite';
 import { optimizeImage, optimizeImages } from '../imageOptimizer';
 import { getEffectivePricing } from '../saleMath';
+import { isAccessDeniedError } from './accessErrors';
 
 export const PRODUCT_STATUS = { IN_STOCK: 'inStock', OUT_OF_STOCK: 'outOfStock' };
 
@@ -16,6 +17,7 @@ export class ProductService {
     databaseId = envVars.ronakByAliDatabaseId;
     tableId = envVars.ronakByAliProducts;
     bucketId = envVars.ronakByAliBucketId;
+    lastAccessDenied = false;
 
     constructor() {
         this.client
@@ -251,9 +253,11 @@ export class ProductService {
 
     // filters: { category: 'Lawn', status: 'inStock', isCustom: true }. Empty values ignored.
     async getProducts(filters = {}) {
+        this.lastAccessDenied = false;
         try {
             return await this._listAllRows(this._filterQueries(filters));
         } catch (error) {
+            this.lastAccessDenied = isAccessDeniedError(error);
             console.error(error.message);
             return false;
         }

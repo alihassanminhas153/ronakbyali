@@ -342,7 +342,7 @@ export default function CustomizeCheckout() {
 
         <section className="space-y-4 rounded-xl border border-border bg-surface p-4 sm:p-5" aria-labelledby="custom-delivery-heading">
           <h2 id="custom-delivery-heading" className="text-lg font-semibold text-text">Delivery</h2>
-          <SelectInput label="Delivery type" value={form.deliveryType} onChange={(deliveryType) => setForm((current) => ({ ...current, deliveryType }))} options={DELIVERY_OPTIONS} size="md" />
+          <SelectInput className="min-w-0" label="Delivery type" value={form.deliveryType} onChange={(deliveryType) => setForm((current) => ({ ...current, deliveryType }))} options={DELIVERY_OPTIONS} size="md" />
         </section>
 
         <p className="rounded-lg border border-border bg-surface-alt p-4 text-sm text-muted">

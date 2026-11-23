@@ -23,6 +23,7 @@ import {
   selectStaffOrderAnalytics,
   selectStaffOrderAnalyticsError,
   selectStaffOrderAnalyticsStatus,
+  selectStaffOrderById,
   selectStaffOrders,
   selectStaffStatus,
   selectStaffTotal,
@@ -35,6 +36,8 @@ import {
   OrderTable,
   OrderTableSkeleton,
   PAYMENT_META,
+  SendMessageModal,
+  StatusBadge,
   STATUS_META,
   toOptions,
   toneColor,
@@ -42,16 +45,20 @@ import {
 import OrderAnalytics from '../../../components/admin/orders/OrderAnalytics';
 import ActionButton from '../../../ui/custom/button/ActionButton';
 import SearchInput from '../../../ui/custom/input/SearchInput';
-import SelectInput from '../../../ui/custom/input/SelectInput';
+import AdminSearchSelect from '../../../components/admin/AdminSearchSelect';
 import Tabs, { TabPanel } from '../../../ui/custom/tabs/Tabs';
 import CountUp from '../../../ui/custom/motion/CountUp';
 
 const PAGE = 10;
-const EMPTY = { term: '', status: '', paymentStatus: '', deliveryType: '', paymentMethod: '', isCustom: null };
+const EMPTY = { term: '', status: '', paymentStatus: '', deliveryType: '', paymentMethod: '', isCustom: null, isConfirmed: null };
 
 const PAYMENT_OPTIONS = toOptions(PAYMENT_STATUS, PAYMENT_META);
 const DELIVERY_OPTIONS = toOptions(DELIVERY_TYPES, DELIVERY_LABEL);
 const METHOD_OPTIONS = toOptions(PAYMENT_METHODS, METHOD_LABEL);
+const CONFIRMATION_OPTIONS = [
+  { value: 'confirmed', label: 'Confirmed' },
+  { value: 'not_confirmed', label: 'Not confirmed' },
+];
 const TYPE_OPTIONS = [
   { value: 'normal', label: 'Normal orders' },
   { value: 'custom', label: 'Custom orders' },
@@ -92,6 +99,8 @@ export default function Orders() {
   const [filters, setFilters] = useState(EMPTY);
   const [selectedId, setSelectedId] = useState(null);
   const [formOpen, setFormOpen] = useState(false);
+  const [messageId, setMessageId] = useState(null); // order shown in the Send message box
+  const messageOrder = useSelector((state) => (messageId ? selectStaffOrderById(messageId)(state) : null));
   const [formKey, setFormKey] = useState(0); // new key = fresh form; 0 = never opened
   const [visibleSearch, setVisibleSearch] = useState(PAGE);
   const [refreshing, setRefreshing] = useState(false);
@@ -114,6 +123,7 @@ export default function Orders() {
           deliveryType: f.deliveryType,
           paymentMethod: f.paymentMethod,
           isCustom: f.isCustom,
+          isConfirmed: f.isConfirmed,
         })
       );
     },
@@ -146,7 +156,8 @@ export default function Orders() {
           (!filters.paymentStatus || o.paymentStatus === filters.paymentStatus) &&
           (!filters.deliveryType || o.deliveryType === filters.deliveryType) &&
           (!filters.paymentMethod || o.paymentMethod === filters.paymentMethod) &&
-          (filters.isCustom === null || Boolean(o.isCustom) === filters.isCustom)
+          (filters.isCustom === null || Boolean(o.isCustom) === filters.isCustom) &&
+          (filters.isConfirmed === null || Boolean(o.isConfirmed) === filters.isConfirmed)
       ),
     [rows, filters]
   );
@@ -203,7 +214,7 @@ export default function Orders() {
 
   const loading = status === 'loading';
   const searching = Boolean(filters.term.trim());
-  const filtered = Boolean(searching || filters.status || filters.paymentStatus || filters.deliveryType || filters.paymentMethod || filters.isCustom !== null);
+  const filtered = Boolean(searching || filters.status || filters.paymentStatus || filters.deliveryType || filters.paymentMethod || filters.isCustom !== null || filters.isConfirmed !== null);
   const hasMore = !searching && rows.length < total;
   const visibleOrders = searching ? orders.slice(0, visibleSearch) : orders;
   const busy = refreshing || loading || analyticsStatus === 'loading';
@@ -278,9 +289,9 @@ export default function Orders() {
             label="Search orders"
             className="w-full min-w-0"
           />
-          <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            <SelectInput
-              size="sm"
+          <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-5">
+            <AdminSearchSelect
+              className="min-w-0"
               aria-label="Filter by payment"
               placeholder="Any payment"
               options={PAYMENT_OPTIONS}
@@ -288,8 +299,8 @@ export default function Orders() {
               onChange={(value) => applyFilters({ paymentStatus: value || '' })}
               clearable
             />
-            <SelectInput
-              size="sm"
+            <AdminSearchSelect
+              className="min-w-0"
               aria-label="Filter by delivery"
               placeholder="Any delivery"
               options={DELIVERY_OPTIONS}
@@ -297,8 +308,8 @@ export default function Orders() {
               onChange={(value) => applyFilters({ deliveryType: value || '' })}
               clearable
             />
-            <SelectInput
-              size="sm"
+            <AdminSearchSelect
+              className="min-w-0"
               aria-label="Filter by payment method"
               placeholder="Any method"
               options={METHOD_OPTIONS}
@@ -306,8 +317,17 @@ export default function Orders() {
               onChange={(value) => applyFilters({ paymentMethod: value || '' })}
               clearable
             />
-            <SelectInput
-              size="sm"
+            <AdminSearchSelect
+              className="min-w-0"
+              aria-label="Filter by confirmation"
+              placeholder="Any confirmation"
+              options={CONFIRMATION_OPTIONS}
+              value={filters.isConfirmed === true ? 'confirmed' : filters.isConfirmed === false ? 'not_confirmed' : ''}
+              onChange={(value) => applyFilters({ isConfirmed: value ? value === 'confirmed' : null })}
+              clearable
+            />
+            <AdminSearchSelect
+              className="min-w-0"
               aria-label="Filter by order type"
               placeholder="All order types"
               options={TYPE_OPTIONS}
@@ -337,7 +357,7 @@ export default function Orders() {
           </div>
         ) : (
           <>
-            <OrderTable orders={visibleOrders} onView={openOrder} trackerDetails={trackerDetails} />
+            <OrderTable orders={visibleOrders} onView={openOrder} onMessage={(order) => setMessageId(order.$id)} trackerDetails={trackerDetails} />
             {searching && orders.length > visibleOrders.length && (
               <div className="flex justify-center">
                 <ActionButton variant="secondary" onClick={() => setVisibleSearch((count) => count + PAGE)}>
@@ -373,9 +393,9 @@ export default function Orders() {
             <p className="p-8 text-center text-sm text-muted">No confirmed orders yet.</p>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[680px] text-left text-sm">
+              <table className="w-full min-w-[820px] text-left text-sm">
                 <thead className="bg-surface-alt text-xs text-muted">
-                  <tr><th className="px-4 py-3 font-medium">Order</th><th className="px-4 py-3 font-medium">Customer</th><th className="px-4 py-3 font-medium">Total</th><th className="px-4 py-3 font-medium">Contact</th><th className="px-4 py-3 font-medium">Confirmed</th></tr>
+                  <tr><th className="px-4 py-3 font-medium">Order</th><th className="px-4 py-3 font-medium">Customer</th><th className="px-4 py-3 font-medium">Total</th><th className="px-4 py-3 font-medium">Status</th><th className="px-4 py-3 font-medium">Contact</th><th className="px-4 py-3 font-medium">Confirmed</th><th className="px-4 py-3 text-right font-medium">Message</th></tr>
                 </thead>
                 <tbody className="divide-y divide-border">
                   {confirmedRows.map((matchingOrder) => {
@@ -390,8 +410,12 @@ export default function Orders() {
                         </td>
                         <td className="px-4 py-3 text-text">{matchingOrder?.customerName || '—'}</td>
                         <td className="px-4 py-3 tabular-nums text-text">{`Rs ${Number(matchingOrder.total || 0).toLocaleString('en-PK')}`}</td>
+                        <td className="px-4 py-3"><StatusBadge status={matchingOrder.status} /></td>
                         <td className="px-4 py-3 capitalize text-muted">{confirmation?.contactMethod || '—'}</td>
                         <td className="px-4 py-3 text-muted">{matchingOrder.confirmedAt ? new Date(matchingOrder.confirmedAt).toLocaleString() : '—'}</td>
+                        <td className="px-4 py-3 text-right">
+                          <button type="button" onClick={() => setMessageId(matchingOrder.$id)} className="btn btn-ghost min-h-9 px-3 py-1.5 text-xs">Send message</button>
+                        </td>
                       </tr>
                     );
                   })}
@@ -408,6 +432,10 @@ export default function Orders() {
         error={analyticsError}
         onRetry={() => dispatch(fetchStaffOrderAnalytics())}
       />
+
+      {messageOrder && (
+        <SendMessageModal open order={messageOrder} onClose={() => setMessageId(null)} />
+      )}
 
       {formKey > 0 && (
         <OrderForm key={formKey} open={formOpen} orderId={selectedId} onClose={() => setFormOpen(false)} />

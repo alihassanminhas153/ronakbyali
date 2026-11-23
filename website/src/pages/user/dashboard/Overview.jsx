@@ -38,6 +38,9 @@ import { formatMoney } from '../../../components/admin/users/userFields';
 import { paidAmountForOrder } from '../../../lib/orderMath';
 import { getEffectivePricing } from '../../../lib/saleMath';
 import { selectSalesList } from '../../../store/slices/saleSlice';
+import usePanelAccess from '../../../lib/layout/usePanelAccess';
+import useUserLabels from '../../../lib/layout/useUserLabels';
+import { visiblePages } from '../../../lib/layout/layoutRegistry';
 
 /*
  * Route segments are relative to the user dashboard (this page is its index
@@ -158,6 +161,13 @@ function OverviewView({ me }) {
   const myReviews = useAppSelector(selectMyReviews);
   const reviewsStatus = useAppSelector(selectMyReviewsStatus);
   const bars = useAppSelector(selectAlertBars);
+  const { rows: layoutRows } = usePanelAccess();
+  const userLabels = useUserLabels();
+  const visiblePageKeys = useMemo(
+    () => new Set(visiblePages('user', layoutRows, userLabels).map((page) => page.key)),
+    [layoutRows, userLabels]
+  );
+  const canShowPage = useCallback((key) => visiblePageKeys.has(key), [visiblePageKeys]);
 
   const loadAll = useCallback(
     () =>
@@ -279,28 +289,32 @@ function OverviewView({ me }) {
 
       {/* Key numbers: every tile opens its page */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <LinkTile to="orders" label="Orders placed" value={orderCount} hint={`${o.delivered} delivered`} appIcon="list" tone={1} delay={0} />
+        {canShowPage('orders') && ordersStatus === 'ready' && <><LinkTile to="orders" label="Orders placed" value={orderCount} hint={`${o.delivered} delivered`} appIcon="list" tone={1} delay={0} />
         <LinkTile to="orders" label="Total spent" value={spent} format={formatCardMoney} hint={orderCount ? `${short(spent / orderCount)} per order` : 'no orders yet'} appIcon="wallet" sensitive tone={2} delay={40} />
-        <LinkTile to="orders" label="Orders on the way" value={o.open} hint={`${o.placed} placed`} appIcon="truck" tone={3} delay={80} />
-        <LinkTile to="cart" label="Value in cart" value={cartSubtotal} format={formatCardMoney} hint={`${cartCount} ${cartCount === 1 ? 'item' : 'items'}`} appIcon="cart" sensitive tone={1} delay={120} />
-        <LinkTile to="wishlist" label="Wishlist" value={o.wish.total} hint={`${o.wish.out} out of stock`} appIcon="popular" tone={4} delay={160} />
-        <LinkTile to="reviews" label="Reviews written" value={o.reviews.total} hint={o.reviews.pending ? `${o.reviews.pending} awaiting approval` : 'all reviewed'} appIcon="reviews" tone={5} delay={200} />
-        <LinkTile to="alerts" label="New alerts" value={bars.length} hint="offers and updates" appIcon="alert" tone={6} delay={240} />
-        <LinkTile to="profile" label="Profile complete" value={percent} format={(n) => `${Math.round(n)}%`} hint={percent === 100 ? 'all set' : 'finish in Profile'} appIcon="user" tone={7} delay={280} />
+        <LinkTile to="orders" label="Orders on the way" value={o.open} hint={`${o.placed} placed`} appIcon="truck" tone={3} delay={80} /></>}
+        {canShowPage('cart') && cartStatus === 'ready' && cartLines.length > 0 && <LinkTile to="cart" label="Value in cart" value={cartSubtotal} format={formatCardMoney} hint={`${cartCount} ${cartCount === 1 ? 'item' : 'items'}`} appIcon="cart" sensitive tone={1} delay={120} />}
+        {canShowPage('wishlist') && wishStatus === 'ready' && wishProducts.length > 0 && <LinkTile to="wishlist" label="Wishlist" value={o.wish.total} hint={`${o.wish.out} out of stock`} appIcon="popular" tone={4} delay={160} />}
+        {canShowPage('reviews') && reviewsStatus === 'ready' && myReviews.length > 0 && <LinkTile to="reviews" label="Reviews written" value={o.reviews.total} hint={o.reviews.pending ? `${o.reviews.pending} awaiting approval` : 'all reviewed'} appIcon="reviews" tone={5} delay={200} />}
+        {canShowPage('alerts') && bars.length > 0 && <LinkTile to="alerts" label="New alerts" value={bars.length} hint="offers and updates" appIcon="alert" tone={6} delay={240} />}
+        {canShowPage('profile') && <LinkTile to="profile" label="Profile complete" value={percent} format={(n) => `${Math.round(n)}%`} hint={percent === 100 ? 'all set' : 'finish in Profile'} appIcon="user" tone={7} delay={280} />}
       </div>
 
       <div className={grid}>
-        <OverviewCard to="orders" cta="Orders" title="Spending trend" subtitle="What you paid, last 6 months" appIcon="histogram" tone={2}>
-          <TrendGraph data={o.spendTrend} color="var(--accent-tone-2)" format={short} />
-        </OverviewCard>
-        <OverviewCard to="orders" cta="Orders" title="Orders per month" subtitle="Last 6 months" appIcon="clock" tone={1} delay={80}>
-          <TrendGraph data={o.countTrend} color="var(--accent-tone-1)" />
-        </OverviewCard>
+        {canShowPage('orders') && ordersStatus === 'ready' && orders.length > 0 && (
+          <>
+            <OverviewCard to="orders" cta="Orders" title="Spending trend" subtitle="What you paid, last 6 months" appIcon="histogram" tone={2}>
+              <TrendGraph data={o.spendTrend} color="var(--accent-tone-2)" format={short} />
+            </OverviewCard>
+            <OverviewCard to="orders" cta="Orders" title="Orders per month" subtitle="Last 6 months" appIcon="clock" tone={1} delay={80}>
+              <TrendGraph data={o.countTrend} color="var(--accent-tone-1)" />
+            </OverviewCard>
+          </>
+        )}
       </div>
 
       {/* One card per section */}
       <div className={grid}>
-        <OverviewCard to="orders" cta="My orders" title="Orders" subtitle={`${orderCount} in total`} appIcon="list" tone={1} className="lg:col-span-2">
+        {canShowPage('orders') && ordersStatus === 'ready' && orders.length > 0 && <OverviewCard to="orders" cta="My orders" title="Orders" subtitle={`${orderCount} in total`} appIcon="list" tone={1} className="lg:col-span-2">
           <Mini items={[
             { label: 'Placed', value: o.placed, tone: 3 },
             { label: 'On the way', value: o.open, tone: 5 },
@@ -334,9 +348,9 @@ function OverviewView({ me }) {
               )}
             </div>
           </div>
-        </OverviewCard>
+        </OverviewCard>}
 
-        <OverviewCard to="cart" cta="Cart" title="Cart" subtitle="Pick up where you left off" appIcon="cart" tone={3} delay={80}>
+        {canShowPage('cart') && cartStatus === 'ready' && cartLines.length > 0 && <OverviewCard to="cart" cta="Cart" title="Cart" subtitle="Pick up where you left off" appIcon="cart" tone={3} delay={80}>
           <Mini items={[
             { label: 'Items', value: cartCount, tone: 1 },
             { label: 'Subtotal', value: cartSubtotal, format: formatCardMoney, tone: 7 },
@@ -350,9 +364,9 @@ function OverviewView({ me }) {
             }))}
             empty="Your cart is empty."
           />
-        </OverviewCard>
+        </OverviewCard>}
 
-        <OverviewCard to="wishlist" cta="Wishlist" title="Wishlist" subtitle="Pieces you’ve saved for later" appIcon="popular" tone={4} delay={160}>
+        {canShowPage('wishlist') && wishStatus === 'ready' && wishProducts.length > 0 && <OverviewCard to="wishlist" cta="Wishlist" title="Wishlist" subtitle="Pieces you’ve saved for later" appIcon="popular" tone={4} delay={160}>
           <Mini items={[
             { label: 'Saved', value: o.wish.total, tone: 4 },
             { label: 'Available', value: o.wish.total - o.wish.out, tone: 7 },
@@ -370,9 +384,9 @@ function OverviewView({ me }) {
               ))}
             </ul>
           )}
-        </OverviewCard>
+        </OverviewCard>}
 
-        <OverviewCard to="reviews" cta="My reviews" title="Reviews" subtitle={`${o.reviews.total} written`} appIcon="reviews" tone={5} delay={240} className="lg:col-span-2">
+        {canShowPage('reviews') && reviewsStatus === 'ready' && myReviews.length > 0 && <OverviewCard to="reviews" cta="My reviews" title="Reviews" subtitle={`${o.reviews.total} written`} appIcon="reviews" tone={5} delay={240} className="lg:col-span-2">
           <Mini items={[
             { label: 'Awaiting approval', value: o.reviews.pending, tone: 3 },
             { label: 'Average rating', value: o.reviews.average ? `${o.reviews.average.toFixed(1)} / 5` : '—', tone: 7 },
@@ -385,7 +399,7 @@ function OverviewView({ me }) {
             format={(n) => n}
             empty="No approved reviews yet."
           />
-        </OverviewCard>
+        </OverviewCard>}
       </div>
 
       {/* Account */}
@@ -441,7 +455,7 @@ function OverviewView({ me }) {
         {[
           ['orders', 'My orders', Receipt, 1], ['cart', 'Cart', ShoppingCart, 2], ['wishlist', 'Wishlist', Heart, 4],
           ['reviews', 'Reviews', Star, 3], ['alerts', 'Alerts', Bell, 6], ['profile', 'Profile', UserRound, 7],
-        ].map(([to, label, Icon, tone]) => (
+        ].map(([to, label, Icon, tone]) => canShowPage(to) ? (
           <Link
             key={to}
             to={to}
@@ -451,7 +465,7 @@ function OverviewView({ me }) {
             <Icon size={16} className="transition-transform duration-300 group-hover:scale-110 group-hover:-rotate-6" />
             {label}
           </Link>
-        ))}
+        ) : null)}
       </nav>
     </div>
   );

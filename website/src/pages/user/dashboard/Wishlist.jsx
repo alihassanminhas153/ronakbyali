@@ -424,6 +424,7 @@ export default function Wishlist() {
               placeholder="Search your wishlist"
             />
             <SelectInput
+              className="min-w-0"
               value={category}
               onChange={setCategory}
               options={categories}
@@ -433,7 +434,7 @@ export default function Wishlist() {
               size="sm"
               aria-label="Filter by category"
             />
-            <SelectInput value={sort} onChange={setSort} options={SORTS} size="sm" aria-label="Sort wishlist" />
+            <SelectInput className="min-w-0" value={sort} onChange={setSort} options={SORTS} size="sm" aria-label="Sort wishlist" />
           </div>
 
           {/* Availability filter */}

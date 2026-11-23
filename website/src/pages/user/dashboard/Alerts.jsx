@@ -423,7 +423,7 @@ function AlertsView({ me }) {
         {/* Filters */}
         <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_16rem]">
           <SearchInput value={query} onSearch={setQuery} placeholder="Search your alerts" label="Search alerts" size="sm" />
-          <SelectInput size="sm" value={sort} onChange={setSort} options={SORTS} aria-label="Sort alerts" />
+          <SelectInput className="min-w-0" size="sm" value={sort} onChange={setSort} options={SORTS} aria-label="Sort alerts" />
         </div>
         <Segmented iconOnly options={TYPE_FILTERS} value={type} onChange={setType} aria-label="Filter by type" />
 

@@ -8,29 +8,47 @@ import trackerService from './tracker';
 import orderConfirmationService from './orderConfirmation';
 import { paidAmountForOrder } from '../orderMath';
 import { isValidPhoneNumber } from '../phone';
+import { isAccessDeniedError } from './accessErrors';
 
 // The statuses below are the real enum values of ronakbyali_orders.status.
-export const ORDER_STATUS = ['placed', 'processing', 'packed', 'shipped', 'cancelled', 'returned', 'delivered'];
+export const ORDER_STATUS = ['pending', 'processing', 'packed', 'dispatched', 'delivered', 'cancelled', 'returned'];
+// Old names, kept only so rows saved before the rename still read correctly.
+export const LEGACY_STATUS = { placed: 'pending', shipped: 'dispatched' };
+export const normalizeStatus = (status) => LEGACY_STATUS[status] || status;
 export const PAYMENT_METHODS = ['cod', 'bank_transfer', 'card', 'easypaisa', 'jazzcash'];
 export const PAYMENT_STATUS = ['unpaid', 'partial', 'paid', 'refunded'];
 export const DELIVERY_TYPES = ['fast', 'regular', 'pickup'];
 
-export const USER_EDITABLE_STATUSES = ['placed', 'processing'];
-export const USER_ITEM_EDITABLE_STATUSES = ['placed'];
-export const USER_CANCELLABLE_STATUSES = ['processing'];
+export const USER_EDITABLE_STATUSES = ['pending', 'processing'];
+export const USER_ITEM_EDITABLE_STATUSES = ['pending'];
+// An order can be cancelled by the customer (and by staff) until it is dispatched.
+export const USER_CANCELLABLE_STATUSES = ['pending', 'processing', 'packed'];
+export const canUserCancel = (order) => !!order && USER_CANCELLABLE_STATUSES.includes(normalizeStatus(order.status));
+
+// ---------------------------------------------------------------------
+// CONFIRMATION RULE  (the only place to change it)
+// Every new order starts as confirmed. A customer whose cancelled orders
+// outnumber their purchased orders (ordersCount) gets requiresConfirmation = true
+// on their profile, and their next orders start as NOT confirmed until they
+// confirm through the link staff send them. Custom orders always start unconfirmed.
+// ---------------------------------------------------------------------
+export const shouldRequireConfirmation = ({ cancelledCount, ordersCount } = {}) =>
+    (Number(cancelledCount) || 0) > (Number(ordersCount) || 0);
 
 // Product stock is taken when an order ships and given back if a shipped or
 // delivered order is returned. Nothing changes in stock while an order is being prepared.
-export const STOCK_TAKEN_STATUSES = ['shipped', 'delivered'];
+export const STOCK_TAKEN_STATUSES = ['dispatched', 'delivered'];
 const ORDER_TRANSITIONS = {
-    placed: ['processing'],
-    processing: ['packed', 'cancelled'],
-    packed: ['shipped'],
-    shipped: ['delivered'],
+    pending: ['processing', 'cancelled'],
+    processing: ['pending', 'packed', 'cancelled'],
+    packed: ['processing', 'dispatched', 'cancelled'],
+    dispatched: ['delivered'],
     delivered: ['returned'],
     cancelled: [],
     returned: [],
 };
+// What the status dropdown may offer for an order in `status`.
+export const nextStatusesFor = (status) => ORDER_TRANSITIONS[normalizeStatus(status)] || [];
 
 // Who counts as staff in the app (Appwrite itself decides by the account labels
 // admin / support / manager, set in the table permissions).
@@ -38,14 +56,14 @@ export const STAFF_ROLES = ['admin', 'support', 'manager'];
 
 // ---------------------------------------------------------------------
 // WHAT STAFF MAY EDIT, BY STATUS  (the only place to change these rules)
-//   placed / processing  -> customer details, payment method, delivery time
-//   shipped              -> only the delivery address (and city)
+//   pending / processing -> customer details, payment method, delivery time
+//   packed / dispatched  -> only the delivery address (and city)
 //   delivered / cancelled / returned -> nothing (read only)
 // Always open to staff: order status, payment status, courier link, tracking
 // number, timeline updates and admin notes. Items and amounts are never edited here.
 // ---------------------------------------------------------------------
-export const FULL_EDIT_STATUSES = ['placed', 'processing'];
-export const ADDRESS_EDIT_STATUSES = ['shipped'];
+export const FULL_EDIT_STATUSES = ['pending', 'processing'];
+export const ADDRESS_EDIT_STATUSES = ['packed', 'dispatched'];
 const FULL_EDIT_KEYS = [
     'customerName', 'customerPhone', 'customerEmail', 'city', 'address', 'notes',
     'paymentMethod', 'deliveryTime', 'estimatedDelivery',
@@ -53,20 +71,23 @@ const FULL_EDIT_KEYS = [
 const ADDRESS_EDIT_KEYS = ['city', 'address'];
 const STAFF_ALWAYS_KEYS = ['adminNotes', 'trackingId'];
 
-export const editableKeysFor = (status) => [
+export const editableKeysFor = (rawStatus) => {
+    const status = normalizeStatus(rawStatus);
+    return [
     ...(FULL_EDIT_STATUSES.includes(status) ? FULL_EDIT_KEYS : ADDRESS_EDIT_STATUSES.includes(status) ? ADDRESS_EDIT_KEYS : []),
     ...STAFF_ALWAYS_KEYS,
-];
+    ];
+};
 
 // A cancelled or returned order no longer counts towards the customer's totals.
 const NOT_COUNTED_STATUSES = ['cancelled', 'returned'];
 
 // One timeline step is written for every status change.
 const STATUS_UPDATES = {
-    placed: ['Order placed', 'The order is waiting to be confirmed.'],
-    processing: ['Order is being prepared', 'Your items are being packed.'],
-    packed: ['Order packed', 'Your order is packed and ready to ship.'],
-    shipped: ['Order shipped', 'Your parcel has been handed to the courier.'],
+    pending: ['Order pending', 'We have received your order.'],
+    processing: ['Order is being prepared', 'Your items are being prepared.'],
+    packed: ['Order packed', 'Your order is packed and ready to be dispatched.'],
+    dispatched: ['Order dispatched', 'Your parcel has been handed to the courier.'],
     delivered: ['Order delivered', 'The parcel was delivered. Thank you for shopping with us.'],
     cancelled: ['Order cancelled', 'This order was cancelled.'],
     returned: ['Order returned', 'The parcel was returned to us.'],
@@ -97,7 +118,8 @@ const DETAIL_LABELS = {
 //   status, paymentMethod, paymentStatus, deliveryType, deliveryTime,
 //   estimatedDelivery, customerName, customerEmail, customerPhone,
 //   city, address, notes, trackingId, adminNotes, customSelections, customFileIds,
-//   returnRequestStatus, returnRequestedAt, returnResolvedAt, returnRequestNote
+//   isConfirmed, confirmedAt, returnRequestStatus, returnRequestedAt, returnResolvedAt, returnRequestNote
+// Users table extras used here: ordersCount (purchased), cancelledCount, requiresConfirmation
 export class OrderService {
     client = new Client();
     table;
@@ -107,6 +129,7 @@ export class OrderService {
 
     // Plain-language reason for the last failure. The slice shows it to the user.
     lastError = null;
+    lastAccessDenied = false;
 
     constructor() {
         this.client
@@ -125,11 +148,18 @@ export class OrderService {
     // =====================================================================
 
     isUserEditable(order) {
-        return !!order && USER_EDITABLE_STATUSES.includes(order.status);
+        return !!order && USER_EDITABLE_STATUSES.includes(normalizeStatus(order.status));
     }
 
     isUserItemEditable(order) {
-        return !!order && USER_ITEM_EDITABLE_STATUSES.includes(order.status);
+        return !!order && USER_ITEM_EDITABLE_STATUSES.includes(normalizeStatus(order.status));
+    }
+
+    // True when this customer's new order must start as "not confirmed".
+    async _requiresConfirmation(profile, custom) {
+        if (custom) return true;
+        const fresh = await userService.getProfile({ userId: profile.$id });
+        return Boolean((fresh || profile)?.requiresConfirmation);
     }
 
     // The items column as a real array.
@@ -249,13 +279,17 @@ export class OrderService {
             if (error) return this._fail(error);
 
             const totals = this._totals(cleanItems, form);
+            const requiresConfirmation = await this._requiresConfirmation(profile, Boolean(custom || form.isCustom));
+            const confirmedAt = requiresConfirmation ? null : new Date().toISOString();
 
             const data = {
                 userId: profile.$id,
                 username: profile.username || null,
                 items: JSON.stringify(cleanItems),
                 ...totals,
-                status: 'placed',
+                status: 'pending',
+                isConfirmed: !requiresConfirmation,
+                confirmedAt,
                 returnRequestStatus: 'none',
                 returnRequestedAt: null,
                 returnResolvedAt: null,
@@ -358,7 +392,7 @@ export class OrderService {
         if (!order) return this._fail('We could not find that order.');
         if (order.userId !== userId) return this._fail('That order belongs to another account.');
         if (!this.isUserEditable(order)) {
-            const word = order.status === 'shipped' ? 'already shipped' : `already ${order.status}`;
+            const word = `already ${normalizeStatus(order.status)}`;
             return this._fail(`This order is ${word}, so it can no longer be changed.`);
         }
         return order;
@@ -455,7 +489,7 @@ export class OrderService {
         try {
             const order = await this._getEditable(userId, orderId);
             if (!order) return false;
-            if (!this.isUserItemEditable(order)) return this._fail('Items can only be changed while the order is placed.');
+            if (!this.isUserItemEditable(order)) return this._fail('Items can only be changed while the order is pending.');
             if (order.isCustom) return this._fail('This is a customized order. Please contact us to change it.');
 
             const items = this.parseItems(order);
@@ -544,30 +578,29 @@ export class OrderService {
         return updated;
     }
 
-    // Customer cancellation is limited to unconfirmed processing orders.
+    // A customer can cancel until the order is dispatched (pending, processing, packed).
+    // Each customer cancellation raises profile.cancelledCount; when it exceeds the
+    // purchased count the customer's next orders start as not confirmed.
     async cancelMyOrder({ userId, orderId }) {
         this.lastError = null;
         try {
-            const order = await this._getEditable(userId, orderId);
-            if (!order) return false;
-            if (!USER_CANCELLABLE_STATUSES.includes(order.status)) {
-                return this._fail('An order can only be cancelled while it is processing.');
+            const order = await this.getOrder(orderId);
+            if (!order) return this._fail('We could not find that order.');
+            if (order.userId !== userId) return this._fail('That order belongs to another account.');
+            if (!canUserCancel(order)) {
+                return this._fail(`An order can only be cancelled before it is dispatched. This one is ${normalizeStatus(order.status)}.`);
             }
-            const confirmation = await orderConfirmationService.getByOrderId(orderId);
-            if (confirmation === false) return this._fail('Could not verify the order confirmation before cancelling.');
-            if (order.isConfirmed || confirmation?.isConfirmed || confirmation?.status === 'confirmed') {
-                return this._fail('This order has been confirmed and can no longer be cancelled.');
-            }
+            const from = normalizeStatus(order.status);
             const saved = await this._userUpdate(orderId, { status: 'cancelled' });
             if (saved) {
                 const results = await Promise.allSettled([
                     trackerService.addUpdate(orderId, {
                         title: 'Order cancelled',
-                        note: 'This order was cancelled.',
+                        note: 'This order was cancelled by the customer.',
                         status: 'cancelled',
                         by: 'customer',
                     }, { order }),
-                    this._syncProfileCounts(order, order.status, 'cancelled'),
+                    this._syncProfileCounts(order, from, 'cancelled', { byCustomer: true }),
                     this._syncCustomOrderStatus(saved, 'cancelled'),
                 ]);
                 if (results[0].status === 'rejected' || results[0].value === false) {
@@ -683,6 +716,7 @@ export class OrderService {
 
     // Staff search over order number, name, phone, email, username, tracking id.
     async searchOrders({ term, status, isCustom } = {}) {
+        this.lastAccessDenied = false;
         try {
             const trimmed = (term || '').trim().toLowerCase();
             const queries = [];
@@ -696,6 +730,7 @@ export class OrderService {
                 )
             );
         } catch (error) {
+            this.lastAccessDenied = isAccessDeniedError(error);
             console.error(error.message);
             return false;
         }
@@ -734,22 +769,17 @@ export class OrderService {
             if (!ORDER_STATUS.includes(status)) return this._fail('Unknown order status.');
             const order = await this.getOrder(rowId);
             if (!order) return this._fail('Order not found.');
-            if (order.status === status) return order;
-            if (!ORDER_TRANSITIONS[order.status]?.includes(status)) {
-                return this._fail(`An order cannot move from ${order.status} to ${status}.`);
+            const current = normalizeStatus(order.status);
+            if (current === status) return order;
+            if (!ORDER_TRANSITIONS[current]?.includes(status)) {
+                return this._fail(
+                    status === 'cancelled'
+                        ? 'An order can only be cancelled before it is dispatched.'
+                        : `An order cannot move from ${current} to ${status}.`
+                );
             }
-
-            let confirmation = null;
-            if (status === 'packed' || status === 'cancelled') {
-                confirmation = await orderConfirmationService.getByOrderId(rowId);
-                if (confirmation === false) return this._fail('Could not verify the order confirmation.');
-            }
-            const confirmed = Boolean(order.isConfirmed) || confirmation?.isConfirmed || confirmation?.status === 'confirmed';
-            if (status === 'packed' && (!order.isConfirmed || !confirmation?.isConfirmed || confirmation.status !== 'confirmed')) {
-                return this._fail('Confirm the order in both confirmation records before marking it packed.');
-            }
-            if (status === 'cancelled' && confirmed) {
-                return this._fail('This order has been confirmed and can no longer be cancelled.');
+            if (status === 'packed' && !order.isConfirmed) {
+                return this._fail('Confirm the order first (send the confirmation message, or mark it confirmed) before packing it.');
             }
             if (status === 'returned' && order.returnRequestStatus !== 'requested') {
                 return this._fail('A return can only be completed after the customer requests one.');
@@ -771,14 +801,15 @@ export class OrderService {
             const [title, note] = STATUS_UPDATES[status] || [`Status: ${status}`, ''];
             const sideEffects = await Promise.allSettled([
                 trackerService.addUpdate(rowId, { title, note, status, by: 'staff' }, { order }),
-                this._syncProfileCounts(order, order.status, status),
+                this._syncProfileCounts(order, current, status),
                 this._syncCustomOrderStatus(updated, status),
+                this._syncConfirmationRecord(updated),
             ]);
             if (order.isCustom && (sideEffects[2].status === 'rejected' || sideEffects[2].value === false)) {
                 this.lastError = 'Order status changed, but its custom request status could not be synchronized.';
             }
 
-            const was = STOCK_TAKEN_STATUSES.includes(order.status);
+            const was = STOCK_TAKEN_STATUSES.includes(current);
             const now = STOCK_TAKEN_STATUSES.includes(status);
             if (!order.isCustom && adjustStock && was !== now) {
                 const sign = now ? 1 : -1;
@@ -801,10 +832,10 @@ export class OrderService {
     async _syncCustomOrderStatus(order, status) {
         if (!order?.isCustom) return true;
         const customStatus = {
-            placed: 'requested',
+            pending: 'requested',
             processing: 'in_progress',
             packed: 'ready',
-            shipped: 'ready',
+            dispatched: 'ready',
             delivered: 'ready',
             cancelled: 'cancelled',
             returned: 'cancelled',
@@ -821,20 +852,27 @@ export class OrderService {
         }
     }
 
-    // Keeps order count aligned with cancelled / returned status and reconciles
+    // Keeps ordersCount aligned with cancelled / returned status, counts customer
+    // cancellations (cancelledCount), refreshes requiresConfirmation, and reconciles
     // spending from recorded payments. Best effort: never blocks an order change.
-    async _syncProfileCounts(order, from, to) {
+    async _syncProfileCounts(order, from, to, { byCustomer = false } = {}) {
         try {
-            const wasCounted = !NOT_COUNTED_STATUSES.includes(from);
-            const nowCounted = !NOT_COUNTED_STATUSES.includes(to);
             if (!order?.userId) return;
-            if (wasCounted !== nowCounted) {
-                const sign = nowCounted ? 1 : -1;
+            const wasCounted = !NOT_COUNTED_STATUSES.includes(normalizeStatus(from));
+            const nowCounted = !NOT_COUNTED_STATUSES.includes(normalizeStatus(to));
+            const cancelledNow = byCustomer && to === 'cancelled' && normalizeStatus(from) !== 'cancelled';
+            if (wasCounted !== nowCounted || cancelledNow) {
                 const profile = await userService.getProfile({ userId: order.userId });
                 if (profile) {
+                    const ordersCount = Math.max(0, (Number(profile.ordersCount) || 0) + (wasCounted === nowCounted ? 0 : nowCounted ? 1 : -1));
+                    const cancelledCount = (Number(profile.cancelledCount) || 0) + (cancelledNow ? 1 : 0);
                     await userService.updateProfile({
                         userId: order.userId,
-                        data: { ordersCount: Math.max(0, (Number(profile.ordersCount) || 0) + sign) },
+                        data: {
+                            ordersCount,
+                            cancelledCount,
+                            requiresConfirmation: shouldRequireConfirmation({ ordersCount, cancelledCount }),
+                        },
                     });
                 }
             }
@@ -842,6 +880,17 @@ export class OrderService {
         } catch (error) {
             console.error(error.message);
         }
+    }
+
+    // The confirmations table is a staff-written record that mirrors orders.isConfirmed
+    // (customers cannot write to it). Called whenever staff touch an order.
+    async _syncConfirmationRecord(order, { confirmedBy } = {}) {
+        if (!order?.$id || ['cancelled', 'returned'].includes(normalizeStatus(order.status))) return true;
+        const record = await orderConfirmationService.getByOrderId(order.$id);
+        if (record === false) return false;
+        const want = order.isConfirmed ? 'confirmed' : 'pending';
+        if (record?.status === want) return true;
+        return orderConfirmationService.upsertForOrder({ order, status: want, confirmedBy, confirmedAt: order.confirmedAt });
     }
 
     async syncUserTotalSpent(userId) {
@@ -956,8 +1005,8 @@ export class OrderService {
         try {
             const order = await this.getOrder(rowId);
             if (!order) return this._fail('Order not found.');
-            if (order.status !== 'processing') {
-                return this._fail('Order confirmation can only be changed while the order is processing.');
+            if (['cancelled', 'returned'].includes(normalizeStatus(order.status))) {
+                return this._fail('The confirmation of a cancelled or returned order cannot be changed.');
             }
             if (Boolean(order.isConfirmed) === isConfirmed) return order;
 
@@ -965,14 +1014,17 @@ export class OrderService {
             const updated = await this.updateOrder(rowId, { isConfirmed, confirmedAt });
             if (!updated) return this._fail('Could not update the order confirmation.');
 
-            const confirmationWrite = isConfirmed
-                ? orderConfirmationService.createForOrder({ order: updated, confirmedBy, confirmedAt })
-                : orderConfirmationService.setStatusForOrder(rowId, 'expired');
+            const confirmationWrite = orderConfirmationService.upsertForOrder({
+                order: updated,
+                status: isConfirmed ? 'confirmed' : 'pending',
+                confirmedBy,
+                confirmedAt,
+            });
             const [confirmationResult, timelineResult] = await Promise.allSettled([
                 confirmationWrite,
                 trackerService.addUpdate(rowId, {
                     title: isConfirmed ? 'Order confirmed' : 'Order confirmation updated',
-                    note: isConfirmed ? 'We have confirmed your order.' : 'The order is no longer marked as confirmed.',
+                    note: isConfirmed ? 'We have confirmed your order.' : 'Your order is waiting for your confirmation.',
                     status: updated.status,
                     by: 'staff',
                 }, { order: updated }),

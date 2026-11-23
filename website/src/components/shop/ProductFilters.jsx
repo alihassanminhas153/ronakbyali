@@ -89,6 +89,7 @@ export default function ProductFilters({
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <SelectInput
           size="sm"
+          className="min-w-0"
           aria-label="Filter by category"
           placeholder="All categories"
           options={categoryOptions}
@@ -99,6 +100,7 @@ export default function ProductFilters({
         />
         <SelectInput
           size="sm"
+          className="min-w-0"
           aria-label="Filter by group"
           placeholder="All groups"
           options={groupOptions}
@@ -109,6 +111,7 @@ export default function ProductFilters({
         />
         <SelectInput
           size="sm"
+          className="min-w-0"
           aria-label="Filter by availability"
           placeholder="Any availability"
           options={AVAILABILITY_OPTIONS}
@@ -118,6 +121,7 @@ export default function ProductFilters({
         />
         <SelectInput
           size="sm"
+          className="min-w-0"
           aria-label="Sort products"
           options={SORT_OPTIONS}
           value={filters.sortBy}

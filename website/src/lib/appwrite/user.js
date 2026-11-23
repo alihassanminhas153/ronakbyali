@@ -2,6 +2,7 @@ import envVars from '../../../env/var';
 import { Client, Storage, TablesDB, Query, ID, Permission, Role } from 'appwrite';
 import cartService from './cart';
 import wishlistService from './wishlist';
+import { isAccessDeniedError } from './accessErrors';
 
 // ---------- Roles ----------
 export const ROLES = {
@@ -40,6 +41,7 @@ export class UserService {
     databaseId = envVars.ronakByAliDatabaseId;
     tableId = envVars.ronakByAliUsers;
     bucketId = envVars.ronakByAliBucketId;
+    lastAccessDenied = false;
 
     constructor() {
         this.client
@@ -384,10 +386,12 @@ export class UserService {
     }
 
     async getProfiles({ role } = {}) {
+        this.lastAccessDenied = false;
         try {
             const queries = role ? [Query.equal('role', role)] : [];
             return await this._getAllRows(queries);
         } catch (error) {
+            this.lastAccessDenied = isAccessDeniedError(error);
             console.error(error.message);
             return false;
         }

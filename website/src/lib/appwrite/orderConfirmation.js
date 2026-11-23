@@ -21,10 +21,16 @@ export class OrderConfirmationService {
         return false;
     }
 
-    async createForOrder({ order, contactMethod, paymentProtocol, notes, confirmedBy, confirmedAt } = {}) {
+    // Creates or updates the confirmation record of an order. `status` is
+    // 'confirmed' (default), 'pending' (= not confirmed) or 'expired'.
+    // Optional fields are only written when passed, so an update never wipes
+    // details saved earlier (for example by the confirm function).
+    async upsertForOrder({ order, status = 'confirmed', contactMethod, paymentProtocol, notes, confirmedBy, confirmedAt } = {}) {
         this.lastError = null;
         if (!order?.$id || !order?.userId) return this._fail('A valid order is required for confirmation.');
+        if (!['pending', 'confirmed', 'expired'].includes(status)) return this._fail('Choose a valid confirmation status.');
         if (contactMethod && !CONTACT_METHODS.includes(contactMethod)) return this._fail('Choose a valid contact method.');
+        const confirmed = status === 'confirmed';
         const data = {
             orderId: order.$id,
             orderNumber: order.orderNumber || null,
@@ -32,15 +38,15 @@ export class OrderConfirmationService {
             isCustom: Boolean(order.isCustom),
             total: Math.max(0, Number(order.total) || 0),
             advanceAmount: Math.max(0, Number(order.advanceAmount) || 0),
-            contactMethod: contactMethod || null,
-            paymentProtocol: String(paymentProtocol || '').trim().slice(0, 1000) || null,
-            confirmedBy: confirmedBy || null,
-            confirmedAt: confirmedAt || new Date().toISOString(),
-            expiredAt: null,
-            notes: String(notes || '').trim().slice(0, 1000) || null,
-            status: 'confirmed',
-            isConfirmed: true,
+            confirmedAt: confirmed ? confirmedAt || new Date().toISOString() : null,
+            expiredAt: status === 'expired' ? new Date().toISOString() : null,
+            status,
+            isConfirmed: confirmed,
         };
+        if (contactMethod !== undefined) data.contactMethod = contactMethod || null;
+        if (paymentProtocol !== undefined) data.paymentProtocol = String(paymentProtocol || '').trim().slice(0, 1000) || null;
+        if (notes !== undefined) data.notes = String(notes || '').trim().slice(0, 1000) || null;
+        if (confirmedBy !== undefined) data.confirmedBy = confirmedBy || null;
         try {
             const existing = await this.getByOrderId(order.$id);
             if (existing === false) return false;
@@ -63,6 +69,11 @@ export class OrderConfirmationService {
         } catch (error) {
             return this._fail('Could not save the order confirmation.', error);
         }
+    }
+
+    // Kept for existing callers: always writes a confirmed record.
+    async createForOrder(args = {}) {
+        return this.upsertForOrder({ ...args, status: 'confirmed' });
     }
 
     async getByOrderId(orderId) {

@@ -33,7 +33,7 @@ import {
 } from '../../../components/admin/alerts';
 import ActionButton from '../../../ui/custom/button/ActionButton';
 import SearchInput from '../../../ui/custom/input/SearchInput';
-import SelectInput from '../../../ui/custom/input/SelectInput';
+import AdminSearchSelect from '../../../components/admin/AdminSearchSelect';
 import ConfirmDialog from '../../../ui/custom/modal/ConfirmDialog';
 import Tabs, { TabPanel } from '../../../ui/custom/tabs/Tabs';
 import CountUp from '../../../ui/custom/motion/CountUp';
@@ -289,8 +289,8 @@ export default function Alerts() {
               className="w-full min-w-0"
             />
             <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-              <SelectInput
-                size="sm"
+              <AdminSearchSelect
+                className="min-w-0"
                 aria-label="Filter by type"
                 placeholder="All types"
                 options={TYPE_OPTIONS}
@@ -298,8 +298,8 @@ export default function Alerts() {
                 onChange={(value) => applyFilters({ type: value || '' })}
                 clearable
               />
-              <SelectInput
-                size="sm"
+              <AdminSearchSelect
+                className="min-w-0"
                 aria-label="Filter by display"
                 placeholder="Bars and popups"
                 options={DISPLAY_OPTIONS}
@@ -307,8 +307,8 @@ export default function Alerts() {
                 onChange={(value) => applyFilters({ display: value || '' })}
                 clearable
               />
-              <SelectInput
-                size="sm"
+              <AdminSearchSelect
+                className="min-w-0"
                 aria-label="Filter by status"
                 placeholder="Any status"
                 options={STATUS_OPTIONS}
@@ -316,8 +316,8 @@ export default function Alerts() {
                 onChange={(value) => applyFilters({ status: value || '' })}
                 clearable
               />
-              <SelectInput
-                size="sm"
+              <AdminSearchSelect
+                className="min-w-0"
                 aria-label="Sort alerts"
                 options={SORT_OPTIONS}
                 value={filters.sort}

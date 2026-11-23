@@ -7,6 +7,7 @@ import reviewService from '../../../lib/appwrite/review';
 import cartService from '../../../lib/appwrite/cart';
 import wishlistService from '../../../lib/appwrite/wishlist';
 import financeService from '../../../lib/appwrite/finance';
+import { isAccessDeniedError } from '../../../lib/appwrite/accessErrors';
 
 // listFn({ limit, offset }) -> { rows, total } | false   ->   every row
 async function pageAll(listFn) {
@@ -28,10 +29,12 @@ export default function useOverviewData() {
   const [data, setData] = useState(EMPTY);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [accessDenied, setAccessDenied] = useState(false);
   const alive = useRef(true);
 
   const reload = useCallback(async () => {
     setLoading(true);
+    setAccessDenied(false);
     const results = await Promise.allSettled([
       orderService.searchOrders({}),
       productService.getProducts(),
@@ -45,15 +48,28 @@ export default function useOverviewData() {
     if (!alive.current) return;
     const names = ['orders', 'products', 'users', 'alerts', 'reviews', 'carts', 'wishlists', 'finance entries'];
     const failed = results.flatMap((result, index) =>
-      result.status === 'rejected' || result.value === false ? [names[index]] : []
+      result.status === 'rejected' || result.value === false || (index === 4 && reviewService.lastAccessDenied)
+        ? [names[index]]
+        : []
     );
-    const [orders, products, users, alerts, reviews, carts, wishlists, ledger] = results.map((result) =>
-      result.status === 'fulfilled' && result.value !== false ? result.value : null
-    );
+    const denied = results.some((result) => result.status === 'rejected' && isAccessDeniedError(result.reason))
+      || [
+        orderService,
+        productService,
+        userService,
+        alertService,
+        reviewService,
+        cartService,
+        wishlistService,
+        financeService,
+      ].some((service) => service.lastAccessDenied);
+    const rows = (result) =>
+      result.status === 'fulfilled' && Array.isArray(result.value) ? result.value : [];
+    const [orders, products, users, alerts, reviews, carts, wishlists, ledger] = results.map(rows);
+    setAccessDenied(denied);
     setError(failed.length ? `Could not load: ${failed.join(', ')}.` : financeService.lastError || '');
     setData({
-      orders: orders || [], products: products || [], users: users || [], alerts: alerts || [],
-      reviews: reviews || [], carts: carts || [], wishlists: wishlists || [], ledger: ledger || [],
+      orders, products, users, alerts, reviews, carts, wishlists, ledger,
     });
     setLoading(false);
   }, []);
@@ -64,5 +80,5 @@ export default function useOverviewData() {
     return () => { alive.current = false; };
   }, [reload]);
 
-  return { ...data, loading, error, reload };
+  return { ...data, loading, error, accessDenied, reload };
 }

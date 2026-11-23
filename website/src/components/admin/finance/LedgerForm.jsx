@@ -91,7 +91,7 @@ export default function LedgerForm({ open, entry, defaultType = 'expense', entri
           <Field label="Title" error={errors.title} className="sm:col-span-2">
             <input value={form.title} onChange={on('title')} maxLength={150} placeholder="Instagram ads, March" className={inputCls(errors.title)} />
           </Field>
-          <Field as="div" label="Category" optional>
+          <Field as="div" label="Category" optional className="min-w-0">
             <SearchSelect aria-label="Category" options={categories} value={form.category} onChange={set('category')} placeholder="Select or create" searchPlaceholder="Search categories…" />
           </Field>
           <Field label="Amount (Rs)" error={errors.amount}>

@@ -61,7 +61,7 @@ import {
 } from '../../../components/admin/users';
 import ActionButton from '../../../ui/custom/button/ActionButton';
 import SearchInput from '../../../ui/custom/input/SearchInput';
-import SelectInput from '../../../ui/custom/input/SelectInput';
+import AdminSearchSelect from '../../../components/admin/AdminSearchSelect';
 import ConfirmDialog from '../../../ui/custom/modal/ConfirmDialog';
 import CountUp from '../../../ui/custom/motion/CountUp';
 import useEntered from '../../../ui/custom/motion/useEntered';
@@ -279,15 +279,15 @@ export default function Users() {
                   label="Search users"
                   className="sm:col-span-2 lg:col-span-1"
                 />
-                <SelectInput
-                  size="sm"
+                <AdminSearchSelect
+                  className="min-w-0"
                   aria-label="Filter by role"
                   options={ROLE_FILTER_OPTIONS}
                   value={filters.role}
                   onChange={(role) => dispatch(setUserRoleFilter(role || 'all'))}
                 />
-                <SelectInput
-                  size="sm"
+                <AdminSearchSelect
+                  className="min-w-0"
                   aria-label="Filter by sign-in method"
                   options={methodOptions}
                   value={method}

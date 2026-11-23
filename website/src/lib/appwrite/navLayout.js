@@ -106,7 +106,7 @@ export class NavLayoutService {
     _fail(error) {
         this.lastError = error?.message || 'Something went wrong.';
         console.error(this.lastError);
-        return { ok: false, message: this.lastError };
+        return { ok: false, message: this.lastError, code: error?.code };
     }
 }
 

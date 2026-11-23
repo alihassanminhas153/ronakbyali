@@ -3,6 +3,7 @@ import { Client, Storage, TablesDB, Query, ID, Permission, Role } from 'appwrite
 import userService from './user';
 import cartService from './cart';
 import productService from './product';
+import { isAccessDeniedError } from './accessErrors';
 
 export const REVIEW_STATUS = { PENDING: 'pending', APPROVED: 'approved', REJECTED: 'rejected' };
 
@@ -61,6 +62,7 @@ export class ReviewService {
 
     // Message of the last failed call, to show in the UI.
     lastError = null;
+    lastAccessDenied = false;
 
     constructor() {
         this.client
@@ -325,6 +327,7 @@ export class ReviewService {
     // filters: { status, productId, userId, rating }. Newest first.
     // Use { status: 'pending' } for the moderation queue.
     async getReviewsPage({ limit = 25, offset = 0, ...filters } = {}) {
+        this.lastAccessDenied = false;
         try {
             const queries = [];
             Object.entries(filters).forEach(([key, value]) => {
@@ -341,6 +344,7 @@ export class ReviewService {
             });
             return { rows: res?.rows || [], total: res?.total || 0 };
         } catch (error) {
+            this.lastAccessDenied = isAccessDeniedError(error);
             console.error(error.message);
             return { rows: [], total: 0 };
         }

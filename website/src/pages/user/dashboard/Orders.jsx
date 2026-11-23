@@ -120,7 +120,7 @@ function SearchBox({ value, onSearch }) {
 
 // No visible label (it made this row taller than the search box). aria-label keeps it accessible.
 function SortSelect({ value, onChange }) {
-  return <SelectInput value={value} onChange={onChange} options={SORTS} size="sm" aria-label="Sort orders" />;
+  return <SelectInput className="min-w-0" value={value} onChange={onChange} options={SORTS} size="sm" aria-label="Sort orders" />;
 }
 
 // data: [{ date: 'YYYY-MM-DD', value: number }]

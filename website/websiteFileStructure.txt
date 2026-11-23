@@ -1,4 +1,4 @@
-﻿WEBSITE FILE STRUCTURE
+WEBSITE FILE STRUCTURE
 Root: website/
 
 Generated from the current project tree. Local .env files, dependencies, generated build/test output, caches, and Git metadata are excluded. .env.sample is included.
@@ -134,7 +134,8 @@ Generated from the current project tree. Local .env files, dependencies, generat
 |  |  |  |  |-- helpers.js
 |  |  |  |  |-- index.js
 |  |  |  |  |-- Parts.jsx
-|  |  |  |  \-- ReviewCard.jsx
+|  |  |  |  |-- ReviewCard.jsx
+|  |  |  |  \-- SelectBox.jsx
 |  |  |  |-- settings
 |  |  |  |  |-- AccessDrawer.jsx
 |  |  |  |  |-- AccessTab.jsx
@@ -156,6 +157,7 @@ Generated from the current project tree. Local .env files, dependencies, generat
 |  |  |  |  |-- userScroll.css
 |  |  |  |  |-- UserStats.jsx
 |  |  |  |  \-- UserTable.jsx
+|  |  |  |-- AdminSearchSelect.jsx
 |  |  |  \-- index.js
 |  |  |-- home
 |  |  |  |-- CustomStudio.jsx
@@ -186,14 +188,23 @@ Generated from the current project tree. Local .env files, dependencies, generat
 |  |  |  |-- SidebarThemeToggle.jsx
 |  |  |  \-- usePageAlerts.js
 |  |  |-- shop
+|  |  |  |-- reviews
+|  |  |  |  |-- ProductReviews.jsx
+|  |  |  |  |-- ReviewFormModal.jsx
+|  |  |  |  \-- ReviewStars.jsx
+|  |  |  |-- CardShared.jsx
 |  |  |  |-- CategoryNav.jsx
 |  |  |  |-- CustomOrderDrawer.jsx
+|  |  |  |-- DiscountedProductCard.jsx
+|  |  |  |-- FeaturedCard.jsx
 |  |  |  |-- FilterDrawer.jsx
 |  |  |  |-- index.js
 |  |  |  |-- ProductCard.jsx
 |  |  |  |-- ProductFilters.jsx
+|  |  |  |-- ProductRow.jsx
 |  |  |  |-- shopFilters.js
-|  |  |  \-- shopMeta.js
+|  |  |  |-- shopMeta.js
+|  |  |  \-- Showcase.jsx
 |  |  |-- static
 |  |  |  |-- ContactArt.jsx
 |  |  |  |-- DisclaimerArt.jsx
@@ -398,7 +409,8 @@ Generated from the current project tree. Local .env files, dependencies, generat
 |  |  |  |  |-- SwitchField.jsx
 |  |  |  |  |-- SwitchInput.jsx
 |  |  |  |  |-- TagInput.jsx
-|  |  |  |  \-- TextInput.jsx
+|  |  |  |  |-- TextInput.jsx
+|  |  |  |  \-- useDropdownPosition.js
 |  |  |  |-- modal
 |  |  |  |  |-- ConfirmDialog.jsx
 |  |  |  |  |-- Drawer.jsx

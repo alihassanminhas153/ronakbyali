@@ -6,8 +6,8 @@ import { addProduct, updateProduct, fetchAllProducts, selectAllProducts } from '
 import { fetchSales, selectSaleOptions, selectSalesList } from '../../../store/slices/saleSlice';
 import productService from '../../../lib/appwrite/product';
 import ActionButton from '../../../ui/custom/button/ActionButton';
+import AdminSearchSelect from '../AdminSearchSelect';
 import SearchSelect from '../../../ui/custom/input/SearchSelect';
-import SelectInput from '../../../ui/custom/input/SelectInput';
 import ImageUploader from '../../../ui/custom/input/ImageUploader';
 import { getSaleStatus } from '../../../lib/saleMath';
 import { normalizeNumberInput } from '../../../lib/numberInput';
@@ -904,7 +904,7 @@ export default function ProductForm({ open, product, categories = [], groups = [
                 )}
               </div>
             </Field>
-            <Field as="div" label="Category" error={errors.category}>
+            <Field as="div" label="Category" error={errors.category} className="min-w-0">
               <SearchSelect
                 aria-label="Category"
                 options={categories}
@@ -916,7 +916,7 @@ export default function ProductForm({ open, product, categories = [], groups = [
                 clearable={false}
               />
             </Field>
-            <Field as="div" label="Group" optional>
+            <Field as="div" label="Group" optional className="min-w-0">
               <SearchSelect
                 aria-label="Group"
                 options={groups}
@@ -940,8 +940,9 @@ export default function ProductForm({ open, product, categories = [], groups = [
           </Section>
 
           <Section title="Pricing" subtitle="Original price, discount, and final price stay in sync." delay={60}>
-            <div className="sm:col-span-2">
-              <SelectInput
+            <div className="min-w-0 sm:col-span-2">
+              <AdminSearchSelect
+                className="min-w-0"
                 label="Sale"
                 value={form.saleId}
                 onChange={selectSale}

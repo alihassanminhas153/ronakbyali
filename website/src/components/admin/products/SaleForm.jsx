@@ -6,7 +6,7 @@ import { addToast } from '../../../store/slices/uiSlice';
 import { addSale, updateSale } from '../../../store/slices/saleSlice';
 import ActionButton from '../../../ui/custom/button/ActionButton';
 import DatePicker from '../../../ui/custom/input/DatePicker';
-import SelectInput from '../../../ui/custom/input/SelectInput';
+import AdminSearchSelect from '../AdminSearchSelect';
 import SwitchField from '../../../ui/custom/input/SwitchField';
 import TextInput from '../../../ui/custom/input/TextInput';
 import { normalizeNumberInput } from '../../../lib/numberInput';
@@ -169,7 +169,8 @@ export default function SaleForm({ sale, onCancel, onSaved }) {
         hint="Show a matching alert on the products pages."
       />
       {form.makeAlert && (
-        <SelectInput
+        <AdminSearchSelect
+          className="min-w-0"
           label="Alert type"
           value={form.type}
           onChange={set('type')}

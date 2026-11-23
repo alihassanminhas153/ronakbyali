@@ -43,7 +43,7 @@ import FilterDrawer from '../../../components/shop/FilterDrawer';
 import FeaturedCard, { FeaturedCardSkeleton } from '../../../components/shop/FeaturedCard';
 import DiscountedProductCard, { DiscountedProductCardSkeleton } from '../../../components/shop/DiscountedProductCard';
 import ProductRow, { SectionHeading } from '../../../components/shop/ProductRow';
-import { getDiscountedProducts, getPopularProducts } from '../../../components/shop/Showcase';
+import { getDiscountedProducts, getPopularProducts } from '../../../components/shop/showcase';
 import {
   FILTER_KEYS as K,
   SORT_OPTIONS,
@@ -180,25 +180,6 @@ export default function AllProducts({ pages = [] }) {
   // Until the first request is under way, the list may still hold rows from another page.
   const firstLoad = !started || (empty && (status === 'idle' || loading));
   const narrowed = isNarrowed(filters);
-
-  useEffect(() => {
-    const syncSearchSelectSize = () => {
-      const height = window.innerWidth >= 1024 ? '3.25rem' : '3rem';
-      const buttons = document.querySelectorAll('[aria-label="Category"], [aria-label="Group"]');
-
-      buttons.forEach((button) => {
-        button.style.minHeight = height;
-        button.style.height = height;
-        button.style.paddingLeft = '0.75rem';
-        button.style.paddingRight = '0.75rem';
-        button.style.fontSize = '0.875rem';
-      });
-    };
-
-    syncSearchSelectSize();
-    window.addEventListener('resize', syncSearchSelectSize);
-    return () => window.removeEventListener('resize', syncSearchSelectSize);
-  }, [categoryOptions, groupOptions]);
 
   const syncUrl = () =>
     setSearchParams(toParams(store.getState().products.filters), { replace: true });
@@ -502,9 +483,10 @@ export default function AllProducts({ pages = [] }) {
 
               {/* Category and group dropdowns: own row on phones, inline from lg up. */}
               <div className="order-3 grid w-full grid-cols-2 gap-3 lg:order-2 lg:flex lg:w-auto">
-                <div className="min-w-0 lg:w-52">
+                <div className="w-full min-w-0 lg:w-52">
                   <SearchSelect
                     aria-label="Category"
+                    size="lg"
                     value={filters[K.category] || ''}
                     onChange={(value) => onCategory(value || null)}
                     options={categoryValues}
@@ -515,9 +497,10 @@ export default function AllProducts({ pages = [] }) {
                     disabled={categoryValues.length === 0}
                   />
                 </div>
-                <div className="min-w-0 lg:w-52">
+                <div className="w-full min-w-0 lg:w-52">
                   <SearchSelect
                     aria-label="Group"
+                    size="lg"
                     value={filters[K.group] || ''}
                     onChange={(value) => onGroup(value || null)}
                     options={groupValues}

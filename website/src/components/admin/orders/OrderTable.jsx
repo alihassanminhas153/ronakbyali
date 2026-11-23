@@ -4,64 +4,32 @@ import '../users/userScroll.css';
 
 import AppIcon from '../../../ui/custom/AppIcon';
 import { postOrderDetail } from '../../../store/slices/ordersSlice';
-import orderService from '../../../lib/appwrite/order';
-import { buildWhatsAppUrl } from '../../../lib/phone';
-import { PATHS } from '../../../router/path';
-import { DeliveryChip, PaymentBadge, StatusBadge } from './OrderBadges';
+import { ConfirmationBadge, DeliveryChip, PaymentBadge, StatusBadge } from './OrderBadges';
 import { money, STATUS_META } from './orderMeta';
 
 const COLUMNS = [
   { label: 'Order ID' },
   { label: 'Payment / status' },
   { label: 'Customer update' },
-  { label: 'Confirmation', right: true },
+  { label: 'Confirmation / message', right: true },
 ];
 
 const stop = (e) => e.stopPropagation(); // controls inside a clickable row must not open it
 const rise = (i) => ({ animationDelay: `${Math.min(i, 12) * 35}ms` });
-function confirmationUrl(order) {
-  if (!order.username || typeof window === 'undefined') return null;
-  const path = PATHS.user.confirmOrder(order.username);
-  return `${window.location.origin}${path}?orderId=${encodeURIComponent(order.$id)}`;
-}
-
-function ConfirmationAction({ order }) {
-  if (order.isConfirmed) {
-    return (
-      <span className="inline-flex items-center justify-center rounded-md bg-success/10 px-3 py-2 text-xs font-semibold text-success">
-        Confirmed
-      </span>
-    );
-  }
-
-  const link = confirmationUrl(order);
-  const whatsappUrl = buildWhatsAppUrl(order.customerPhone);
-  if (!link || !whatsappUrl) {
-    return <span className="text-xs text-muted">Unavailable</span>;
-  }
-
-  const items = orderService.parseItems(order)
-    .map((item) => `${item.name || 'Product'} x${Number(item.quantity) || 0}`)
-    .filter(Boolean)
-    .join(', ');
-  const message = [
-    `Assalamualaikum ${order.customerName || 'Customer'},`,
-    `please confirm order ${order.orderNumber || order.$id}.`,
-    `Total: Rs ${Number(order.total || 0).toLocaleString('en-PK')}.`,
-    items ? `Items: ${items}.` : null,
-    `Open this link to confirm your order: ${link}`,
-  ].filter(Boolean).join('\n');
-
+// Confirmation state + the "Send message" button (opens the message box on the page).
+function MessageActions({ order, onMessage }) {
   return (
-    <a
-      href={buildWhatsAppUrl(order.customerPhone, message)}
-      target="_blank"
-      rel="noopener noreferrer"
-      onClick={stop}
-      className="btn btn-primary inline-flex min-h-9 items-center justify-center px-3 py-1.5 text-xs"
-    >
-      Confirm via WhatsApp
-    </a>
+    <div className="flex flex-col items-end gap-1.5">
+      <ConfirmationBadge confirmed={order.isConfirmed} />
+      <button
+        type="button"
+        onClick={(e) => { stop(e); onMessage?.(order); }}
+        aria-label={`Send a message about order ${order.orderNumber}`}
+        className="btn btn-primary inline-flex min-h-9 items-center justify-center px-3 py-1.5 text-xs"
+      >
+        Send message
+      </button>
+    </div>
   );
 }
 
@@ -137,7 +105,7 @@ function QuickUpdate({ orderId, orderNumber }) {
   );
 }
 
-const OrderRow = memo(function OrderRow({ order, index, onView }) {
+const OrderRow = memo(function OrderRow({ order, index, onView, onMessage }) {
   const dim = ['cancelled', 'returned'].includes(order.status) ? 'opacity-60' : '';
   const iconTone = STATUS_META[order.status]?.tone || 1;
   return (
@@ -163,13 +131,13 @@ const OrderRow = memo(function OrderRow({ order, index, onView }) {
       </td>
       <td className="px-4 py-3" onClick={stop}><QuickUpdate orderId={order.$id} orderNumber={order.orderNumber} /></td>
       <td className="cursor-default px-4 py-3" onClick={stop}>
-        <div className="flex justify-end"><ConfirmationAction order={order} /></div>
+        <div className="flex justify-end"><MessageActions order={order} onMessage={onMessage} /></div>
       </td>
     </tr>
   );
 });
 
-const OrderCard = memo(function OrderCard({ order, index, onView }) {
+const OrderCard = memo(function OrderCard({ order, index, onView, onMessage }) {
   const iconTone = STATUS_META[order.status]?.tone || 1;
   return (
     <li
@@ -193,7 +161,7 @@ const OrderCard = memo(function OrderCard({ order, index, onView }) {
           <StatusBadge status={order.status} />
           <p className="mt-1 text-xs tabular-nums text-muted">{money(order.total)}</p>
         </div>
-        <ConfirmationAction order={order} />
+        <div onClick={stop}><MessageActions order={order} onMessage={onMessage} /></div>
       </div>
       <div className="mt-3 border-t border-border pt-3">
         <QuickUpdate orderId={order.$id} orderNumber={order.orderNumber} />
@@ -202,14 +170,14 @@ const OrderCard = memo(function OrderCard({ order, index, onView }) {
   );
 });
 
-export default function OrderTable({ orders, onView }) {
+export default function OrderTable({ orders, onView, onMessage }) {
   return (
     <>
       <ul className="grid gap-3 sm:grid-cols-2 lg:hidden">
-        {orders.map((o, i) => <OrderCard key={o.$id} order={o} index={i} onView={onView} />)}
+        {orders.map((o, i) => <OrderCard key={o.$id} order={o} index={i} onView={onView} onMessage={onMessage} />)}
       </ul>
       <Shell>
-        {orders.map((o, i) => <OrderRow key={o.$id} order={o} index={i} onView={onView} />)}
+        {orders.map((o, i) => <OrderRow key={o.$id} order={o} index={i} onView={onView} onMessage={onMessage} />)}
       </Shell>
     </>
   );

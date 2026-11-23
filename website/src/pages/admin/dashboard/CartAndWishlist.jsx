@@ -22,7 +22,7 @@ import {
 } from '../../../ui/graphs';
 import ActionButton from '../../../ui/custom/button/ActionButton';
 import SearchInput from '../../../ui/custom/input/SearchInput';
-import SelectInput from '../../../ui/custom/input/SelectInput';
+import AdminSearchSelect from '../../../components/admin/AdminSearchSelect';
 import Tabs, { TabPanel } from '../../../ui/custom/tabs/Tabs';
 import CountUp from '../../../ui/custom/motion/CountUp';
 
@@ -279,8 +279,8 @@ export default function CartAndWishlist() {
               label="Search"
               className="sm:col-span-2 lg:col-span-1"
             />
-            <SelectInput
-              size="sm"
+            <AdminSearchSelect
+              className="min-w-0"
               aria-label="Filter"
               placeholder={cfg.filterPlaceholder}
               options={cfg.filters}
@@ -288,8 +288,8 @@ export default function CartAndWishlist() {
               onChange={(v) => setFilter(v || '')}
               clearable
             />
-            <SelectInput
-              size="sm"
+            <AdminSearchSelect
+              className="min-w-0"
               aria-label="Sort"
               options={cfg.sorts}
               value={sort}

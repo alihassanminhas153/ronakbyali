@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useAppDispatch, useAppSelector } from '../../../store/slices/hooks';
 import { selectPendingUserIds, setUserAccess } from '../../../store/slices/userSlice';
 import labelService from '../../../lib/appwrite/labels';
-import SelectInput from '../../../ui/custom/input/SelectInput';
+import AdminSearchSelect from '../AdminSearchSelect';
 import TagInput from '../../../ui/custom/input/TagInput';
 import ActionButton from '../../../ui/custom/button/ActionButton';
 import ConfirmDialog from '../../../ui/custom/modal/ConfirmDialog';
@@ -116,7 +116,8 @@ export default function AccessDrawer({ open, user, locked, onClose }) {
           {note && <Banner kind="error">{note}</Banner>}
           {result && <Banner kind={result.kind} onDismiss={() => setResult(null)}>{result.text}</Banner>}
 
-          <SelectInput
+          <AdminSearchSelect
+            className="min-w-0"
             label="Role"
             options={ROLE_OPTIONS}
             value={role}

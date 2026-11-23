@@ -1,15 +1,26 @@
-import { CheckCircle2, Clock, Cog, PackageCheck, ShoppingBag, Truck, Undo2, XCircle } from 'lucide-react';
+import { CheckCircle2, Clock, Cog, PackageCheck, Truck, Undo2, XCircle } from 'lucide-react';
 import { entityColorStep, toneColor } from '../../../lib/entityColors';
 
 // tone = the theme accent shade used by the badge, tab, and timeline dot
+// 'pending' and 'dispatched' reuse the colour steps of the old 'placed' and 'shipped',
+// so entityColors.js needs no change.
 export const STATUS_META = {
-  placed: { label: 'Placed', tone: entityColorStep('orderStatus', 'placed'), icon: ShoppingBag },
+  pending: { label: 'Pending', tone: entityColorStep('orderStatus', 'placed'), icon: Clock },
   processing: { label: 'Processing', tone: entityColorStep('orderStatus', 'processing'), icon: Cog },
   packed: { label: 'Packed', tone: entityColorStep('orderStatus', 'packed'), icon: PackageCheck },
-  shipped: { label: 'Shipped', tone: entityColorStep('orderStatus', 'shipped'), icon: Truck },
+  dispatched: { label: 'Dispatched', tone: entityColorStep('orderStatus', 'shipped'), icon: Truck },
   delivered: { label: 'Delivered', tone: entityColorStep('orderStatus', 'delivered'), icon: CheckCircle2 },
   cancelled: { label: 'Cancelled', tone: entityColorStep('orderStatus', 'cancelled'), icon: XCircle },
   returned: { label: 'Returned', tone: entityColorStep('orderStatus', 'returned'), icon: Undo2 },
+};
+// Rows and timeline steps saved before the rename still show correctly.
+STATUS_META.placed = STATUS_META.pending;
+STATUS_META.shipped = STATUS_META.dispatched;
+
+// orders.isConfirmed
+export const CONFIRMATION_META = {
+  true: { label: 'Confirmed', tone: entityColorStep('paymentStatus', 'paid') },
+  false: { label: 'Not confirmed', tone: entityColorStep('paymentStatus', 'partial') },
 };
 
 export const PAYMENT_META = {

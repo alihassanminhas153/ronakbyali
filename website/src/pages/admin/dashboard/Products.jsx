@@ -34,7 +34,7 @@ import {
 } from '../../../components/admin/products';
 import ActionButton from '../../../ui/custom/button/ActionButton';
 import SearchInput from '../../../ui/custom/input/SearchInput';
-import SelectInput from '../../../ui/custom/input/SelectInput';
+import AdminSearchSelect from '../../../components/admin/AdminSearchSelect';
 import ConfirmDialog from '../../../ui/custom/modal/ConfirmDialog';
 import Modal from '../../../ui/custom/modal/Modal';
 import Tabs, { TabPanel } from '../../../ui/custom/tabs/Tabs';
@@ -239,18 +239,17 @@ export default function Products() {
               className="w-full min-w-0"
             />
             <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-              <SelectInput
-                size="sm"
+              <AdminSearchSelect
+                className="min-w-0"
                 aria-label="Filter by category"
                 placeholder="All categories"
                 options={categories}
                 value={filters.category || ''}
                 onChange={(category) => applyFilters({ category: category || null })}
-                searchable
                 clearable
               />
-              <SelectInput
-                size="sm"
+              <AdminSearchSelect
+                className="min-w-0"
                 aria-label="Filter by stock"
                 placeholder="Any stock"
                 options={STATUS_OPTIONS}
@@ -258,8 +257,8 @@ export default function Products() {
                 onChange={(value) => applyFilters({ status: value || null })}
                 clearable
               />
-              <SelectInput
-                size="sm"
+              <AdminSearchSelect
+                className="min-w-0"
                 aria-label="Filter by product type"
                 placeholder="All product types"
                 options={TYPE_OPTIONS}
@@ -267,8 +266,8 @@ export default function Products() {
                 onChange={(value) => applyFilters({ isCustom: value ? value === 'custom' : null })}
                 clearable
               />
-              <SelectInput
-                size="sm"
+              <AdminSearchSelect
+                className="min-w-0"
                 aria-label="Sort products"
                 options={SORT_OPTIONS}
                 value={filters.sortBy}

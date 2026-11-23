@@ -97,7 +97,7 @@ function Brand() {
     </span>
   ) : (
     <img
-      src="/images/icons/branding/favicon.ico"
+      src="/favicon.ico"
       alt=""
       title="Ronak By Ali"
       onError={() => setFailed(true)}

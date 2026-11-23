@@ -23,10 +23,12 @@ export async function loadPanelAccess(force = false) {
   emit({ ...state, status: 'loading' });
   const res = await navLayoutService.listRows();
   // if the table cannot be read nothing is hidden or blocked (the app keeps working)
-  emit(res.ok ? { status: 'ready', rows: res.rows } : { status: 'error', rows: state.rows, message: res.message });
+  emit(res.ok
+    ? { status: 'ready', rows: res.rows, statusCode: null }
+    : { status: 'error', rows: state.rows, message: res.message, statusCode: res.code });
 }
 
-export const setPanelRows = (rows) => emit({ status: 'ready', rows });
+export const setPanelRows = (rows) => emit({ status: 'ready', rows, statusCode: null });
 
 export default function usePanelAccess() {
   useEffect(() => {

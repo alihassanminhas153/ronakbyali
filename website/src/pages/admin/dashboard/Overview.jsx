@@ -14,6 +14,12 @@ import useSession from '../../../router/useSession';
 import { PATHS } from '../../../router/path';
 import { BarChart, Donut, HeatmapCalendar, TrendGraph, colorFor, compact, toneVar } from '../../../ui/graphs';
 import { formatCardMoney } from '../../../ui/graphs/CardMoney';
+import usePanelAccess from '../../../lib/layout/usePanelAccess';
+import useUserLabels from '../../../lib/layout/useUserLabels';
+import { visiblePages } from '../../../lib/layout/layoutRegistry';
+import { isAccessDeniedError } from '../../../lib/appwrite/accessErrors';
+import { useAppDispatch } from '../../../store/slices/hooks';
+import { addToast } from '../../../store/slices/uiSlice';
 
 const short = (n) => `Rs ${compact(n)}`;
 const colored = (data) => data.map((d) => ({ ...d, color: colorFor(d.label) }));
@@ -46,6 +52,7 @@ function useTimeAgo(date) {
 
 // Admin > Overview   (/team/:username)
 export default function Overview() {
+  const dispatch = useAppDispatch();
   const baseLink = useAdminLink();
   const { username } = useSession();
   // Known keys always use PATHS (the same URLs as the sidebar); anything else falls back to the old helper.
@@ -54,13 +61,32 @@ export default function Overview() {
     [username, baseLink]
   );
   const data = useOverviewData();
-  const { loading, error, reload } = data;
+  const { loading, error, accessDenied, reload } = data;
+  const { rows: layoutRows, statusCode: accessStatusCode } = usePanelAccess();
+  const userLabels = useUserLabels();
+  const visiblePageKeys = useMemo(
+    () => new Set(visiblePages('admin', layoutRows, userLabels).map((page) => page.key)),
+    [layoutRows, userLabels]
+  );
+  const canShowPage = useCallback((key) => visiblePageKeys.has(key), [visiblePageKeys]);
+  const showAccessWarning = accessDenied || isAccessDeniedError({ code: accessStatusCode });
   const [updatedAt, setUpdatedAt] = useState(null);
   const ago = useTimeAgo(updatedAt);
 
   useEffect(() => {
     if (!loading) setUpdatedAt(new Date());
   }, [loading]);
+
+  useEffect(() => {
+    if (showAccessWarning) {
+      dispatch(addToast({
+        type: 'warning',
+        message: "You don't have full access to one or more Appwrite tables.",
+        position: 'top-center',
+        duration: 4500,
+      }));
+    }
+  }, [showAccessWarning, dispatch]);
 
   const { orders, products, users, alerts, reviews, carts, wishlists, ledger } = data;
   const o = useMemo(
@@ -69,6 +95,15 @@ export default function Overview() {
   );
   const { fin, orderStats, productStats, userStats, alertStats, reviewStats } = o;
   const loss = fin.all.net < 0;
+  const hasOrders = Array.isArray(orders) && orders.length > 0;
+  const hasProducts = Array.isArray(products) && products.length > 0;
+  const hasUsers = Array.isArray(users) && users.length > 0;
+  const hasAlerts = Array.isArray(alerts) && alerts.length > 0;
+  const hasReviews = Array.isArray(reviews) && reviews.length > 0;
+  const hasCarts = Array.isArray(carts) && carts.length > 0;
+  const hasWishlists = Array.isArray(wishlists) && wishlists.length > 0;
+  const hasLedger = Array.isArray(ledger) && ledger.length > 0;
+  const hasFinance = hasOrders || hasLedger;
 
   return (
     <div className="space-y-5">
@@ -98,7 +133,7 @@ export default function Overview() {
         )}
       />
 
-      {error && (
+      {error && !showAccessWarning && (
         <div role="alert" className="rounded-lg border border-error/40 bg-error/10 px-4 py-3 text-sm text-error">
           {error} <button type="button" onClick={reload} className="font-medium underline">Try again</button>
         </div>
@@ -106,28 +141,32 @@ export default function Overview() {
 
       {/* Key numbers: every tile opens its page */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <LinkTile to={link('finance')} label="Revenue" value={fin.now.revenue} format={formatCardMoney} hint={`${fin.paidCount} orders with payment received`} appIcon="pkr" sensitive tone={1} delay={0} />
-        <LinkTile to={link('finance')} label={loss ? 'Net loss' : 'Net profit'} value={Math.abs(fin.all.net)} format={formatCardMoney} hint={fin.roi == null ? 'add an investment' : `${Math.round(fin.roi)}% return`} appIcon={loss ? 'arrow_trend_down' : 'arrow_trend_up'} sensitive tone={loss ? 4 : 7} delay={40} />
-        <LinkTile to={link('orders')} label="Placed orders" value={orderStats.placed} hint={`${orderStats.open} open in total`} appIcon="clock" tone={3} delay={80} />
-        <LinkTile to={link('users')} label="Customers" value={userStats.customers} hint={`${userStats.fresh} new in 30 days`} appIcon="customers" tone={6} delay={120} />
-        <LinkTile to={link('products')} label="Products in stock" value={productStats.inStock} hint={`${productStats.out} out of stock`} appIcon="boxes" tone={2} delay={160} />
-        <LinkTile to={link('alerts')} label="Active alerts" value={alertStats.active} hint={`${alertStats.popups} popups`} appIcon="alert" tone={5} delay={200} />
-        <LinkTile to={link('carts')} label="Value in carts" value={fin.demand.cartValue} format={formatCardMoney} hint={`${fin.demand.cartsWithItems} carts with items`} appIcon="cart" sensitive tone={1} delay={240} />
-        <LinkTile to={link('reviews')} label="Reviews to approve" value={reviewStats.pending} hint={reviewStats.average ? `${reviewStats.average.toFixed(1)} / 5 average` : 'no reviews yet'} appIcon="reviews" tone={4} delay={280} />
+        {canShowPage('finance') && hasFinance && <><LinkTile to={link('finance')} label="Revenue" value={fin.now.revenue} format={formatCardMoney} hint={`${fin.paidCount} orders with payment received`} appIcon="pkr" sensitive tone={1} delay={0} />
+        <LinkTile to={link('finance')} label={loss ? 'Net loss' : 'Net profit'} value={Math.abs(fin.all.net)} format={formatCardMoney} hint={fin.roi == null ? 'add an investment' : `${Math.round(fin.roi)}% return`} appIcon={loss ? 'arrow_trend_down' : 'arrow_trend_up'} sensitive tone={loss ? 4 : 7} delay={40} /></>}
+        {canShowPage('orders') && hasOrders && <LinkTile to={link('orders')} label="Placed orders" value={orderStats.placed} hint={`${orderStats.open} open in total`} appIcon="clock" tone={3} delay={80} />}
+        {canShowPage('users') && hasUsers && <LinkTile to={link('users')} label="Customers" value={userStats.customers} hint={`${userStats.fresh} new in 30 days`} appIcon="customers" tone={6} delay={120} />}
+        {canShowPage('products') && hasProducts && <LinkTile to={link('products')} label="Products in stock" value={productStats.inStock} hint={`${productStats.out} out of stock`} appIcon="boxes" tone={2} delay={160} />}
+        {canShowPage('alerts') && hasAlerts && <LinkTile to={link('alerts')} label="Active alerts" value={alertStats.active} hint={`${alertStats.popups} popups`} appIcon="alert" tone={5} delay={200} />}
+        {canShowPage('cart-and-wishlist') && (hasCarts || hasWishlists) && <LinkTile to={link('carts')} label="Value in carts" value={fin.demand.cartValue} format={formatCardMoney} hint={`${fin.demand.cartsWithItems} carts with items`} appIcon="cart" sensitive tone={1} delay={240} />}
+        {canShowPage('reviews') && hasReviews && <LinkTile to={link('reviews')} label="Reviews to approve" value={reviewStats.pending} hint={reviewStats.average ? `${reviewStats.average.toFixed(1)} / 5 average` : 'no reviews yet'} appIcon="reviews" tone={4} delay={280} />}
       </div>
 
       <div className={grid}>
-        <OverviewCard to={link('finance')} cta="Finance" title="Revenue trend" subtitle="Payment received, last 12 months" appIcon="histogram" tone={1}>
-          <TrendGraph data={fin.months.map((m) => ({ label: m.label, value: m.revenue }))} color="var(--accent-tone-1)" format={short} />
-        </OverviewCard>
-        <OverviewCard to={link('orders')} cta="Orders" title="Orders per day" subtitle="Last 6 months" appIcon="clock" tone={2} delay={80}>
-          <HeatmapCalendar data={fin.ordersHeat} weeks={26} label="orders" />
-        </OverviewCard>
+        {canShowPage('finance') && hasFinance && (
+          <OverviewCard to={link('finance')} cta="Finance" title="Revenue trend" subtitle="Payment received, last 12 months" appIcon="histogram" tone={1}>
+            <TrendGraph data={fin.months.map((m) => ({ label: m.label, value: m.revenue }))} color="var(--accent-tone-1)" format={short} />
+          </OverviewCard>
+        )}
+        {canShowPage('orders') && hasOrders && (
+          <OverviewCard to={link('orders')} cta="Orders" title="Orders per day" subtitle="Last 6 months" appIcon="clock" tone={2} delay={80} className="lg:col-span-2">
+            <HeatmapCalendar data={fin.ordersHeat} weeks={26} label="orders" />
+          </OverviewCard>
+        )}
       </div>
 
       {/* One card per section */}
       <div className={grid}>
-        <OverviewCard to={link('orders')} cta="All orders" title="Orders" subtitle={`${orderStats.total} in total`} appIcon="list" tone={1} className="lg:col-span-2">
+        {canShowPage('orders') && hasOrders && <OverviewCard to={link('orders')} cta="All orders" title="Orders" subtitle={`${orderStats.total} in total`} appIcon="list" tone={1} className="lg:col-span-2">
           <Mini items={[
             { label: 'Placed', value: orderStats.placed, tone: 3 },
             { label: 'Open', value: orderStats.open, tone: 5 },
@@ -172,61 +211,61 @@ export default function Overview() {
               )}
             </div>
           </div>
-        </OverviewCard>
+        </OverviewCard>}
 
-        <OverviewCard to={link('products')} cta="Products" title="Products" subtitle={`${productStats.total} in the store`} appIcon="boxes" tone={2} delay={80}>
+        {canShowPage('products') && hasProducts && <OverviewCard to={link('products')} cta="Products" title="Products" subtitle={`${productStats.total} in the store`} appIcon="boxes" tone={2} delay={80}>
           <Mini items={[
             { label: 'In stock', value: productStats.inStock, tone: 2 },
             { label: 'Out of stock', value: productStats.out, tone: 4 },
             { label: 'Running low', value: productStats.low, tone: 3 },
           ]} />
           <BarChart data={colored(productStats.byCategory.slice(0, 6))} empty="No products yet." />
-        </OverviewCard>
+        </OverviewCard>}
 
-        <OverviewCard to={link('users')} cta="Users" title="Customers" subtitle="New sign-ups, last 6 months" appIcon="customers" tone={6} delay={160}>
+        {canShowPage('users') && hasUsers && <OverviewCard to={link('users')} cta="Users" title="Customers" subtitle="New sign-ups, last 6 months" appIcon="customers" tone={6} delay={160}>
           <Mini items={[
             { label: 'Accounts', value: userStats.total, tone: 6 },
             { label: 'New', value: userStats.fresh, tone: 7 },
             { label: 'Blocked', value: userStats.blocked, tone: 4 },
           ]} />
           <TrendGraph data={userStats.signups.map((s) => ({ label: s.label, value: s.value }))} color="var(--accent-tone-6)" />
-        </OverviewCard>
+        </OverviewCard>}
 
-        <OverviewCard to={link('alerts')} cta="Alerts" title="Alerts" subtitle={`${alertStats.total} created · ${Math.round(alertStats.seenRate)}% seen`} appIcon="alert" tone={5} delay={240}>
+        {canShowPage('alerts') && hasAlerts && <OverviewCard to={link('alerts')} cta="Alerts" title="Alerts" subtitle={`${alertStats.total} created · ${Math.round(alertStats.seenRate)}% seen`} appIcon="alert" tone={5} delay={240}>
           <Mini items={[
             { label: 'Active', value: alertStats.active, tone: 5 },
             { label: 'Scheduled', value: alertStats.scheduled, tone: 3 },
             { label: 'Popups', value: alertStats.popups, tone: 6 },
           ]} />
           <Donut centerLabel="alerts" data={colored(alertStats.byState.map((d) => ({ ...d, label: cap(d.label) })))} empty="No alerts yet." />
-        </OverviewCard>
+        </OverviewCard>}
 
-        <OverviewCard to={link('carts')} cta="Carts & wishlists" title="Carts & wishlists" subtitle="What shoppers are about to buy" appIcon="cart" tone={3} delay={320}>
+        {canShowPage('cart-and-wishlist') && (hasCarts || hasWishlists) && <OverviewCard to={link('carts')} cta="Carts & wishlists" title="Carts & wishlists" subtitle="What shoppers are about to buy" appIcon="cart" tone={3} delay={320}>
           <Mini items={[
             { label: 'Carts', value: fin.demand.cartsWithItems, tone: 1 },
             { label: 'In carts', value: fin.demand.cartValue, format: formatCardMoney, tone: 7 },
             { label: 'Wishlisted', value: fin.demand.wishTotal, tone: 4 },
           ]} />
           <BarChart data={fin.demand.topCarted.slice(0, 5).map((l) => ({ label: l.name, value: l.carts, hint: `${l.qty} pcs` }))} empty="No carts yet." />
-        </OverviewCard>
+        </OverviewCard>}
 
-        <OverviewCard to={link('finance')} cta="Finance" title="Finance" subtitle="Net profit per month, below the line = loss" appIcon="wallet" tone={7} delay={400}>
+        {canShowPage('finance') && hasFinance && <OverviewCard to={link('finance')} cta="Finance" title="Finance" subtitle="Net profit per month, below the line = loss" appIcon="wallet" tone={7} delay={400} className="lg:col-span-2">
           <Mini items={[
             { label: 'Cash in hand', value: fin.cash, format: formatCardMoney, tone: fin.cash < 0 ? 4 : 2 },
             { label: 'Invested', value: fin.all.invested, format: formatCardMoney, tone: 6 },
             { label: 'Expenses', value: fin.now.opex, format: formatCardMoney, tone: 4 },
           ]} />
           <TrendGraph data={fin.months.map((m) => ({ label: m.label, value: m.profit }))} color="var(--accent-tone-7)" format={short} />
-        </OverviewCard>
+        </OverviewCard>}
 
-        <OverviewCard to={link('reviews')} cta="All reviews" title="Reviews" subtitle={`${reviewStats.total} in total`} appIcon="reviews" tone={4} delay={480} className="lg:col-span-2">
+        {canShowPage('reviews') && hasReviews && <OverviewCard to={link('reviews')} cta="All reviews" title="Reviews" subtitle={`${reviewStats.total} in total`} appIcon="reviews" tone={4} delay={480} className="lg:col-span-2">
           <Mini items={[
             { label: 'To approve', value: reviewStats.pending, tone: 3 },
             { label: 'Average rating', value: reviewStats.average ? `${reviewStats.average.toFixed(1)} / 5` : '—', tone: 7 },
             { label: 'Approved 5★', value: reviewStats.stars[4].value, tone: 1 },
           ]} />
           <BarChart orientation="vertical" height={150} data={reviewStats.stars.map((s, i) => ({ ...s, color: `var(--accent-tone-${[4, 3, 8, 5, 7][i]})` }))} format={(n) => n} empty="No approved reviews yet." />
-        </OverviewCard>
+        </OverviewCard>}
       </div>
 
       {/* Quick links */}
@@ -234,17 +273,21 @@ export default function Overview() {
         {[
           ['orders', 'Orders', ShoppingBag, 1], ['products', 'Products', Boxes, 2], ['users', 'Users', Users, 6], ['alerts', 'Alerts', Bell, 5],
           ['carts', 'Carts & wishlists', Heart, 4], ['reviews', 'Reviews', Star, 3], ['finance', 'Finance', Wallet, 7], ['settings', 'Settings', Settings, 8],
-        ].map(([to, label, Icon, tone]) => (
-          <Link
-            key={to}
-            to={link(to)}
-            style={{ '--op': toneVar(tone) }}
-            className="group inline-flex h-10 items-center gap-2 rounded-lg border border-border bg-surface px-3.5 text-sm font-medium text-text transition-all duration-200 hover:-translate-y-px hover:border-[var(--op)] hover:text-[var(--op)] active:translate-y-0 active:scale-95"
-          >
-            <Icon size={16} className="transition-transform duration-300 group-hover:scale-110 group-hover:-rotate-6" />
-            {label}
-          </Link>
-        ))}
+        ].map(([to, label, Icon, tone]) => {
+          const pageKey = to === 'carts' ? 'cart-and-wishlist' : to;
+          if (!canShowPage(pageKey) && pageKey !== 'settings') return null;
+          return (
+            <Link
+              key={to}
+              to={link(to)}
+              style={{ '--op': toneVar(tone) }}
+              className="group inline-flex h-10 items-center gap-2 rounded-lg border border-border bg-surface px-3.5 text-sm font-medium text-text transition-all duration-200 hover:-translate-y-px hover:border-[var(--op)] hover:text-[var(--op)] active:translate-y-0 active:scale-95"
+            >
+              <Icon size={16} className="transition-transform duration-300 group-hover:scale-110 group-hover:-rotate-6" />
+              {label}
+            </Link>
+          );
+        })}
       </nav>
     </div>
   );

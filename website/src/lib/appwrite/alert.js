@@ -1,5 +1,6 @@
 import envVars from '../../../env/var';
 import { Client, TablesDB, Query, ID } from 'appwrite';
+import { isAccessDeniedError } from './accessErrors';
 
 export const ALERT_TYPES = ['info', 'success', 'warning', 'error', 'promo'];
 export const ALERT_STATUS = { ACTIVE: 'active', INACTIVE: 'inactive', EXPIRED: 'expired' };
@@ -47,6 +48,7 @@ export class AlertService {
     client = new Client();
     table;
     lastError = null;
+    lastAccessDenied = false;
 
     databaseId = envVars.ronakByAliDatabaseId;
     tableId = envVars.ronakByAliAlerts;
@@ -316,9 +318,11 @@ export class AlertService {
     // Every alert (up to `max`), for the charts.
     async getAllAlerts(max = 500) {
         this.lastError = null;
+        this.lastAccessDenied = false;
         try {
             return await this._listAll([Query.orderDesc('$createdAt')], max);
         } catch (error) {
+            this.lastAccessDenied = isAccessDeniedError(error);
             return this._fail(error, 'Could not load alerts.');
         }
     }
