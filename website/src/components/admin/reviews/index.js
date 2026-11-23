@@ -1,4 +1,5 @@
 export { default as ReviewCard } from './ReviewCard';
+export { default as SelectBox } from './SelectBox';
 export { ProductRatingRow, RatingBars, Stars, StatusBadge } from './Parts';
 export {
   PERIODS,

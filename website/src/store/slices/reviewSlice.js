@@ -11,6 +11,8 @@ import { isSessionEnded } from './authSlice';
 
 const PAGE = 100;
 const text = (value, fallback) => (typeof value === 'string' && value ? value : fallback);
+// Paging by offset can return the same row twice if a review is added while loading.
+const unique = (rows) => [...new Map(rows.map((r) => [r.$id, r])).values()];
 
 /* ---------- thunks: admin (unchanged) ---------- */
 
@@ -25,11 +27,20 @@ export const fetchReviews = createAsyncThunk('reviews/fetch', async (_, { reject
       offset += page.length;
       if (!page.length || offset >= total) break;
     }
-    return rows;
+    return unique(rows);
   } catch (error) {
     return rejectWithValue(error.message || 'Could not load the reviews.');
   }
 });
+
+// Bulk versions. arg = array of review rows. Resolves { updated: rows[], failed: n }.
+const bulkThunk = (type, status, fallback) =>
+  createAsyncThunk(type, async (rows, { rejectWithValue }) => {
+    const result = await reviewService.setStatusMany(rows, status);
+    return result.updated.length || !result.failed ? result : rejectWithValue(reviewService.lastError || fallback);
+  });
+export const approveMany = bulkThunk('reviews/approveMany', 'approved', 'Could not approve the reviews.');
+export const rejectMany = bulkThunk('reviews/rejectMany', 'rejected', 'Could not reject the reviews.');
 
 // Makes a review public and refreshes the product's rating.
 export const approveReview = createAsyncThunk('reviews/approve', async (id, { rejectWithValue }) => {
@@ -85,7 +96,7 @@ export const fetchMyReviews = createAsyncThunk('reviews/fetchMine', async (userI
       offset += page.length;
       if (!page.length || offset >= total) break;
     }
-    return rows;
+    return unique(rows);
   } catch (error) {
     return rejectWithValue(error.message || 'Could not load your reviews.');
   }
@@ -113,6 +124,7 @@ const initialState = {
   busy: {}, // { [reviewId or `p:${productId}`]: true } while an action runs
   actionError: null,
   syncing: false,
+  bulkBusy: false, // true while approveMany / rejectMany runs
   // customer
   mine: {
     items: [],
@@ -182,6 +194,27 @@ const reviewSlice = createSlice({
         state.mine.status = 'error';
         state.mine.error = text(payload, 'Could not load your reviews.');
       });
+
+    // Bulk approve / reject: mark every row busy, then swap in the updated rows.
+    [approveMany, rejectMany].forEach((thunk) => {
+      builder
+        .addCase(thunk.pending, (state, { meta }) => {
+          state.bulkBusy = true;
+          state.actionError = null;
+          meta.arg.forEach((r) => { state.busy[r.$id] = true; });
+        })
+        .addCase(thunk.fulfilled, (state, { meta, payload }) => {
+          state.bulkBusy = false;
+          meta.arg.forEach((r) => { delete state.busy[r.$id]; });
+          payload.updated.forEach((row) => replaceRow(state, row));
+          if (payload.failed) state.actionError = `${payload.failed} ${payload.failed === 1 ? 'review' : 'reviews'} could not be updated.`;
+        })
+        .addCase(thunk.rejected, (state, { meta, payload }) => {
+          state.bulkBusy = false;
+          meta.arg.forEach((r) => { delete state.busy[r.$id]; });
+          state.actionError = text(payload, 'Something went wrong.');
+        });
+    });
 
     // Row actions: track busy + errors, and apply the result to the list on success.
     [

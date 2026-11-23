@@ -1,0 +1,447 @@
+﻿WEBSITE FILE STRUCTURE
+Root: website/
+
+Generated from the current project tree. Local .env files, dependencies, generated build/test output, caches, and Git metadata are excluded. .env.sample is included.
+|-- env
+|  \-- var.js
+|-- functions
+|  \-- manage-user-labels
+|     |-- src
+|     |  \-- main.js
+|     \-- package.json
+|-- public
+|  |-- fonts
+|  |  |-- BarlowCondensed-Bold.ttf
+|  |  |-- BarlowCondensed-SemiBold.ttf
+|  |  |-- Inter-VariableFont_opsz,wght.ttf
+|  |  \-- SpaceGrotesk-VariableFont_wght.ttf
+|  |-- images
+|  |  |-- icons
+|  |  |  |-- app_icons
+|  |  |  |  |-- alert.ico
+|  |  |  |  |-- arrow_trend_down.ico
+|  |  |  |  |-- arrow_trend_up.ico
+|  |  |  |  |-- boxes.ico
+|  |  |  |  |-- calendar.ico
+|  |  |  |  |-- cart.ico
+|  |  |  |  |-- clock.ico
+|  |  |  |  |-- coins.ico
+|  |  |  |  |-- crown.ico
+|  |  |  |  |-- customers.ico
+|  |  |  |  |-- disclaimer.ico
+|  |  |  |  |-- discount_tag.ico
+|  |  |  |  |-- donut_chart.ico
+|  |  |  |  |-- fail_error_cross.ico
+|  |  |  |  |-- graph.ico
+|  |  |  |  |-- hand_speaker.ico
+|  |  |  |  |-- heart.ico
+|  |  |  |  |-- histogram.ico
+|  |  |  |  |-- layers.ico
+|  |  |  |  |-- list.ico
+|  |  |  |  |-- network.ico
+|  |  |  |  |-- pkr.ico
+|  |  |  |  |-- popular.ico
+|  |  |  |  |-- reviews.ico
+|  |  |  |  |-- ruler.ico
+|  |  |  |  |-- settings_gear.ico
+|  |  |  |  |-- single_box.ico
+|  |  |  |  |-- success.ico
+|  |  |  |  |-- trophy.ico
+|  |  |  |  |-- truck.ico
+|  |  |  |  |-- user.ico
+|  |  |  |  |-- wallet.ico
+|  |  |  |  \-- wrist_watch.ico
+|  |  |  \-- branding
+|  |  |     |-- favicon.ico
+|  |  |     |-- favicon-orange.ico
+|  |  |     |-- logo.webp
+|  |  |     \-- logo-orange.webp
+|  |  \-- webp
+|  |     |-- transparent
+|  |     |  \-- hero.webp
+|  |     \-- showcase.webp
+|  |-- apple-touch-icon.png
+|  |-- favicon.ico
+|  |-- favicon-48x48.png
+|  |-- favicon-96x96.png
+|  |-- icon-192.png
+|  |-- icon-512.png
+|  |-- robots.txt
+|  \-- sitemap.xml
+|-- scripts
+|  \-- generate-sitemap.mjs
+|-- src
+|  |-- assets
+|  |  |-- auth
+|  |  |  \-- auth.webp
+|  |  \-- hero
+|  |     |-- 01-denim-customized-bag.webp
+|  |     |-- 02-denim-pouch-bags.webp
+|  |     |-- 04-denim-tote-mandala.webp
+|  |     |-- 05-framed_Asma_ul_Ausna_tree.webp
+|  |     \-- 06-framed-durood-ibrahimi.webp
+|  |-- components
+|  |  |-- admin
+|  |  |  |-- alerts
+|  |  |  |  |-- AlertAnalytics.jsx
+|  |  |  |  |-- AlertBadges.jsx
+|  |  |  |  |-- AlertForm.jsx
+|  |  |  |  |-- alertMeta.js
+|  |  |  |  |-- AlertPreview.jsx
+|  |  |  |  |-- alertSchema.js
+|  |  |  |  |-- AlertTable.jsx
+|  |  |  |  |-- index.js
+|  |  |  |  \-- useAlertAnalytics.js
+|  |  |  |-- cart
+|  |  |  |  |-- CartParts.jsx
+|  |  |  |  |-- index.js
+|  |  |  |  \-- useCartWishlist.js
+|  |  |  |-- finance
+|  |  |  |  |-- financeMath.js
+|  |  |  |  |-- financeSchema.js
+|  |  |  |  |-- FinanceTabs.jsx
+|  |  |  |  |-- index.js
+|  |  |  |  |-- LedgerForm.jsx
+|  |  |  |  |-- LedgerTable.jsx
+|  |  |  |  |-- RestockForm.jsx
+|  |  |  |  \-- useFinanceData.js
+|  |  |  |-- orders
+|  |  |  |  |-- FormParts.jsx
+|  |  |  |  |-- index.js
+|  |  |  |  |-- OrderAnalytics.jsx
+|  |  |  |  |-- OrderBadges.jsx
+|  |  |  |  |-- OrderForm.jsx
+|  |  |  |  |-- orderMeta.js
+|  |  |  |  |-- OrderTable.jsx
+|  |  |  |  \-- OrderTracker.jsx
+|  |  |  |-- overview
+|  |  |  |  |-- adminLinks.js
+|  |  |  |  |-- index.js
+|  |  |  |  |-- overviewMath.js
+|  |  |  |  |-- OverviewParts.jsx
+|  |  |  |  \-- useOverviewData.js
+|  |  |  |-- products
+|  |  |  |  |-- index.js
+|  |  |  |  |-- ProductAnalytics.jsx
+|  |  |  |  |-- productFields.js
+|  |  |  |  |-- ProductForm.jsx
+|  |  |  |  |-- productSchema.js
+|  |  |  |  |-- ProductTable.jsx
+|  |  |  |  |-- SaleForm.jsx
+|  |  |  |  |-- SalesDrawer.jsx
+|  |  |  |  \-- useProductAnalytics.js
+|  |  |  |-- reviews
+|  |  |  |  |-- helpers.js
+|  |  |  |  |-- index.js
+|  |  |  |  |-- Parts.jsx
+|  |  |  |  \-- ReviewCard.jsx
+|  |  |  |-- settings
+|  |  |  |  |-- AccessDrawer.jsx
+|  |  |  |  |-- AccessTab.jsx
+|  |  |  |  |-- DevicesTab.jsx
+|  |  |  |  |-- LayoutTab.jsx
+|  |  |  |  |-- PasswordDrawer.jsx
+|  |  |  |  |-- ProfileDrawer.jsx
+|  |  |  |  |-- ProfileTab.jsx
+|  |  |  |  |-- settingsMeta.js
+|  |  |  |  \-- SettingsParts.jsx
+|  |  |  |-- users
+|  |  |  |  |-- index.js
+|  |  |  |  |-- userAnalytics.js
+|  |  |  |  |-- UserBadges.jsx
+|  |  |  |  |-- UserCharts.jsx
+|  |  |  |  |-- UserErrorBanner.jsx
+|  |  |  |  |-- userFields.js
+|  |  |  |  |-- UserForm.jsx
+|  |  |  |  |-- userScroll.css
+|  |  |  |  |-- UserStats.jsx
+|  |  |  |  \-- UserTable.jsx
+|  |  |  \-- index.js
+|  |  |-- home
+|  |  |  |-- CustomStudio.jsx
+|  |  |  |-- FaqArt.jsx
+|  |  |  |-- faqData.js
+|  |  |  |-- Faqs.jsx
+|  |  |  |-- Footer.jsx
+|  |  |  |-- HandwrittenLogo.jsx
+|  |  |  |-- ImageTextScroll.jsx
+|  |  |  |-- OrderPath.jsx
+|  |  |  |-- ProductsMarquee.jsx
+|  |  |  |-- useScrollValue.js
+|  |  |  \-- useSmoothScroll.js
+|  |  |-- shared
+|  |  |  |-- header
+|  |  |  |  |-- AlertBell.jsx
+|  |  |  |  |-- Header.jsx
+|  |  |  |  |-- index.js
+|  |  |  |  |-- useHeaderData.js
+|  |  |  |  \-- useSeenAlerts.js
+|  |  |  |-- AccessGate.jsx
+|  |  |  |-- AlertPopupHost.jsx
+|  |  |  |-- DashboardShell.jsx
+|  |  |  |-- index.js
+|  |  |  |-- Sidebar.jsx
+|  |  |  |-- SidebarFold.jsx
+|  |  |  |-- SidebarLogout.jsx
+|  |  |  |-- SidebarThemeToggle.jsx
+|  |  |  \-- usePageAlerts.js
+|  |  |-- shop
+|  |  |  |-- CategoryNav.jsx
+|  |  |  |-- CustomOrderDrawer.jsx
+|  |  |  |-- FilterDrawer.jsx
+|  |  |  |-- index.js
+|  |  |  |-- ProductCard.jsx
+|  |  |  |-- ProductFilters.jsx
+|  |  |  |-- shopFilters.js
+|  |  |  \-- shopMeta.js
+|  |  |-- static
+|  |  |  |-- ContactArt.jsx
+|  |  |  |-- DisclaimerArt.jsx
+|  |  |  |-- PolicyLayout.jsx
+|  |  |  \-- PrivacyArt.jsx
+|  |  \-- user
+|  |     |-- profile
+|  |     |  |-- ProfileDrawer.jsx
+|  |     |  \-- profileMeta.js
+|  |     \-- SidePanel.jsx
+|  |-- context
+|  |  \-- ThemeContext.jsx
+|  |-- layouts
+|  |  |-- AccountLayout.jsx
+|  |  |-- AuthLayout.jsx
+|  |  |-- MainLayout.jsx
+|  |  \-- PlainLayout.jsx
+|  |-- lib
+|  |  |-- appwrite
+|  |  |  |-- accountExtras.js
+|  |  |  |-- alert.js
+|  |  |  |-- auth.js
+|  |  |  |-- cart.js
+|  |  |  |-- customOrder.js
+|  |  |  |-- finance.js
+|  |  |  |-- index.js
+|  |  |  |-- labels.js
+|  |  |  |-- layout.js
+|  |  |  |-- navLayout.js
+|  |  |  |-- order.js
+|  |  |  |-- orderConfirm.js
+|  |  |  |-- orderConfirmation.js
+|  |  |  |-- product.js
+|  |  |  |-- review.js
+|  |  |  |-- sale.js
+|  |  |  |-- settings.js
+|  |  |  |-- tracker.js
+|  |  |  |-- user.js
+|  |  |  \-- wishlist.js
+|  |  |-- layout
+|  |  |  |-- accessRules.js
+|  |  |  |-- layoutRegistry.js
+|  |  |  |-- usePanelAccess.js
+|  |  |  \-- useUserLabels.js
+|  |  |-- checkoutDraft.js
+|  |  |-- entityColors.js
+|  |  |-- imageOptimizer.js
+|  |  |-- numberInput.js
+|  |  |-- orderDelivery.js
+|  |  |-- orderMath.js
+|  |  |-- phone.js
+|  |  |-- saleMath.js
+|  |  |-- siteInfo.js
+|  |  |-- textCase.js
+|  |  \-- useCopied.js
+|  |-- pages
+|  |  |-- admin
+|  |  |  |-- dashboard
+|  |  |  |  |-- AdminPannel.jsx
+|  |  |  |  |-- Alerts.jsx
+|  |  |  |  |-- CartAndWishlist.jsx
+|  |  |  |  |-- Finance.jsx
+|  |  |  |  |-- index.js
+|  |  |  |  |-- Layout.jsx
+|  |  |  |  |-- Orders.jsx
+|  |  |  |  |-- Overview.jsx
+|  |  |  |  |-- Products.jsx
+|  |  |  |  |-- Reviews.jsx
+|  |  |  |  |-- Settings.jsx
+|  |  |  |  \-- Users.jsx
+|  |  |  \-- index.js
+|  |  |-- shared
+|  |  |  |-- account
+|  |  |  |  |-- AuthCallback.jsx
+|  |  |  |  |-- authRedirect.js
+|  |  |  |  |-- index.js
+|  |  |  |  |-- Signin.jsx
+|  |  |  |  \-- Signup.jsx
+|  |  |  |-- auth
+|  |  |  |  |-- AuthButton.jsx
+|  |  |  |  |-- AuthField.jsx
+|  |  |  |  |-- AuthShell.jsx
+|  |  |  |  |-- GlowBorder.jsx
+|  |  |  |  |-- GoogleButton.jsx
+|  |  |  |  |-- LogoutButton.jsx
+|  |  |  |  \-- ProfileStep.jsx
+|  |  |  |-- other
+|  |  |  |  |-- Detail.jsx
+|  |  |  |  \-- index.js
+|  |  |  |-- products
+|  |  |  |  |-- AllProducts.jsx
+|  |  |  |  |-- CustomizeCheckout.jsx
+|  |  |  |  |-- index.js
+|  |  |  |  |-- Product.jsx
+|  |  |  |  \-- ProductCheckoutDrawer.jsx
+|  |  |  |-- structure
+|  |  |  |  |-- AccessDenied.jsx
+|  |  |  |  |-- Blocked.jsx
+|  |  |  |  |-- Home.jsx
+|  |  |  |  |-- index.js
+|  |  |  |  |-- NotFound.jsx
+|  |  |  |  \-- ServerError.jsx
+|  |  |  \-- index.js
+|  |  |-- static
+|  |  |  |-- Contact.jsx
+|  |  |  |-- CustomStudio.jsx
+|  |  |  |-- Disclaimer.jsx
+|  |  |  |-- FAQs.jsx
+|  |  |  |-- index.js
+|  |  |  |-- Privacy.jsx
+|  |  |  \-- TermsAndConditions.jsx
+|  |  |-- user
+|  |  |  |-- dashboard
+|  |  |  |  |-- Alerts.jsx
+|  |  |  |  |-- Cart.jsx
+|  |  |  |  |-- CheckoutPage.jsx
+|  |  |  |  |-- ConfirmOrder.jsx
+|  |  |  |  |-- index.js
+|  |  |  |  |-- Orders.jsx
+|  |  |  |  |-- Overview.jsx
+|  |  |  |  |-- Profile.jsx
+|  |  |  |  |-- Reviews.jsx
+|  |  |  |  \-- Wishlist.jsx
+|  |  |  \-- index.js
+|  |  \-- index.js
+|  |-- router
+|  |  |-- AppErrorBoundry.jsx
+|  |  |-- BlockedGate.jsx
+|  |  |-- CatchAllRoute.jsx
+|  |  |-- GuestRoute.jsx
+|  |  |-- path.js
+|  |  |-- ProtecteRoute.jsx
+|  |  |-- RedirectRoute.jsx
+|  |  |-- RouteErrorBoundary.jsx
+|  |  |-- SlugRoute.jsx
+|  |  |-- useProductId.js
+|  |  |-- useProfileSync.js
+|  |  \-- useSession.js
+|  |-- store
+|  |  |-- slices
+|  |  |  |-- alertSlice.js
+|  |  |  |-- authSlice.js
+|  |  |  |-- cartSlice.js
+|  |  |  |-- checkoutThunks.js
+|  |  |  |-- hooks.js
+|  |  |  |-- index.js
+|  |  |  |-- ordersSlice.js
+|  |  |  |-- productsSlice.js
+|  |  |  |-- reviewSlice.js
+|  |  |  |-- saleSlice.js
+|  |  |  |-- services.js
+|  |  |  |-- uiSlice.js
+|  |  |  |-- userSlice.js
+|  |  |  |-- utils.js
+|  |  |  \-- wishlistSlice.js
+|  |  \-- store.js
+|  |-- ui
+|  |  |-- art
+|  |  |  |-- AccessDeniedArt.jsx
+|  |  |  |-- AlertsArt.jsx
+|  |  |  |-- ArtFrame.jsx
+|  |  |  |-- BlockedArt.jsx
+|  |  |  |-- CartArt.jsx
+|  |  |  |-- CheckoutArt.jsx
+|  |  |  |-- DinoGame.jsx
+|  |  |  |-- EmptyState.jsx
+|  |  |  |-- ErrorArt.jsx
+|  |  |  |-- FinanceArt.jsx
+|  |  |  |-- FishingDino404.jsx
+|  |  |  |-- index.js
+|  |  |  |-- NoProductsArt.jsx
+|  |  |  |-- NoResultsArt.jsx
+|  |  |  |-- NotFoundArt.jsx
+|  |  |  |-- OrderFormArt.jsx
+|  |  |  |-- OrdersArt.jsx
+|  |  |  |-- OrderSuccessArt.jsx
+|  |  |  |-- OverviewArt.jsx
+|  |  |  |-- PageArt.jsx
+|  |  |  |-- ProductsArt.jsx
+|  |  |  |-- ProfileArt.jsx
+|  |  |  |-- ReviewsArt.jsx
+|  |  |  |-- SettingsArt.jsx
+|  |  |  \-- WishlistArt.jsx
+|  |  |-- custom
+|  |  |  |-- button
+|  |  |  |  |-- ActionButton.jsx
+|  |  |  |  |-- DualCombination.jsx
+|  |  |  |  |-- RoundedWithIcon.jsx
+|  |  |  |  \-- SimpleButton.jsx
+|  |  |  |-- checkout
+|  |  |  |  |-- CheckoutParts.jsx
+|  |  |  |  \-- CheckoutUI.jsx
+|  |  |  |-- input
+|  |  |  |  |-- DatePicker.jsx
+|  |  |  |  |-- FormField.jsx
+|  |  |  |  |-- ImageUploader.jsx
+|  |  |  |  |-- inputStyles.js
+|  |  |  |  |-- SearchInput.jsx
+|  |  |  |  |-- SearchSelect.jsx
+|  |  |  |  |-- Segmented.jsx
+|  |  |  |  |-- SelectInput.jsx
+|  |  |  |  |-- SwitchField.jsx
+|  |  |  |  |-- SwitchInput.jsx
+|  |  |  |  |-- TagInput.jsx
+|  |  |  |  \-- TextInput.jsx
+|  |  |  |-- modal
+|  |  |  |  |-- ConfirmDialog.jsx
+|  |  |  |  |-- Drawer.jsx
+|  |  |  |  \-- Modal.jsx
+|  |  |  |-- motion
+|  |  |  |  |-- CountUp.jsx
+|  |  |  |  |-- Typewriter.jsx
+|  |  |  |  \-- useEntered.js
+|  |  |  |-- tabs
+|  |  |  |  \-- Tabs.jsx
+|  |  |  |-- toast
+|  |  |  |  \-- ToastViewport.jsx
+|  |  |  |-- toggles
+|  |  |  |  |-- ThemeToggle.jsx
+|  |  |  |  |-- Toogle.jsx
+|  |  |  |  \-- TriInputToggle.jsx
+|  |  |  |-- tooltip
+|  |  |  |  \-- Tooltip.jsx
+|  |  |  |-- AppIcon.jsx
+|  |  |  |-- PageHeader.jsx
+|  |  |  \-- PanelPageTitle.jsx
+|  |  \-- graphs
+|  |     |-- BarChart.jsx
+|  |     |-- CardMoney.jsx
+|  |     |-- ChartCard.jsx
+|  |     |-- Donut.jsx
+|  |     |-- FormattedValue.jsx
+|  |     |-- HeatmapCalendar.jsx
+|  |     |-- Histogram.jsx
+|  |     |-- index.js
+|  |     |-- StatTile.jsx
+|  |     |-- TrendGraph.jsx
+|  |     \-- utils.js
+|  |-- App.jsx
+|  |-- index.css
+|  \-- main.jsx
+|-- .env.sample
+|-- .gitignore
+|-- appwrite.config.json
+|-- eslint.config.js
+|-- index.html
+|-- package.json
+|-- package-lock.json
+|-- README.md
+|-- vercel.json
+\-- vite.config.js

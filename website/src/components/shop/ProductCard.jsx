@@ -16,10 +16,16 @@
 // The cart and heart buttons only appear when onAddToCart / onToggleWishlist are passed.
 // costPrice is never shown here.
 //
-// DESIGN: the image fills the whole card; only the name and price sit on a glass panel at the bottom.
-// On hover / keyboard focus the panel grows upward and reveals category, rating, freshness, savings
-// and the cart / wishlist buttons. Touch screens (no hover) keep the panel compact and show small
-// round cart / heart buttons next to the price instead.
+// DESIGN (sm and up, 640px+): the image fills the whole card; only the name and price sit on a glass
+// panel at the bottom. While the card is NOT hovered a line under the price shows "You save ..." (or
+// the rating when there is no saving). On hover / keyboard focus that line goes away and the panel
+// grows upward, revealing category, rating, freshness, "You save ..." and the cart / wishlist buttons.
+// Touch screens (no hover) keep the panel compact with small round cart / heart buttons by the price.
+//
+// DESIGN (below sm, phones): a stacked card. The image gets the big top part (4:5), and under it a
+// content box of FIXED height holds name (2 lines), price, cart / wishlist buttons and one info line
+// ("You save ..." or rating). The box is the same size for normal and custom products: a custom
+// product just shows a round "Customize" icon button where the cart button would be.
 // Product columns used: name, slug, category, imageIds, price, originalPrice,
 // discountPercentage, discountName, status, remaining, ratingAverage, reviewCount,
 // $createdAt, $updatedAt.
@@ -27,7 +33,7 @@
 import { memo, useState } from 'react';
 import { Link } from 'react-router';
 import { useSelector } from 'react-redux';
-import { Check, Clock, Heart, ImageOff, MessageSquare, ShoppingCart, Star, Tag } from 'lucide-react';
+import { Check, Clock, Heart, ImageOff, MessageSquare, Palette, ShoppingCart, Star, Tag } from 'lucide-react';
 
 import productService from '../../lib/appwrite/product';
 import { getEffectivePricing } from '../../lib/saleMath';
@@ -180,7 +186,7 @@ function ProductCard({
         entered ? 'translate-y-0 opacity-100' : 'translate-y-2 opacity-0'
       }`}
     >
-      <article className="group/card relative block aspect-[3/4] w-full min-w-0 overflow-hidden rounded-2xl border border-border bg-surface-alt/60 shadow-soft transition-all duration-300 ease-out hover:-translate-y-1 hover:border-accent/50 hover:shadow-lg focus-within:border-accent/50">
+      <article className="group/card relative flex w-full min-w-0 flex-col overflow-hidden rounded-2xl border border-border bg-surface-alt/60 shadow-soft transition-all duration-300 ease-out hover:-translate-y-1 hover:border-accent/50 hover:shadow-lg focus-within:border-accent/50 sm:block sm:aspect-[3/4]">
         {/* whole card is a link; the buttons sit above it (z-20) */}
         <Link
           to={link}
@@ -192,7 +198,9 @@ function ProductCard({
         </Link>
 
         {/* ---------- image: fills the whole card ---------- */}
-        <div className="absolute inset-0 grid place-items-center p-3 pb-20 sm:pb-24">
+        {/* phones: a 4:5 block at the top of the card. sm and up: fills the card behind the panel */}
+        <div className="relative aspect-[4/5] w-full shrink-0 sm:absolute sm:inset-0 sm:aspect-auto">
+        <div className="absolute inset-0 grid place-items-center p-2 sm:p-3 sm:pb-24">
           {image && !imgFailed ? (
             <img
               src={image}
@@ -206,6 +214,7 @@ function ProductCard({
           ) : (
             <ImageOff size={36} className="text-muted/60" aria-hidden="true" />
           )}
+        </div>
         </div>
 
         {/* light sweep on hover */}
@@ -236,32 +245,31 @@ function ProductCard({
           </span>
         )}
 
-        {/* ---------- bottom panel: name + price, grows on hover ---------- */}
+        {/* ---------- bottom panel ---------- */}
+        {/* sm and up: glass panel over the image that grows on hover. Below sm: fixed-height box under the image. */}
         {/* pointer-events-none lets clicks on the text fall through to the card link; buttons opt back in */}
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 border-t border-border/60 bg-surface/85 px-2.5 pb-2.5 pt-2 backdrop-blur-md sm:px-4 sm:pb-3 sm:pt-3">
-          <h3 className="line-clamp-1 break-words text-sm font-semibold leading-tight text-text transition-colors group-hover/card:line-clamp-2 group-hover/card:text-accent group-focus-within/card:line-clamp-2 sm:text-base [overflow-wrap:anywhere]">
+        <div className="pointer-events-none relative z-20 h-28 shrink-0 overflow-hidden border-t border-border/60 bg-surface/85 px-2.5 pb-2.5 pt-2 backdrop-blur-md sm:absolute sm:inset-x-0 sm:bottom-0 sm:h-auto sm:overflow-visible sm:px-4 sm:pb-3 sm:pt-3">
+          <h3 className="line-clamp-2 min-h-[2.2rem] break-words text-sm font-semibold leading-tight text-text transition-colors sm:min-h-0 sm:line-clamp-1 sm:text-base sm:group-hover/card:line-clamp-2 sm:group-hover/card:text-accent sm:group-focus-within/card:line-clamp-2 [overflow-wrap:anywhere]">
             {product.name}
           </h3>
 
-          <div className="mt-1 flex items-end justify-between gap-2">
+          <div className="mt-1 flex h-8 items-center justify-between gap-2 sm:h-auto sm:items-end">
             <div className="min-w-0">
-              {onOffer && (
-                <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
-                  {hasDrop && <span className="text-xs text-muted line-through">{money(originalPrice)}</span>}
-                  {percent > 0 && (
-                    <span className="rounded-md bg-accent-soft px-1.5 py-0.5 text-[10px] font-semibold text-accent sm:text-xs">
-                      -{percent}%
-                    </span>
-                  )}
-                </div>
-              )}
-              <p className="break-words text-base font-semibold leading-tight tabular-nums text-text sm:text-lg">
-                {pricing.sale ? money(finalPrice) : product.priceFormat || money(finalPrice)}
-              </p>
+              <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                <p className="break-words text-[15px] font-semibold leading-tight tabular-nums text-text sm:text-lg">
+                  {pricing.sale ? money(finalPrice) : product.priceFormat || money(finalPrice)}
+                </p>
+                {hasDrop && <span className="hidden text-xs text-muted line-through sm:inline">{money(originalPrice)}</span>}
+                {percent > 0 && (
+                  <span className="hidden rounded-md bg-accent-soft px-1.5 py-0.5 text-[10px] font-semibold text-accent sm:inline sm:text-xs">
+                    -{percent}%
+                  </span>
+                )}
+              </div>
             </div>
 
-            {/* touch screens (no hover): compact round buttons next to the price */}
-            <div className="pointer-events-auto hidden shrink-0 items-center gap-1.5 [@media(hover:none)]:flex">
+            {/* phones and touch screens (no hover): compact round buttons next to the price */}
+            <div className="pointer-events-auto hidden shrink-0 items-center gap-1.5 max-sm:flex [@media(hover:none)]:flex">
               {showCart && (
                 <button
                   type="button"
@@ -269,7 +277,7 @@ function ProductCard({
                   disabled={outOfStock || cartBusy}
                   aria-label={cartLabel}
                   title={cartTitle}
-                  className={`grid size-9 place-items-center rounded-full shadow-sm transition-all duration-200 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 ${
+                  className={`grid size-8 place-items-center rounded-full shadow-sm transition-all duration-200 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 sm:size-9 ${
                     lastOne ? 'bg-success text-white' : 'bg-brown text-on-brown'
                   }`}
                 >
@@ -284,17 +292,43 @@ function ProductCard({
                 <button
                   type="button"
                   onClick={() => onCustomize(product)}
-                  className="inline-flex h-9 items-center rounded-full border border-border bg-surface px-3 text-xs font-semibold text-text"
+                  aria-label="Customize"
+                  title="Customize"
+                  className="inline-flex size-8 items-center justify-center rounded-full border border-border bg-surface text-xs font-semibold text-text sm:size-auto sm:h-9 sm:px-3"
                 >
-                  Customize
+                  <Palette size={15} className="sm:hidden" aria-hidden="true" />
+                  <span className="max-sm:sr-only">Customize</span>
                 </button>
               )}
-              {wishButton('size-9')}
+              {wishButton('size-8 sm:size-9')}
+            </div>
+          </div>
+
+          {/* One line under the price. Always there on phones; on big screens it is shown until the card is
+              hovered / focused, then it slides away and "You save" appears in the details below instead. */}
+          <div className="grid grid-rows-[1fr] transition-[grid-template-rows,opacity] duration-300 ease-out motion-reduce:transition-none sm:group-hover/card:grid-rows-[0fr] sm:group-hover/card:opacity-0 sm:[@media(hover:hover)]:group-focus-within/card:grid-rows-[0fr] sm:[@media(hover:hover)]:group-focus-within/card:opacity-0">
+            <div className="min-h-0 overflow-hidden">
+              {saved > 0 ? (
+                <p className="mt-1 flex h-4 items-center truncate text-xs font-medium leading-4 text-success">You save {money(saved)}</p>
+              ) : (
+                <p className="mt-1 flex h-4 items-center gap-1 truncate text-xs leading-4 text-muted">
+                  {hasReviews ? (
+                    <>
+                      <Star size={12} className="shrink-0 fill-current text-warning" aria-hidden="true" />
+                      <span className="tabular-nums">
+                        {rating.toFixed(1)} ({reviews})
+                      </span>
+                    </>
+                  ) : (
+                    <span className="truncate">{product.category || ''}</span>
+                  )}
+                </p>
+              )}
             </div>
           </div>
 
           {/* hover / focus details: slides open (grid-rows 0fr -> 1fr); never shown on touch screens */}
-          <div className="grid grid-rows-[0fr] opacity-0 transition-[grid-template-rows,opacity] duration-300 ease-out group-hover/card:grid-rows-[1fr] group-hover/card:opacity-100 group-focus-within/card:grid-rows-[1fr] group-focus-within/card:opacity-100 motion-reduce:transition-none [@media(hover:none)]:hidden">
+          <div className="grid grid-rows-[0fr] opacity-0 transition-[grid-template-rows,opacity] duration-300 ease-out group-hover/card:grid-rows-[1fr] group-hover/card:opacity-100 group-focus-within/card:grid-rows-[1fr] group-focus-within/card:opacity-100 motion-reduce:transition-none max-sm:hidden [@media(hover:none)]:hidden">
             <div className="min-h-0 overflow-hidden">
               <div className="flex flex-col gap-2 pt-2 sm:pt-3">
                 {product.category && (
@@ -369,8 +403,9 @@ export default memo(ProductCard);
 export function ProductCardSkeleton() {
   return (
     <li aria-hidden="true" className="min-w-0">
-      <div className="relative aspect-[3/4] w-full overflow-hidden rounded-2xl border border-border bg-surface-alt animate-pulse motion-reduce:animate-none">
-        <div className="absolute inset-x-0 bottom-0 space-y-2 border-t border-border/60 bg-surface/70 p-2.5 sm:p-4">
+      <div className="relative flex w-full flex-col overflow-hidden rounded-2xl border border-border bg-surface-alt animate-pulse motion-reduce:animate-none sm:block sm:aspect-[3/4]">
+        <div className="aspect-[4/5] sm:hidden" />
+        <div className="h-28 space-y-2 border-t border-border/60 bg-surface/70 p-2.5 sm:absolute sm:inset-x-0 sm:bottom-0 sm:h-auto sm:p-4">
           <div className="h-4 w-4/5 rounded-sm bg-surface-alt" />
           <div className="h-5 w-1/3 rounded-sm bg-surface-alt" />
         </div>

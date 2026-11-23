@@ -2,17 +2,17 @@ import PageHeader from '../../../ui/custom/PageHeader';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import {
-  Calculator, CalendarDays, Download, LineChart as LineIcon, MessageSquare,
-  PieChart, RefreshCw, Star, TrendingUp, Trophy,
+  Calculator, CalendarDays, Check, CheckCheck, Download, LineChart as LineIcon, MessageSquare,
+  PieChart, RefreshCw, Star, TrendingUp, Trophy, X,
 } from 'lucide-react';
 
 import {
-  PERIODS, ProductRatingRow, RATING_LABELS, REVIEW_SORTERS, RatingBars, ReviewCard, SORTS,
+  PERIODS, ProductRatingRow, RATING_LABELS, REVIEW_SORTERS, RatingBars, ReviewCard, SORTS, SelectBox,
   STATUS_META, STATUS_ORDER, buildProductStats, buildReviewStats, prettyDate, reviewsToCsv,
 } from '../../../components/admin/reviews';
 import {
-  approveReview, clearReviewError, deleteReview, fetchReviews, recalculateProduct, rejectReview,
-  replyToReview, syncAllProducts,
+  approveMany, approveReview, clearReviewError, deleteReview, fetchReviews, recalculateProduct, rejectMany,
+  rejectReview, replyToReview, syncAllProducts,
 } from '../../../store/slices/reviewSlice';
 import { ChartCard, Donut, HeatmapCalendar, StatTile, TrendGraph, countByDay } from '../../../ui/graphs';
 import ActionButton from '../../../ui/custom/button/ActionButton';
@@ -38,6 +38,11 @@ const PRODUCT_SORTERS = {
   low: (a, b) => (a.approved ? a.average : 6) - (b.approved ? b.average : 6) || b.approved - a.approved,
 };
 const whole = (n) => String(Math.round(n));
+const noun = (n) => (n === 1 ? 'review' : 'reviews');
+
+// Same button look as the review card actions. --op is the hover colour.
+const BULK_BTN =
+  'group inline-flex h-9 items-center gap-1.5 rounded-lg border border-border bg-surface px-3 text-sm font-medium text-text transition-all duration-200 hover:-translate-y-px hover:border-[var(--op)] hover:text-[var(--op)] active:translate-y-0 active:scale-95 disabled:pointer-events-none disabled:opacity-50';
 
 // "just now", "25s ago", "4m ago" ... re-rendered every 10 seconds
 function useTimeAgo(date) {
@@ -57,7 +62,7 @@ function useTimeAgo(date) {
 // Admin > Reviews   (/team/:username/reviews)
 export default function Reviews() {
   const dispatch = useDispatch();
-  const { items, status, error, loadedAt, busy, actionError, syncing } = useSelector((s) => s.reviews);
+  const { items, status, error, loadedAt, busy, actionError, syncing, bulkBusy } = useSelector((s) => s.reviews);
   const loading = status === 'loading';
 
   const [tab, setTab] = useState('reviews');
@@ -82,6 +87,11 @@ export default function Reviews() {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState('');
+  // selection + bulk actions
+  const [selected, setSelected] = useState(() => new Set());
+  const [bulk, setBulk] = useState(null); // { action: 'approve' | 'reject', rows } waiting for confirmation
+  const [bulkOpen, setBulkOpen] = useState(false);
+  const [bulkError, setBulkError] = useState('');
 
   const reload = useCallback(() => dispatch(fetchReviews()), [dispatch]);
   useEffect(() => {
@@ -112,6 +122,22 @@ export default function Reviews() {
   const resetFilters = () => { setSearch(''); setStatusLabel(''); setRatingLabel(''); setProductName(''); setVisible(PAGE); };
   const onSearch = useCallback((text) => { setSearch(text); setVisible(PAGE); }, []);
 
+  /* ---------- selection ---------- */
+  // Only reviews that are in the current filtered list count, so what you see is what you act on.
+  const picked = useMemo(() => filtered.filter((r) => selected.has(r.$id)), [filtered, selected]);
+  const allPicked = filtered.length > 0 && picked.length === filtered.length;
+  const toggleOne = useCallback((r, on) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (on) next.add(r.$id);
+      else next.delete(r.$id);
+      return next;
+    });
+  }, []);
+  const toggleAll = () => setSelected(allPicked ? new Set() : new Set(filtered.map((r) => r.$id)));
+  const approvable = (rows) => rows.filter((r) => r.status !== 'approved');
+  const rejectable = (rows) => rows.filter((r) => r.status !== 'rejected');
+
   /* ---------- product list ---------- */
   const shownProducts = useMemo(() => {
     const q = productSearch.trim().toLowerCase();
@@ -133,6 +159,34 @@ export default function Reviews() {
         (n) => setNotice(`Updated the rating of ${n} ${n === 1 ? 'product' : 'products'}.`),
         () => {}
       );
+  };
+
+  // Runs approveMany / rejectMany. Resolves '' on success or an error message.
+  const runBulk = async (action, rows) => {
+    const list = action === 'approve' ? approvable(rows) : rejectable(rows);
+    if (!list.length) return '';
+    setNotice('');
+    try {
+      const res = await dispatch((action === 'approve' ? approveMany : rejectMany)(list)).unwrap();
+      const n = res.updated.length;
+      setNotice(`${action === 'approve' ? 'Approved' : 'Rejected'} ${n} ${noun(n)}${res.failed ? ` (${res.failed} failed)` : ''}.`);
+      setSelected(new Set());
+      return '';
+    } catch (e) {
+      return typeof e === 'string' ? e : 'Something went wrong.';
+    }
+  };
+
+  const askBulk = (action, rows) => {
+    setBulk({ action, rows: action === 'approve' ? approvable(rows) : rejectable(rows) });
+    setBulkError('');
+    setBulkOpen(true);
+  };
+
+  const confirmBulk = async () => {
+    const message = await runBulk(bulk.action, bulk.rows);
+    if (message) setBulkError(message);
+    else setBulkOpen(false);
   };
 
   const confirmDelete = async () => {
@@ -299,6 +353,45 @@ export default function Reviews() {
             {updatedAt ? ` · last checked ${prettyDate(updatedAt.toISOString())}` : ''}
           </p>
 
+          {filtered.length > 0 && (
+            <div className="sticky top-2 z-20 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-surface/95 px-3.5 py-2.5 shadow-soft backdrop-blur">
+              <label className="inline-flex cursor-pointer items-center gap-2.5 text-sm text-text">
+                <SelectBox
+                  checked={allPicked}
+                  indeterminate={picked.length > 0 && !allPicked}
+                  onChange={toggleAll}
+                  label={allPicked ? 'Clear selection' : `Select all ${filtered.length} matching reviews`}
+                />
+                <span>{picked.length ? `${picked.length} selected` : `Select all ${filtered.length}${isFiltered ? ' matching' : ''}`}</span>
+              </label>
+
+              <div className="flex flex-wrap gap-2">
+                {picked.length > 0 ? (
+                  <>
+                    <button type="button" disabled={bulkBusy || !approvable(picked).length} onClick={() => runBulk('approve', picked)} style={{ '--op': 'var(--accent-tone-7)' }} className={BULK_BTN}>
+                      <Check size={16} /> Approve selected ({approvable(picked).length})
+                    </button>
+                    <button type="button" disabled={bulkBusy || !rejectable(picked).length} onClick={() => runBulk('reject', picked)} style={{ '--op': 'var(--accent-tone-4)' }} className={BULK_BTN}>
+                      <X size={16} /> Reject selected ({rejectable(picked).length})
+                    </button>
+                    <button type="button" disabled={bulkBusy} onClick={() => setSelected(new Set())} style={{ '--op': 'var(--accent-tone-2)' }} className={BULK_BTN}>
+                      Clear
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button type="button" disabled={bulkBusy || !approvable(filtered).length} onClick={() => askBulk('approve', filtered)} style={{ '--op': 'var(--accent-tone-7)' }} className={BULK_BTN}>
+                      <CheckCheck size={16} /> Approve all ({approvable(filtered).length})
+                    </button>
+                    <button type="button" disabled={bulkBusy || !rejectable(filtered).length} onClick={() => askBulk('reject', filtered)} style={{ '--op': 'var(--accent-tone-4)' }} className={BULK_BTN}>
+                      <X size={16} /> Reject all ({rejectable(filtered).length})
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+          )}
+
           {items.length === 0 && !loading ? (
             <div className="rounded-lg border border-dashed border-border p-10 text-center">
               <p className="font-display text-2xl font-semibold text-text">No reviews yet</p>
@@ -319,6 +412,8 @@ export default function Reviews() {
                     review={r}
                     index={i}
                     busy={Boolean(busy[r.$id])}
+                    selected={selected.has(r.$id)}
+                    onSelect={toggleOne}
                     onApprove={onApprove}
                     onReject={onReject}
                     onReply={onReply}
@@ -365,6 +460,22 @@ export default function Reviews() {
           )}
         </TabPanel>
       )}
+
+      <ConfirmDialog
+        open={bulkOpen}
+        danger={bulk?.action === 'reject'}
+        busy={bulkBusy}
+        error={bulkError}
+        title={bulk?.action === 'approve' ? 'Approve all these reviews?' : 'Reject all these reviews?'}
+        message={
+          bulk
+            ? `${bulk.rows.length} ${noun(bulk.rows.length)}${isFiltered ? ' matching your filters' : ''} will be ${bulk.action === 'approve' ? 'made public and counted in each product’s rating' : 'hidden from the shop'}. Reviews already ${bulk.action === 'approve' ? 'approved' : 'rejected'} are skipped.`
+            : ''
+        }
+        confirmLabel={bulk?.action === 'approve' ? 'Approve all' : 'Reject all'}
+        onConfirm={confirmBulk}
+        onCancel={() => setBulkOpen(false)}
+      />
 
       <ConfirmDialog
         open={deleteOpen}

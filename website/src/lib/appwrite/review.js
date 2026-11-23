@@ -12,6 +12,11 @@ export const REQUIRE_PURCHASE_TO_REVIEW = false;
 
 export const MAX_REVIEW_IMAGES = 3;
 
+// true  = a customer who already has an APPROVED review (and no rejected one)
+//         gets new reviews approved straight away.
+// false = every new review waits for the admin.
+export const AUTO_APPROVE_TRUSTED_REVIEWERS = true;
+
 // products.reviewIds and users.reviewIds keep only the NEWEST ids (the full
 // list is always found by querying reviews.productId / reviews.userId), so
 // those array columns never grow without limit.
@@ -31,7 +36,11 @@ export const MAX_REVIEW_IDS_STORED = 50;
 //   grant "user:<author id>" -> that was the 401 on approve/reject).
 //
 // HOW REVIEWS FLOW
-//   1. Customer writes a review      -> status "pending"
+//   1. Customer writes a review      -> status "pending", EXCEPT a "trusted" customer
+//      (has an approved review and no rejected one, see getInitialStatus) whose
+//      review is saved as "approved" at once. The product row's numbers still
+//      only refresh when an admin approves/rejects/syncs (users cannot edit
+//      products); the product page reads live numbers, so it is always right.
 //   2. Admin approves it (approveReview) -> status "approved" and the PRODUCT is
 //      updated: reviewCount, ratingAverage and reviewIds. Only admins can update
 //      products, so this is why products are updated at approval time and not at
@@ -112,6 +121,8 @@ export class ReviewService {
                 );
             }
 
+            const status = await this.getInitialStatus(profile.$id);
+
             for (const file of Array.from(files || []).slice(0, MAX_REVIEW_IMAGES)) {
                 const uploaded = await this.bucket.createFile({
                     bucketId: this.bucketId,
@@ -139,7 +150,7 @@ export class ReviewService {
                     imageIds: uploadedIds,
                     isVerifiedPurchase: check.purchased,
                     orderId,
-                    status: REVIEW_STATUS.PENDING,
+                    status,
                     adminReply: null,
                     repliedAt: null,
                 },
@@ -154,6 +165,27 @@ export class ReviewService {
             // 409 = the unique index (one review per user per product) said no.
             if (error.code === 409) return this._fail('You have already reviewed this product.');
             return this._fail(error.message);
+        }
+    }
+
+    // Status a NEW review starts with.
+    //   approved -> the user has at least one approved review and none rejected
+    //   pending  -> everything else (first review, any rejected review, or an error)
+    async getInitialStatus(userId) {
+        if (!AUTO_APPROVE_TRUSTED_REVIEWERS || !userId) return REVIEW_STATUS.PENDING;
+        try {
+            const res = await this.table.listRows({
+                databaseId: this.databaseId,
+                tableId: this.tableId,
+                queries: [Query.equal('userId', userId), Query.select(['status']), Query.limit(100)],
+            });
+            const rows = res?.rows || [];
+            const approved = rows.some((r) => r.status === REVIEW_STATUS.APPROVED);
+            const rejected = rows.some((r) => r.status === REVIEW_STATUS.REJECTED);
+            return approved && !rejected ? REVIEW_STATUS.APPROVED : REVIEW_STATUS.PENDING;
+        } catch (error) {
+            console.error(error.message);
+            return REVIEW_STATUS.PENDING;
         }
     }
 
@@ -352,6 +384,33 @@ export class ReviewService {
         } catch (error) {
             return this._fail(error.message);
         }
+    }
+
+    // Bulk approve / reject. reviews: review rows (already loaded in the admin list).
+    // Rows already in the wanted status are skipped. Each affected product is
+    // recalculated ONCE, not once per review.
+    // Returns { updated: rows[], failed: number }.
+    async setStatusMany(reviews, status) {
+        this.lastError = null;
+        const queue = (reviews || []).filter((r) => r?.$id && r.status !== status);
+        const updated = [];
+        let failed = 0;
+
+        const worker = async () => {
+            while (queue.length) {
+                const review = queue.shift();
+                const row = await this._setStatus(review, status);
+                if (row) updated.push(row);
+                else failed += 1;
+            }
+        };
+        await Promise.all(Array.from({ length: Math.min(4, queue.length) }, worker));
+
+        const productIds = [...new Set(updated.map((r) => r.productId).filter(Boolean))];
+        for (const id of productIds) await this.recalculateProduct(id);
+
+        if (!updated.length && failed) this.lastError = this.lastError || 'Could not update the reviews.';
+        return { updated, failed };
     }
 
     async replyToReview(rowId, text) {

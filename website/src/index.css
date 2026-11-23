@@ -400,6 +400,10 @@
   --animate-float: float 5s ease-in-out infinite;
   --animate-jelly-drop: jelly-drop 2.1s both;
   --animate-ground-pulse: ground-pulse 2.1s ease both;
+  /* shop cards (FeaturedCard, DiscountedProductCard) */
+  --animate-sale-vibrate: sale-vibrate 2.8s ease-in-out infinite;
+  --animate-sale-buzz: sale-buzz 0.32s linear infinite;
+  --animate-featured-sheen: featured-sheen 4.5s ease-in-out infinite;
 
   @keyframes rise {
     from { opacity: 0; transform: translateY(10px); }
@@ -474,6 +478,33 @@
     47% { opacity: 1; transform: scaleX(1.12); }
     60% { opacity: 0.6; transform: scaleX(0.92); }
     100% { opacity: 0.75; transform: scaleX(1); }
+  }
+
+  /* discount tag: a short, fast vibration burst, a pause, repeat */
+  @keyframes sale-vibrate {
+    0%, 58%, 100% { transform: translate(0, 0) rotate(0); }
+    61% { transform: translate(-2px, 1px) rotate(-3deg); }
+    64% { transform: translate(2px, -1px) rotate(3deg); }
+    67% { transform: translate(-2px, -1px) rotate(-2.5deg); }
+    70% { transform: translate(2px, 1px) rotate(2.5deg); }
+    73% { transform: translate(-1px, 1px) rotate(-2deg); }
+    76% { transform: translate(1px, -1px) rotate(1.5deg); }
+    79% { transform: translate(-1px, 0) rotate(-1deg); }
+    82% { transform: translate(0, 0) rotate(0); }
+  }
+
+  /* discount tag while the card is hovered / focused: faster, non-stop buzz */
+  @keyframes sale-buzz {
+    0%, 100% { transform: translate(0, 0) rotate(0); }
+    25% { transform: translate(-1.5px, 0.5px) rotate(-2deg); }
+    50% { transform: translate(1.5px, -0.5px) rotate(2deg); }
+    75% { transform: translate(-1px, -0.5px) rotate(-1.5deg); }
+  }
+
+  /* featured label: light sweep */
+  @keyframes featured-sheen {
+    0%, 55% { transform: translateX(-130%); }
+    85%, 100% { transform: translateX(130%); }
   }
 }
 

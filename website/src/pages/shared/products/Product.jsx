@@ -7,7 +7,6 @@ import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { Link, Navigate, useLocation, useNavigate, useParams } from "react-router";
 import { useDispatch, useSelector } from "react-redux";
 import {
-  BadgeCheck,
   Check,
   Copy,
   ShoppingCart,
@@ -27,7 +26,6 @@ import {
   selectProductDetailError,
   selectRelatedProducts,
   getProductImageUrls,
-  getMainImageUrl,
 } from "../../../store/slices/productsSlice";
 import { PATHS, PRODUCT_LIST_ALIASES } from "../../../router/path";
 import { LOGIN_REQUIRED } from "../../../store/slices/utils";
@@ -43,13 +41,13 @@ import {
 } from "../../../store/slices/wishlistSlice";
 import { selectMe } from "../../../store/slices/userSlice";
 import { selectSalesList } from "../../../store/slices/saleSlice";
-import userService from "../../../lib/appwrite/user";
-import reviewService from "../../../lib/appwrite/review";
 import { getEffectivePricing } from "../../../lib/saleMath";
 import ProductCheckoutDrawer from "./ProductCheckoutDrawer";
 import { loadDraft } from "../../../lib/checkoutDraft";
 import PageArt from "../../../ui/art/PageArt";
 import useCopied from "../../../lib/useCopied";
+import ProductCard from "../../../components/shop/ProductCard";
+import ProductReviews from "../../../components/shop/reviews/ProductReviews";
 
 /* ------------------------------------------------------------------ */
 /* helpers                                                             */
@@ -59,7 +57,6 @@ const money = (v) => `Rs ${Number(v || 0).toLocaleString("en-PK")}`;
 
 const LOW_STOCK_AT = 5;
 const MAX_QTY_WITHOUT_LIMIT = 10;
-const REVIEW_PAGE_SIZE = 10;
 const RESERVED_SHORT_PRODUCT_SLUGS = new Set([
   ...PRODUCT_LIST_ALIASES,
   "products",
@@ -95,6 +92,11 @@ export default function Product({ slug: slugProp }) {
   const status = useSelector(selectProductDetailStatus);
   const error = useSelector(selectProductDetailError);
   const related = useSelector(selectRelatedProducts);
+  const navigate = useNavigate();
+  const account = useSelector(selectMe);
+  const authProfile = useSelector((state) => state.auth.profile);
+  // Live numbers counted from approved reviews (the product row can lag until an admin syncs it).
+  const [ratingSummary, setRatingSummary] = useState(null);
 
   useEffect(() => {
     const pageTitle = product?.slug === slug
@@ -142,10 +144,20 @@ export default function Product({ slug: slugProp }) {
 
         <div className="mt-6 grid gap-8 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] lg:gap-14">
           <Gallery key={product.$id} product={product} />
-          <Details key={product.$id} product={product} />
+          <Details
+            key={product.$id}
+            product={product}
+            ratingSummary={ratingSummary?.productId === product.$id ? ratingSummary : null}
+          />
         </div>
 
-        <Reviews product={product} />
+        <ProductReviews
+          key={product.$id}
+          product={product}
+          profile={account || authProfile || null}
+          onRequireLogin={() => navigate("/welcome-back")}
+          onSummary={setRatingSummary}
+        />
         {related.length > 0 && <Related items={related} />}
       </main>
     </>
@@ -444,9 +456,9 @@ function StarRating({ rating, label, size = 16 }) {
   );
 }
 
-function ProductRating({ product }) {
-  const count = Number(product.reviewCount) || 0;
-  const rating = Number(product.ratingAverage) || 0;
+function ProductRating({ product, summary }) {
+  const count = Number(summary ? summary.total : product.reviewCount) || 0;
+  const rating = Number(summary ? summary.average : product.ratingAverage) || 0;
 
   return (
     <div className="mb-3 flex flex-wrap items-center gap-2">
@@ -466,7 +478,7 @@ function ProductRating({ product }) {
   );
 }
 
-function Details({ product }) {
+function Details({ product, ratingSummary }) {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const sales = useSelector(selectSalesList);
@@ -586,7 +598,7 @@ function Details({ product }) {
 
   return (
     <section className="flex flex-col">
-      <ProductRating product={product} />
+      <ProductRating product={product} summary={ratingSummary} />
       <div className="flex items-start justify-between gap-3">
         <h1 className="min-w-0 font-display text-4xl font-bold leading-tight text-text sm:text-5xl">
           {product.name}
@@ -809,236 +821,34 @@ function Details({ product }) {
   );
 }
 
-function ReviewAvatar({ review, name }) {
-  const [avatar, setAvatar] = useState(() => (
-    review.reviewerAvatarId
-      ? userService.getAvatarUrl({ fileId: review.reviewerAvatarId })
-      : null
-  ));
-  const [failed, setFailed] = useState(false);
-
-  useEffect(() => {
-    let active = true;
-    if (!avatar && review.userId) {
-      userService.getProfile({ userId: review.userId }).then((profile) => {
-        if (!active || !profile?.avatarFileId) return;
-        setAvatar(userService.getAvatarUrl({ fileId: profile.avatarFileId }));
-      });
-    }
-
-    return () => {
-      active = false;
-    };
-  }, [avatar, review.userId]);
-
-  if (avatar && !failed) {
-    return (
-      <img
-        src={avatar}
-        alt={`${name}'s avatar`}
-        loading="lazy"
-        onError={() => setFailed(true)}
-        className="size-11 shrink-0 rounded-full border border-border object-cover"
-      />
-    );
-  }
-
-  return (
-    <span
-      aria-label={`${name}'s avatar`}
-      className="grid size-11 shrink-0 place-items-center rounded-full border border-border bg-accent-soft text-sm font-semibold uppercase text-accent"
-    >
-      {name.charAt(0)}
-    </span>
-  );
-}
-
-function Reviews({ product }) {
-  const [state, setState] = useState({
-    productId: null,
-    rows: [],
-    total: 0,
-    loading: true,
-    loadingMore: false,
-    error: "",
-    moreError: "",
-  });
-
-  useEffect(() => {
-    let active = true;
-    setState({
-      productId: product.$id,
-      rows: [],
-      total: 0,
-      loading: true,
-      loadingMore: false,
-      error: "",
-      moreError: "",
-    });
-
-    reviewService.getProductReviews({ productId: product.$id, limit: REVIEW_PAGE_SIZE, offset: 0 })
-      .then((result) => {
-        if (!active) return;
-        setState((current) => ({
-          ...current,
-          rows: uniqueReviews(result.rows),
-          total: result.total,
-          loading: false,
-          error: result.error || "",
-        }));
-      })
-      .catch((error) => {
-        if (!active) return;
-        setState((current) => ({
-          ...current,
-          loading: false,
-          error: error.message || "Reviews could not be loaded. Please try again.",
-        }));
-      });
-
-    return () => {
-      active = false;
-    };
-  }, [product.$id]);
-
-  const loadMore = async () => {
-    setState((current) => ({ ...current, loadingMore: true, moreError: "" }));
-    try {
-      const result = await reviewService.getProductReviews({
-        productId: product.$id,
-        limit: REVIEW_PAGE_SIZE,
-        offset: state.rows.length,
-      });
-      if (result.error) throw new Error(result.error);
-      setState((current) => current.productId === product.$id
-        ? {
-            ...current,
-            rows: uniqueReviews([...current.rows, ...result.rows]),
-            total: result.total,
-            loadingMore: false,
-          }
-        : current);
-    } catch (error) {
-      setState((current) => current.productId === product.$id
-        ? {
-            ...current,
-            loadingMore: false,
-            moreError: error.message || "More reviews could not be loaded.",
-          }
-        : current);
-    }
-  };
-
-  const reviews = state.productId === product.$id ? state.rows : [];
-  const total = state.productId === product.$id ? state.total : 0;
-  const loading = state.productId !== product.$id || state.loading;
-  const error = state.productId === product.$id ? state.error : "";
-  const loadingMore = state.productId === product.$id && state.loadingMore;
-  const moreError = state.productId === product.$id ? state.moreError : "";
-
-  return (
-    <section className="mt-16" aria-labelledby="product-reviews-heading">
-      <div className="flex flex-wrap items-end justify-between gap-3 border-b border-border pb-4">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-accent">Customer feedback</p>
-          <h2 id="product-reviews-heading" className="mt-1 font-display text-3xl font-bold text-text">
-            Product reviews
-          </h2>
-        </div>
-        {!loading && !error && (
-          <p className="text-sm text-muted">
-            {total} {total === 1 ? "review" : "reviews"}
-          </p>
-        )}
-      </div>
-
-      {loading && <p role="status" className="mt-5 text-sm text-muted">Loading reviews…</p>}
-      {error && <p role="alert" className="mt-5 rounded-xl border border-error/30 bg-error/5 p-4 text-sm text-error">{error}</p>}
-      {!loading && !error && total === 0 && (
-        <div className="mt-5 rounded-2xl border border-dashed border-border bg-surface p-6 text-center">
-          <p className="font-semibold text-text">No reviews yet</p>
-          <p className="mt-1 text-sm text-muted">Be the first to share your experience with this product.</p>
-        </div>
-      )}
-
-      {!loading && !error && reviews.length > 0 && (
-        <ul className="mt-5 grid gap-3 sm:gap-4">
-          {reviews.map((review) => {
-            const name = review.reviewerName || review.username || "Customer";
-            const date = review.$createdAt
-              ? new Date(review.$createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
-              : "";
-            return (
-              <li key={review.$id}>
-                <article className="rounded-2xl border border-border bg-surface p-4 shadow-soft sm:p-5">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex min-w-0 items-center gap-3">
-                      <ReviewAvatar review={review} name={name} />
-                      <div className="min-w-0">
-                        <p className="truncate font-semibold text-text">{name}</p>
-                        <p className="mt-0.5 truncate text-xs text-muted">
-                          {review.username ? `@${review.username}` : ""}
-                          {review.username && date ? " · " : ""}
-                          {date}
-                        </p>
-                      </div>
-                    </div>
-                    {review.isVerifiedPurchase && (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-success/10 px-2.5 py-1 text-xs font-medium text-success">
-                        <BadgeCheck size={14} aria-hidden="true" /> Verified purchase
-                      </span>
-                    )}
-                  </div>
-                  <div className="mt-3 flex flex-wrap items-center gap-2">
-                    <StarRating rating={Number(review.rating) || 0} label={`${review.rating} out of 5 stars`} />
-                    {review.title && <h3 className="font-semibold text-text">{review.title}</h3>}
-                  </div>
-                  {review.message && (
-                    <p className="mt-2 whitespace-pre-line break-words text-sm leading-relaxed text-muted">{review.message}</p>
-                  )}
-                  {review.adminReply && (
-                    <div className="mt-4 rounded-xl border border-border bg-surface-alt/60 p-3">
-                      <p className="text-xs font-semibold uppercase tracking-wider text-accent">Store response</p>
-                      <p className="mt-1 whitespace-pre-line break-words text-sm text-text">{review.adminReply}</p>
-                    </div>
-                  )}
-                </article>
-              </li>
-            );
-          })}
-        </ul>
-      )}
-
-      {moreError && <p role="alert" className="mt-4 text-sm text-error">{moreError}</p>}
-      {!loading && !error && reviews.length < total && (
-        <button
-          type="button"
-          onClick={loadMore}
-          disabled={loadingMore}
-          className="mt-5 rounded-xl border border-border bg-surface px-4 py-2.5 text-sm font-semibold text-text transition hover:border-accent/60 hover:text-accent disabled:cursor-wait disabled:opacity-60"
-        >
-          {loadingMore ? "Loading reviews…" : "Load more reviews"}
-        </button>
-      )}
-    </section>
-  );
-}
-
-function uniqueReviews(rows) {
-  const seen = new Set();
-  return rows.filter((review) => {
-    if (!review?.$id || seen.has(review.$id)) return false;
-    seen.add(review.$id);
-    return true;
-  });
-}
-
 /* ------------------------------------------------------------------ */
 /* related                                                             */
 /* ------------------------------------------------------------------ */
 
+// One related product, with the same cart / wishlist buttons as the shop grid.
+function RelatedCard({ product, index }) {
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const wished = useSelector(useMemo(() => selectIsWished(product.$id), [product.$id]));
+  const lines = useSelector(selectCartLines);
+  const updating = useSelector(selectCartUpdating);
+  const inCart = lines.some((l) => l.productId === product.$id);
+
+  return (
+    <ProductCard
+      product={product}
+      index={index}
+      inCart={inCart}
+      inWishlist={wished}
+      cartBusy={Boolean(updating)}
+      onAddToCart={(p) => dispatch(addToCart({ productId: p.$id, quantity: 1, toast: true }))}
+      onToggleWishlist={(p) => dispatch(toggleWishlist({ productId: p.$id }))}
+      onCustomize={(p) => navigate(PATHS.customize(p.slug))}
+    />
+  );
+}
+
 function Related({ items }) {
-  const sales = useSelector(selectSalesList);
   const uniqueItems = [...new Map(items.map((item) => [item.$id, item])).values()];
   return (
     <section className="mt-16" aria-labelledby="related-heading">
@@ -1049,36 +859,9 @@ function Related({ items }) {
         More from this category
       </h2>
       <ul className="mt-6 grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-4">
-        {uniqueItems.map((p) => {
-          const pricing = getEffectivePricing(p, sales);
-          return (
-            <li key={p.$id} className="h-full">
-              <Link
-                to={PATHS.product(p.category, p.group, p.slug)}
-                className="group/card flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-surface shadow-soft transition-all duration-300 ease-out hover:-translate-y-1 hover:border-accent/50 hover:shadow-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent motion-reduce:transition-none"
-              >
-                <div className="aspect-[3/4] overflow-hidden bg-surface-alt">
-                  {getMainImageUrl(p) && (
-                    <img
-                      src={getMainImageUrl(p)}
-                      alt=""
-                      loading="lazy"
-                      className="h-full w-full object-cover transition-transform duration-500 ease-out group-hover/card:scale-105 motion-reduce:transition-none"
-                    />
-                  )}
-                </div>
-                <div className="flex flex-1 flex-col gap-1 p-3 sm:p-4">
-                  <p className="line-clamp-2 min-h-[2.5rem] font-medium leading-snug text-text transition-colors duration-200 group-hover/card:text-accent">
-                    {p.name}
-                  </p>
-                  <p className="mt-auto pt-2 text-sm font-semibold tabular-nums text-text">
-                    {pricing.sale ? money(pricing.price) : p.priceFormat || money(pricing.price)}
-                  </p>
-                </div>
-              </Link>
-            </li>
-          );
-        })}
+        {uniqueItems.map((p, i) => (
+          <RelatedCard key={p.$id} product={p} index={i} />
+        ))}
       </ul>
     </section>
   );

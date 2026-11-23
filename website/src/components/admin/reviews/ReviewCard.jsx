@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { BadgeCheck, Check, Reply, Trash2, X } from 'lucide-react';
 
 import reviewService from '../../../lib/appwrite/review';
+import SelectBox from './SelectBox';
 import { Stars, StatusBadge } from './Parts';
 import { prettyDate } from './helpers';
 
@@ -10,9 +11,11 @@ const ACTION =
 const MAX_REPLY = 1000;
 
 // One review with its moderation actions.
+// selected / onSelect(review, checked): optional. When onSelect is passed a checkbox is shown
+// at the top-left and a selected card gets an accent outline.
 // onApprove(review) / onReject(review) / onDelete(review) are fire-and-forget.
 // onReply(review, text) must return a promise that resolves true when saved ('' removes the reply).
-export default function ReviewCard({ review, busy, index = 0, onApprove, onReject, onReply, onDelete }) {
+export default function ReviewCard({ review, busy, index = 0, selected = false, onSelect, onApprove, onReject, onReply, onDelete }) {
   const [replying, setReplying] = useState(false);
   const [text, setText] = useState(review.adminReply || '');
   const [saving, setSaving] = useState(false);
@@ -36,10 +39,21 @@ export default function ReviewCard({ review, busy, index = 0, onApprove, onRejec
   return (
     <article
       style={{ animationDelay: `${Math.min(index, 8) * 40}ms` }}
-      className="animate-rise rounded-2xl border border-border bg-surface p-4 shadow-soft sm:p-5"
+      className={`animate-rise rounded-2xl border p-4 shadow-soft transition-colors duration-200 sm:p-5 ${
+        selected ? 'border-accent-tone-1 bg-accent-soft' : 'border-border bg-surface'
+      }`}
     >
       {/* who + status */}
       <div className="flex items-start gap-3">
+        {onSelect && (
+          <SelectBox
+            checked={selected}
+            onChange={(on) => onSelect(review, on)}
+            disabled={busy}
+            label={`Select ${name}'s review`}
+            className="mt-2.5"
+          />
+        )}
         {avatar ? (
           <img src={avatar} alt="" className="h-10 w-10 shrink-0 rounded-full border border-border object-cover" />
         ) : (
