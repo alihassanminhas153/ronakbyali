@@ -43,7 +43,7 @@ import FilterDrawer from '../../../components/shop/FilterDrawer';
 import FeaturedCard, { FeaturedCardSkeleton } from '../../../components/shop/FeaturedCard';
 import DiscountedProductCard, { DiscountedProductCardSkeleton } from '../../../components/shop/DiscountedProductCard';
 import ProductRow, { SectionHeading } from '../../../components/shop/ProductRow';
-import { getDiscountedProducts, getPopularProducts } from '../../../components/shop/showcase';
+import { getDiscountedProducts, getPopularProducts } from '../../../components/shop/Showcase';
 import {
   FILTER_KEYS as K,
   SORT_OPTIONS,
@@ -118,7 +118,7 @@ function AppliedChip({ label, onRemove }) {
 //   normal view:                  Featured row, On sale row, all products, Popular
 //   search / category / filters:  results, Featured row, On sale row, Popular
 // The two rows scroll sideways with arrow buttons. Popular shows the 4 most ordered products of all
-// time and only appears when some product has orders (see ORDER_COUNT_FIELDS in showcase.js).
+// time and only appears when some product has orders (see ORDER_COUNT_FIELDS in Showcase.js).
 export default function AllProducts({ pages = [] }) {
   const dispatch = useAppDispatch();
   const store = useStore();

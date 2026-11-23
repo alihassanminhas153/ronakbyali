@@ -1,4 +1,4 @@
-// src/components/shop/showcase.js
+// src/components/shop/Showcase.js
 //
 // Picks the products for the "On sale" and "Popular" rows of the shop page from rows that are
 // already in the store (productsSlice.fetchAllProducts). Pure functions, no network.
