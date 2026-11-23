@@ -10,6 +10,7 @@ import productService from '../../lib/appwrite/product';
 import Modal from '../../ui/custom/modal/Modal';
 import TextInput from '../../ui/custom/input/TextInput';
 import SelectInput from '../../ui/custom/input/SelectInput';
+import SelectionGrid from '../../ui/custom/input/SelectionGrid';
 import ImageUploader from '../../ui/custom/input/ImageUploader';
 
 const PAYMENT_OPTIONS = [
@@ -146,8 +147,12 @@ export default function CustomOrderDrawer({ open, onClose, product }) {
           <TextInput label="Email" type="email" value={form.customerEmail} onChange={set('customerEmail')} maxLength={320} autoComplete="email" />
           <TextInput className="sm:col-span-2" label="Address" required as="textarea" rows={2} value={form.address} onChange={set('address')} maxLength={500} autoComplete="street-address" />
           <TextInput className="sm:col-span-2" label="Your customization" required as="textarea" rows={4} value={form.customDetails} onChange={set('customDetails')} maxLength={1000} showCount hint="Describe the colors, size, or changes you need." />
-          <SelectInput className="min-w-0" label="Payment method" value={form.paymentType} onChange={(paymentType) => setForm((current) => ({ ...current, paymentType }))} options={PAYMENT_OPTIONS} size="md" />
-          <SelectInput className="min-w-0" label="Delivery type" value={form.deliveryType} onChange={(deliveryType) => setForm((current) => ({ ...current, deliveryType }))} options={DELIVERY_OPTIONS} size="md" />
+          <div className="sm:col-span-2">
+            <SelectionGrid>
+              <SelectInput className="min-w-0" label="Payment method" value={form.paymentType} onChange={(paymentType) => setForm((current) => ({ ...current, paymentType }))} options={PAYMENT_OPTIONS} size="md" />
+              <SelectInput className="min-w-0" label="Delivery type" value={form.deliveryType} onChange={(deliveryType) => setForm((current) => ({ ...current, deliveryType }))} options={DELIVERY_OPTIONS} size="md" />
+            </SelectionGrid>
+          </div>
           <TextInput className="sm:col-span-2" label="Order notes" as="textarea" rows={2} value={form.notes} onChange={set('notes')} maxLength={1000} />
           <div className="sm:col-span-2">
             <ImageUploader items={referenceImages} onChange={setReferenceImages} label="Reference image" hint="Optional image showing what you have in mind." max={1} maxSizeMB={5} disabled={saving} />

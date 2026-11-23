@@ -68,6 +68,7 @@ import HeatmapCalendar from '../../../ui/graphs/HeatmapCalendar';
 import { capitalize, formatDateTime, formatMoney } from '../../../components/user/profile/profileMeta';
 import { paidAmountForOrder } from '../../../lib/orderMath';
 import { entityColorStep, toneColor } from '../../../lib/entityColors';
+import { normalizeStatus } from '../../../lib/appwrite/order';
 import OrderTracker from '../../../components/admin/orders/OrderTracker';
 import productService from '../../../lib/appwrite/product';
 import customOrderService from '../../../lib/appwrite/customOrder';
@@ -78,14 +79,14 @@ import customOrderService from '../../../lib/appwrite/customOrder';
 
 const PAGE_SIZE = 10;
 const FETCH_SIZE = 100;
-const STEPS = ['placed', 'processing', 'packed', 'shipped', 'delivered'];
+const STEPS = ['pending', 'processing', 'packed', 'dispatched', 'delivered'];
 
 // One colour per real status (graph palette, so it follows light/dark).
 const STATUS = {
-  placed:     { label: 'Placed',          color: toneColor(entityColorStep('orderStatus', 'placed')), icon: Clock,        note: 'We have received your order.' },
+  pending:    { label: 'Pending',         color: toneColor(entityColorStep('orderStatus', 'placed')), icon: Clock,        note: 'We have received your order.' },
   processing: { label: 'Being prepared', color: toneColor(entityColorStep('orderStatus', 'processing')), icon: PackageCheck, note: 'We are getting your order ready.' },
   packed:     { label: 'Packed',          color: toneColor(entityColorStep('orderStatus', 'packed')), icon: PackageCheck, note: 'Your order is packed and ready to ship.' },
-  shipped:    { label: 'Shipped',        color: toneColor(entityColorStep('orderStatus', 'shipped')), icon: Truck,        note: 'Your order is on its way. It can no longer be changed.' },
+  dispatched: { label: 'Dispatched',     color: toneColor(entityColorStep('orderStatus', 'shipped')), icon: Truck,        note: 'Your parcel has been handed to the courier.' },
   delivered:  { label: 'Delivered',      color: toneColor(entityColorStep('orderStatus', 'delivered')), icon: Check,        note: 'Your order was delivered.' },
   cancelled:  { label: 'Cancelled',      color: toneColor(entityColorStep('orderStatus', 'cancelled')), icon: XCircle,      note: 'This order was cancelled.' },
   returned:   { label: 'Returned',       color: toneColor(entityColorStep('orderStatus', 'returned')), icon: Undo2,        note: 'This order was returned.' },
@@ -236,7 +237,8 @@ function StatTile({ icon: Icon, appIcon, label, color, tone, sensitive = false, 
 }
 
 function StatusPill({ status }) {
-  const meta = STATUS[status] || { label: capitalize(status), color: 'var(--accent-tone-8)', icon: Clock };
+  const canonicalStatus = normalizeStatus(status);
+  const meta = STATUS[canonicalStatus] || { label: capitalize(canonicalStatus), color: 'var(--accent-tone-8)', icon: Clock };
   const Icon = meta.icon;
   return (
     <span
@@ -249,10 +251,10 @@ function StatusPill({ status }) {
   );
 }
 
-// placed -> processing -> packed -> shipped -> delivered
+// pending -> processing -> packed -> dispatched -> delivered
 function Stepper({ status }) {
   const entered = useEntered();
-  const index = STEPS.indexOf(status);
+  const index = STEPS.indexOf(normalizeStatus(status));
   if (index === -1) return null;
   const pct = (index / (STEPS.length - 1)) * 100;
   return (
@@ -320,7 +322,8 @@ function OrderCard({ order, busy, username, index }) {
   const referenceFileIds = order.isCustom
     ? [...new Set([...(Array.isArray(order.customFileIds) ? order.customFileIds : []), order.customFileId].filter(Boolean))]
     : [];
-  const meta = STATUS[order.status] || STATUS.placed;
+  const orderStatus = normalizeStatus(order.status);
+  const meta = STATUS[orderStatus] || STATUS.pending;
 
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -408,7 +411,7 @@ function OrderCard({ order, busy, username, index }) {
           </span>
         </span>
         <span className="flex shrink-0 flex-col items-end gap-1">
-          <StatusPill status={order.status} />
+          <StatusPill status={orderStatus} />
           <span className="font-display text-lg font-semibold tabular-nums text-text">{formatMoney(order.total)}</span>
         </span>
         <ChevronDown
@@ -435,7 +438,7 @@ function OrderCard({ order, busy, username, index }) {
 
       {open && (
         <div className="space-y-5 border-t border-border p-4 sm:p-5">
-          <Stepper status={order.status} />
+          <Stepper status={orderStatus} />
           <p className="text-sm text-muted">{meta.note}</p>
           {order.trackingId && (
             <p className="text-sm text-text">
@@ -526,7 +529,7 @@ function OrderCard({ order, busy, username, index }) {
             <OrderTracker order={order} tracker={tracker} loading={!tracker} />
           </section>
 
-          {(order.status === 'delivered' || returnRequestStatus === 'approved') && (
+          {(orderStatus === 'delivered' || returnRequestStatus === 'approved') && (
             <section className="space-y-3 rounded-xl border border-border bg-surface p-4">
               <h3 className="text-sm font-semibold text-text">Return request</h3>
               {returnRequestStatus === 'requested' && (
@@ -537,7 +540,7 @@ function OrderCard({ order, busy, username, index }) {
               )}
               {returnRequestStatus === 'approved' && <p className="text-sm text-success">Your return request was approved.</p>}
               {returnRequestStatus === 'rejected' && <p className="text-sm text-muted">Your return request was declined. You can submit another request or contact our team.</p>}
-              {order.status === 'delivered' && !['requested', 'approved'].includes(returnRequestStatus) && (
+              {orderStatus === 'delivered' && !['requested', 'approved'].includes(returnRequestStatus) && (
                 returnOpen ? (
                   <form onSubmit={submitReturnRequest} className="space-y-3">
                     <label className="block text-xs font-medium text-muted">
@@ -660,7 +663,7 @@ function OrderCard({ order, busy, username, index }) {
                 {order.isCustom
                   ? 'You can change delivery details while this order is being prepared. Cancellation is only available before confirmation.'
                   : itemsEditable
-                    ? <>Add products while the order is placed by putting them in your cart and choosing “Add to order” at <Link to={PATHS.user.checkout(username)} className="underline">checkout</Link>.</>
+                    ? <>Add products while the order is pending by putting them in your cart and choosing “Add to order” at <Link to={PATHS.user.checkout(username)} className="underline">checkout</Link>.</>
                     : 'Delivery details can still be changed while the order is processing. Cancellation is unavailable after confirmation.'}
               </p>
             </div>
@@ -747,7 +750,8 @@ export default function Orders() {
     let spent = 0;
     const days = new Map();
     orders.forEach((o) => {
-      if (counts[o.status] !== undefined) counts[o.status] += 1;
+      const status = normalizeStatus(o.status);
+      if (counts[status] !== undefined) counts[status] += 1;
       spent += paidAmountForOrder(o);
       const key = dayKey(o.$createdAt);
       if (key) days.set(key, (days.get(key) || 0) + 1);
@@ -755,7 +759,7 @@ export default function Orders() {
     return {
       counts,
       spent,
-      open: counts.placed + counts.processing,
+      open: counts.pending + counts.processing,
       heat: [...days.entries()].map(([date, value]) => ({ date, value })),
     };
   }, [orders]);
@@ -763,7 +767,7 @@ export default function Orders() {
   /* ----- filter + search + sort ----- */
   const list = useMemo(() => {
     const term = query.trim().toLowerCase();
-    const rows = orders.filter((o) => (filter === 'all' || o.status === filter) && (!term || searchText(o).includes(term)));
+    const rows = orders.filter((o) => (filter === 'all' || normalizeStatus(o.status) === filter) && (!term || searchText(o).includes(term)));
     const by = {
       newest: (a, b) => (b.$createdAt || '').localeCompare(a.$createdAt || ''),
       oldest: (a, b) => (a.$createdAt || '').localeCompare(b.$createdAt || ''),
@@ -803,7 +807,7 @@ export default function Orders() {
       <PageHeader
         art="orders"
         title="Orders"
-        subtitle="Add products while an order is placed, cancel an unconfirmed processing order, and request a return after delivery."
+        subtitle="Add products while an order is pending, cancel an unconfirmed processing order, and request a return after delivery."
         actions={(
           <div className="flex items-center gap-3">
             {ago && (
@@ -836,7 +840,7 @@ export default function Orders() {
           text={
             placedKind === 'added'
               ? `Your items were added to order ${placed.orderNumber}. The new total is ${formatMoney(placed.total)}.`
-              : `Thank you. Order ${placed.orderNumber} is placed. You can add products before processing begins.`
+              : `Thank you. Order ${placed.orderNumber} is pending. You can add products before processing begins.`
           }
           onDismiss={() => dispatch(clearLastPlacedOrder())}
         />

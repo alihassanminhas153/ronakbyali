@@ -8,6 +8,7 @@ import productService from '../../../lib/appwrite/product';
 import ActionButton from '../../../ui/custom/button/ActionButton';
 import AdminSearchSelect from '../AdminSearchSelect';
 import SearchSelect from '../../../ui/custom/input/SearchSelect';
+import SelectionGrid from '../../../ui/custom/input/SelectionGrid';
 import ImageUploader from '../../../ui/custom/input/ImageUploader';
 import { getSaleStatus } from '../../../lib/saleMath';
 import { normalizeNumberInput } from '../../../lib/numberInput';
@@ -904,28 +905,32 @@ export default function ProductForm({ open, product, categories = [], groups = [
                 )}
               </div>
             </Field>
-            <Field as="div" label="Category" error={errors.category} className="min-w-0">
-              <SearchSelect
-                aria-label="Category"
-                options={categories}
-                value={form.category}
-                onChange={set('category')}
-                placeholder="Select or create a category"
-                searchPlaceholder="Search categories…"
-                error={Boolean(errors.category)}
-                clearable={false}
-              />
-            </Field>
-            <Field as="div" label="Group" optional className="min-w-0">
-              <SearchSelect
-                aria-label="Group"
-                options={groups}
-                value={form.group}
-                onChange={set('group')}
-                placeholder="Select or create a group"
-                searchPlaceholder="Search groups…"
-              />
-            </Field>
+            <div className="sm:col-span-2">
+              <SelectionGrid className="gap-4">
+                <Field as="div" label="Category" error={errors.category} className="min-w-0">
+                  <SearchSelect
+                    aria-label="Category"
+                    options={categories}
+                    value={form.category}
+                    onChange={set('category')}
+                    placeholder="Select or create a category"
+                    searchPlaceholder="Search categories…"
+                    error={Boolean(errors.category)}
+                    clearable={false}
+                  />
+                </Field>
+                <Field as="div" label="Group" optional className="min-w-0">
+                  <SearchSelect
+                    aria-label="Group"
+                    options={groups}
+                    value={form.group}
+                    onChange={set('group')}
+                    placeholder="Select or create a group"
+                    searchPlaceholder="Search groups…"
+                  />
+                </Field>
+              </SelectionGrid>
+            </div>
             <Field label="Description" optional className="sm:col-span-2">
               <textarea value={form.description} onChange={on('description')} rows={4} className={`${inputCls()} resize-none py-2`} placeholder="Fabric, fit, care…" />
             </Field>

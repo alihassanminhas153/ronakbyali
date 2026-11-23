@@ -18,6 +18,7 @@ import { ChartCard, Donut, HeatmapCalendar, StatTile, TrendGraph, countByDay } f
 import ActionButton from '../../../ui/custom/button/ActionButton';
 import SearchInput from '../../../ui/custom/input/SearchInput';
 import SearchSelect from '../../../ui/custom/input/SearchSelect';
+import SelectionGrid from '../../../ui/custom/input/SelectionGrid';
 import Segmented from '../../../ui/custom/input/Segmented';
 import ConfirmDialog from '../../../ui/custom/modal/ConfirmDialog';
 import Tabs, { TabPanel } from '../../../ui/custom/tabs/Tabs';
@@ -340,12 +341,12 @@ export default function Reviews() {
         <TabPanel key="reviews" className="space-y-6">
           <div className="space-y-3">
             <SearchInput size="sm" value={search} onSearch={onSearch} placeholder="Search review, product, customer" label="Search reviews" className="w-full min-w-0" />
-            <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <SelectionGrid>
               <SearchSelect aria-label="Filter by status" options={STATUS_LABELS} value={statusLabel} onChange={(v) => { setStatusLabel(v); setVisible(PAGE); }} creatable={false} placeholder="All statuses" searchPlaceholder="Search statuses…" />
               <SearchSelect aria-label="Filter by rating" options={RATING_LABELS} value={ratingLabel} onChange={(v) => { setRatingLabel(v); setVisible(PAGE); }} creatable={false} placeholder="All ratings" searchPlaceholder="Search ratings…" />
               <SearchSelect aria-label="Filter by product" options={productNames} value={productName} onChange={(v) => { setProductName(v); setVisible(PAGE); }} creatable={false} placeholder="All products" searchPlaceholder="Search products…" />
               <SearchSelect aria-label="Sort reviews" options={SORTS} value={sort} onChange={(v) => setSort(v || 'Newest')} creatable={false} clearable={false} placeholder="Sort" searchPlaceholder="Search…" />
-            </div>
+            </SelectionGrid>
           </div>
 
           <p className="text-xs text-muted">

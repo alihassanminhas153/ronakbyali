@@ -270,14 +270,14 @@ export default function CartAndWishlist() {
         </TabPanel>
       ) : (
         <TabPanel key={tab} className="space-y-6">
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_14rem_12rem]">
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-[minmax(0,1fr)_14rem_12rem]">
             <SearchInput
               size="sm"
               value={term}
               onSearch={setTerm}
               placeholder={cfg.search}
               label="Search"
-              className="sm:col-span-2 lg:col-span-1"
+              className="col-span-2 lg:col-span-1"
             />
             <AdminSearchSelect
               className="min-w-0"

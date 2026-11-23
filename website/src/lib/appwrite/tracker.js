@@ -122,9 +122,9 @@ export class TrackerService {
                     orderId: order.$id,
                     updates: [
                         this._entry({
-                            title: 'Order placed',
+                            title: 'Order pending',
                             note: order.orderNumber ? `Order ${order.orderNumber} was received.` : '',
-                            status: 'placed',
+                            status: 'pending',
                             by,
                             at: order.$createdAt,
                         }),

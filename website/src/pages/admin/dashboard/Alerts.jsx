@@ -34,6 +34,7 @@ import {
 import ActionButton from '../../../ui/custom/button/ActionButton';
 import SearchInput from '../../../ui/custom/input/SearchInput';
 import AdminSearchSelect from '../../../components/admin/AdminSearchSelect';
+import SelectionGrid from '../../../ui/custom/input/SelectionGrid';
 import ConfirmDialog from '../../../ui/custom/modal/ConfirmDialog';
 import Tabs, { TabPanel } from '../../../ui/custom/tabs/Tabs';
 import CountUp from '../../../ui/custom/motion/CountUp';
@@ -288,7 +289,7 @@ export default function Alerts() {
               label="Search alerts"
               className="w-full min-w-0"
             />
-            <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <SelectionGrid>
               <AdminSearchSelect
                 className="min-w-0"
                 aria-label="Filter by type"
@@ -323,7 +324,7 @@ export default function Alerts() {
                 value={filters.sort}
                 onChange={(value) => applyFilters({ sort: value || 'newest' })}
               />
-            </div>
+            </SelectionGrid>
           </div>
 
           {status === 'failed' && !shownRows.length ? (

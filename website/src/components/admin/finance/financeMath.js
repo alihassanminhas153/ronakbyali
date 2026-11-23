@@ -2,6 +2,7 @@ import { countByDay, groupBy } from '../../../ui/graphs/utils';
 import { paidAmountForOrder } from '../../../lib/orderMath';
 import { STOCK_CATEGORY } from './financeSchema';
 import { getEffectivePricing } from '../../../lib/saleMath';
+import { normalizeStatus } from '../../../lib/appwrite/order';
 
 // All the money maths in one place (pure functions, no Appwrite calls).
 //
@@ -21,7 +22,7 @@ export const PERIODS = [
 const num = (v) => Number(v) || 0;
 const sum = (arr, fn) => arr.reduce((s, x) => s + fn(x), 0);
 const DAY = 864e5;
-export const OPEN_STATUSES = ['placed', 'processing', 'packed', 'shipped'];
+export const OPEN_STATUSES = ['pending', 'processing', 'packed', 'dispatched'];
 export const LOST_STATUSES = ['cancelled', 'returned'];
 
 export function parseItems(row) {
@@ -123,7 +124,7 @@ export function buildFinance({ orders = [], products = [], carts = [], wishlists
   /* ---------- order breakdowns ---------- */
   const ordersNow = orders.filter((o) => inRange(o.$createdAt));
   const lostValue = sum(ordersNow.filter((o) => LOST_STATUSES.includes(o.status)), (o) => num(o.total));
-  const pipeline = orders.filter((o) => OPEN_STATUSES.includes(o.status));
+  const pipeline = orders.filter((o) => OPEN_STATUSES.includes(normalizeStatus(o.status)));
   const pipelineValue = sum(pipeline, (o) => num(o.total));
 
   /* ---------- inventory ---------- */
@@ -171,7 +172,7 @@ export function buildFinance({ orders = [], products = [], carts = [], wishlists
     months, productProfit, noCostProducts, missingCostCount: missingCost.size,
     expenseByCategory: groupBy(ledgerNow.filter((e) => e.type === 'expense'), (e) => e.category || 'Uncategorised', (e) => num(e.amount)),
     revenueByPayment: groupBy(soldNow, (s) => s.o.paymentMethod || 'unknown', (s) => s.revenue),
-    ordersByStatus: groupBy(ordersNow, (o) => o.status),
+    ordersByStatus: groupBy(ordersNow, (o) => normalizeStatus(o.status)),
     orderValues: soldNow.map((s) => s.revenue),
     ordersHeat: countByDay(orders.filter((o) => !LOST_STATUSES.includes(o.status))),
     inventory: {

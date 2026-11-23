@@ -70,6 +70,7 @@ export default function OrderTracker({ order, tracker, loading = false }) {
           <ol className="relative">
             {shown.map((u, i) => {
               const color = toneColor(STATUS_META[u.status]?.tone ?? 1);
+              const title = u.title === 'Order placed' ? 'Order pending' : u.title;
               const last = i === shown.length - 1;
               return (
                 <li key={u.id} className="relative pb-5 pl-8 last:pb-0">
@@ -82,7 +83,7 @@ export default function OrderTracker({ order, tracker, loading = false }) {
                     <span className={`size-2.5 rounded-full ${i === 0 ? 'animate-pulse motion-reduce:animate-none' : ''}`} style={{ background: color }} />
                   </span>
                   <div className="flex flex-wrap items-baseline justify-between gap-x-3">
-                    <p className={`text-sm ${i === 0 ? 'font-semibold text-text' : 'font-medium text-text/90'}`}>{u.title}</p>
+                    <p className={`text-sm ${i === 0 ? 'font-semibold text-text' : 'font-medium text-text/90'}`}>{title}</p>
                     {u.at && (
                       <Tooltip label={fullDate(u.at)}>
                         <time dateTime={u.at} className="whitespace-nowrap text-xs text-muted">{timeAgo(u.at)}</time>

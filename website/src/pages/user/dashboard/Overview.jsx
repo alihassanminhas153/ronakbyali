@@ -36,6 +36,7 @@ import CountUp from '../../../ui/custom/motion/CountUp';
 import useEntered from '../../../ui/custom/motion/useEntered';
 import { formatMoney } from '../../../components/admin/users/userFields';
 import { paidAmountForOrder } from '../../../lib/orderMath';
+import { normalizeStatus } from '../../../lib/appwrite/order';
 import { getEffectivePricing } from '../../../lib/saleMath';
 import { selectSalesList } from '../../../store/slices/saleSlice';
 import usePanelAccess from '../../../lib/layout/usePanelAccess';
@@ -216,7 +217,8 @@ function OverviewView({ me }) {
   const o = useMemo(() => {
     const counts = {};
     orders.forEach((x) => {
-      counts[x.status] = (counts[x.status] || 0) + 1;
+      const status = normalizeStatus(x.status);
+      counts[status] = (counts[status] || 0) + 1;
     });
     const months = lastMonths(6);
     const perMonthSpend = Object.fromEntries(months.map((m) => [m.key, 0]));
@@ -234,7 +236,7 @@ function OverviewView({ me }) {
     const stars = [1, 2, 3, 4, 5].map((n) => ({ label: `${n}★`, value: rated.filter((r) => Math.round(Number(r.rating)) === n).length }));
 
     return {
-      placed: counts.placed || 0,
+      pending: counts.pending || 0,
       delivered: counts.delivered || 0,
       open: orders.filter(canEditOrder).length,
       byStatus: Object.entries(counts).map(([label, value]) => ({ label, value })),
@@ -291,7 +293,7 @@ function OverviewView({ me }) {
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         {canShowPage('orders') && ordersStatus === 'ready' && <><LinkTile to="orders" label="Orders placed" value={orderCount} hint={`${o.delivered} delivered`} appIcon="list" tone={1} delay={0} />
         <LinkTile to="orders" label="Total spent" value={spent} format={formatCardMoney} hint={orderCount ? `${short(spent / orderCount)} per order` : 'no orders yet'} appIcon="wallet" sensitive tone={2} delay={40} />
-        <LinkTile to="orders" label="Orders on the way" value={o.open} hint={`${o.placed} placed`} appIcon="truck" tone={3} delay={80} /></>}
+        <LinkTile to="orders" label="Orders on the way" value={o.open} hint={`${o.pending} pending`} appIcon="truck" tone={3} delay={80} /></>}
         {canShowPage('cart') && cartStatus === 'ready' && cartLines.length > 0 && <LinkTile to="cart" label="Value in cart" value={cartSubtotal} format={formatCardMoney} hint={`${cartCount} ${cartCount === 1 ? 'item' : 'items'}`} appIcon="cart" sensitive tone={1} delay={120} />}
         {canShowPage('wishlist') && wishStatus === 'ready' && wishProducts.length > 0 && <LinkTile to="wishlist" label="Wishlist" value={o.wish.total} hint={`${o.wish.out} out of stock`} appIcon="popular" tone={4} delay={160} />}
         {canShowPage('reviews') && reviewsStatus === 'ready' && myReviews.length > 0 && <LinkTile to="reviews" label="Reviews written" value={o.reviews.total} hint={o.reviews.pending ? `${o.reviews.pending} awaiting approval` : 'all reviewed'} appIcon="reviews" tone={5} delay={200} />}
@@ -316,7 +318,7 @@ function OverviewView({ me }) {
       <div className={grid}>
         {canShowPage('orders') && ordersStatus === 'ready' && orders.length > 0 && <OverviewCard to="orders" cta="My orders" title="Orders" subtitle={`${orderCount} in total`} appIcon="list" tone={1} className="lg:col-span-2">
           <Mini items={[
-            { label: 'Placed', value: o.placed, tone: 3 },
+            { label: 'Pending', value: o.pending, tone: 3 },
             { label: 'On the way', value: o.open, tone: 5 },
             { label: 'Delivered', value: o.delivered, tone: 7 },
           ]} />

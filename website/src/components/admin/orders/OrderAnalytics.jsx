@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 
 import { paidAmountForOrder } from '../../../lib/orderMath';
-import { ORDER_STATUS } from '../../../lib/appwrite/order';
+import { ORDER_STATUS, normalizeStatus } from '../../../lib/appwrite/order';
 import { BarChart, ChartCard, Donut, HeatmapCalendar, Histogram, TrendGraph, compact, countByDay } from '../../../ui/graphs';
 import { colorFor } from '../../../ui/graphs/utils';
 import ActionButton from '../../../ui/custom/button/ActionButton';
@@ -38,7 +38,8 @@ export default function OrderAnalytics({ orders = [], status, error, onRetry }) 
     const statusCounts = new Map(ORDER_STATUS.map((value) => [value, 0]));
     const paidOrders = [];
     orders.forEach((order) => {
-      statusCounts.set(order.status, (statusCounts.get(order.status) || 0) + 1);
+      const status = normalizeStatus(order.status);
+      statusCounts.set(status, (statusCounts.get(status) || 0) + 1);
       if (paidAmountForOrder(order) > 0) paidOrders.push(order);
     });
 

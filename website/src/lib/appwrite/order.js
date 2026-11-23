@@ -354,7 +354,7 @@ export class OrderService {
                 await userService.applyOrderToProfile({ profile, order });
                 await this.syncUserTotalSpent(profile.$id);
             })(),
-            trackerService.createForOrder({ order, by: 'customer' }), // timeline starts with "Order placed"
+            trackerService.createForOrder({ order, by: 'customer' }), // timeline starts with "Order pending"
             wishlistService.markPurchased({ userId: profile.$id, productIds }),
         ];
         if (!skipCart) tasks.push(cartService.markPurchased({ userId: profile.$id, productIds }));
@@ -451,7 +451,7 @@ export class OrderService {
         return saved;
     }
 
-    // Adds cart items only while the order is still placed.
+    // Adds cart items only while the order is still pending.
     // items: same shape as placeOrder. deliveryCharges: recalculated for the new subtotal.
     // The added products leave the cart, like a normal order.
     async addItemsToOrder({ profile, orderId, items, deliveryCharges }) {

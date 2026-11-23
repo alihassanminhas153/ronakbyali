@@ -7,9 +7,10 @@
 //   const { place, narrow } = useDropdownPosition(anchorRef, open, { reserve: 43 });
 //
 //   place  = null before the first measure, otherwise
-//            { left, width, dropUp, listMax }
+//            { left, width, dropUp, panelMax, listMax }
 //            left / width : px, relative to the anchor box (use style={{ left, width }})
 //            dropUp       : open upward because there is more room above
+//            panelMax    : max height in px for the full option panel
 //            listMax      : max height in px for the scrolling option list
 //   narrow = the input itself is under NARROW_PX wide (for example half of a 300px phone screen)
 //
@@ -34,30 +35,33 @@ export const LIST_SCROLL =
 const GAP = 6; // px between input and panel
 const MARGIN = 8; // px kept free at the screen edges
 const NARROW_PX = 176; // inputs narrower than this use the compact style
-const MIN_LIST = ROW_PX * 2 + 8; // the list is never squeezed below two rows
 
 // Pure maths (exported so it can be tested without a browser).
 //   rect     : { left, right, top, bottom, width } of the anchor, in viewport pixels
-//   viewport : { width, top, bottom } of the visible area
+//   viewport : { left, width, top, bottom } of the visible area
 export function computePlacement(rect, viewport, { minWidth = 224, align = 'auto', reserve = 0, rows = 5 } = {}) {
   const maxWidth = Math.max(0, viewport.width - MARGIN * 2);
   const width = Math.min(Math.max(rect.width, minWidth), maxWidth);
+  const viewportLeft = viewport.left ?? 0;
+  const viewportRight = viewportLeft + viewport.width;
 
   let viewLeft = rect.left;
   if (width > rect.width) {
-    const inRightHalf = rect.left + rect.width / 2 > viewport.width / 2;
+    const inRightHalf = rect.left + rect.width / 2 > viewportLeft + viewport.width / 2;
     if (align === 'right' || (align === 'auto' && inRightHalf)) viewLeft = rect.right - width;
   }
-  viewLeft = Math.min(Math.max(viewLeft, MARGIN), viewport.width - MARGIN - width);
+  viewLeft = Math.min(Math.max(viewLeft, viewportLeft + MARGIN), viewportRight - MARGIN - width);
 
   const wanted = listHeight(rows);
   const below = viewport.bottom - rect.bottom - GAP - MARGIN;
   const above = rect.top - viewport.top - GAP - MARGIN;
-  const dropUp = below < wanted + reserve && above > below;
-  const space = dropUp ? above : below;
-  const listMax = Math.round(Math.max(MIN_LIST, Math.min(wanted, space - reserve)));
+  const wantedPanel = wanted + reserve;
+  const dropUp = below < wantedPanel && above > below;
+  const space = Math.max(0, dropUp ? above : below);
+  const panelMax = Math.round(Math.min(wantedPanel, space));
+  const listMax = Math.max(0, panelMax - reserve);
 
-  return { left: Math.round(viewLeft - rect.left), width: Math.round(width), dropUp, listMax };
+  return { left: Math.round(viewLeft - rect.left), width: Math.round(width), dropUp, panelMax, listMax };
 }
 
 export default function useDropdownPosition(anchorRef, open, { minWidth = 224, align = 'auto', reserve = 0, rows = 5 } = {}) {
@@ -72,7 +76,8 @@ export default function useDropdownPosition(anchorRef, open, { minWidth = 224, a
 
     const vv = window.visualViewport;
     const viewport = {
-      width: document.documentElement.clientWidth || window.innerWidth,
+      left: vv ? vv.offsetLeft : 0,
+      width: vv ? vv.width : document.documentElement.clientWidth || window.innerWidth,
       top: vv ? vv.offsetTop : 0,
       bottom: vv ? vv.offsetTop + vv.height : window.innerHeight,
     };
@@ -82,6 +87,7 @@ export default function useDropdownPosition(anchorRef, open, { minWidth = 224, a
       prev.left === next.left &&
       prev.width === next.width &&
       prev.dropUp === next.dropUp &&
+      prev.panelMax === next.panelMax &&
       prev.listMax === next.listMax
         ? prev
         : next,

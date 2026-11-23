@@ -203,7 +203,7 @@ export default async ({ req, res, log, error: logError }) => {
       }
       throw new HttpError(
         500,
-        'Could not update the users table (is the "labels" column created?). Nothing was changed.',
+        `Could not update the users table (${tableError?.message || 'unknown error'}). Nothing was changed.`,
       );
     }
   } catch (err) {

@@ -1,6 +1,6 @@
 // USAGE (customer)
 //   const res = await dispatch(placeOrder({ form, toast: true }));         // items come from the cart
-//   const res = await dispatch(addCartToOrder({ orderId, toast: true }));  // add the cart to an order that is still placed
+//   const res = await dispatch(addCartToOrder({ orderId, toast: true }));  // add the cart to an order that is still pending
 //   dispatch(fetchOpenOrders());                                           // orders that can still be changed
 //   const open = useSelector(selectOpenOrders);
 //   dispatch(fetchMyOrders({ limit: 10, offset: 0 }));
@@ -12,10 +12,10 @@
 //   canEditOrder(order)                                                    // customer details can be changed
 //
 // USAGE (admin, support, manager: every customer's orders)
-//   dispatch(fetchStaffOrders({ limit: 25, offset: 0, status: 'placed' }));
+//   dispatch(fetchStaffOrders({ limit: 25, offset: 0, status: 'pending' }));
 //   dispatch(searchStaffOrders({ term: 'RBA-7K', status: '' }));
 //   dispatch(fetchStaffCounts());
-//   dispatch(updateOrderStatus({ orderId, status: 'shipped' }));
+//   dispatch(updateOrderStatus({ orderId, status: 'dispatched' }));
 //   dispatch(placeCustomOrder({ product, quantity, selectedIds, form, files }));
 //   dispatch(fetchStaffCustomOrders({ status: 'requested' }));
 //   dispatch(fetchStaffConfirmedOrders({ isCustom: true }));
@@ -40,6 +40,7 @@ import {
   USER_EDITABLE_STATUSES,
   USER_ITEM_EDITABLE_STATUSES,
   STAFF_ROLES,
+  normalizeStatus,
 } from '../../lib/appwrite/order';
 
 export { ORDER_STATUS, PAYMENT_METHODS, PAYMENT_STATUS, DELIVERY_TYPES, USER_EDITABLE_STATUSES, USER_ITEM_EDITABLE_STATUSES };
@@ -98,9 +99,9 @@ const initialState = adapter.getInitialState({
 
 /* ---------- helpers ---------- */
 
-export const canEditOrder = (order) => !!order && USER_EDITABLE_STATUSES.includes(order.status);
-export const canAddItemsToOrder = (order) => !!order && USER_ITEM_EDITABLE_STATUSES.includes(order.status);
-export const canCancelOrder = (order) => !!order && order.status === 'processing' && !order.isConfirmed;
+export const canEditOrder = (order) => !!order && USER_EDITABLE_STATUSES.includes(normalizeStatus(order.status));
+export const canAddItemsToOrder = (order) => !!order && USER_ITEM_EDITABLE_STATUSES.includes(normalizeStatus(order.status));
+export const canCancelOrder = (order) => !!order && normalizeStatus(order.status) === 'processing' && !order.isConfirmed;
 
 const linesToItems = (lines, paymentType = 'cod', sales = []) =>
   lines.map((l) => ({
@@ -293,7 +294,7 @@ export const addCartToOrder = createAsyncThunk('orders/addCart', async (arg, { g
   const current = await loadOrder(state, orderId);
   if (!current) return fail(rejectWithValue, 'We could not find that order.', arg);
   if (!canAddItemsToOrder(current)) {
-    return fail(rejectWithValue, 'Products can only be added while an order is placed.', arg);
+    return fail(rejectWithValue, 'Products can only be added while an order is pending.', arg);
   }
 
   const existing = orderService.parseItems(current);
@@ -909,7 +910,7 @@ export const selectOpenOrdersStatus = (s) => s.orders.openStatus;
 export const selectOrderUpdating = (s) => s.orders.updating;
 export const selectOrderUpdateError = (s) => s.orders.updateError;
 
-// Orders that have not shipped yet, newest first.
+// Orders that have not been dispatched yet, newest first.
 export const selectOpenOrders = (s) =>
   s.orders.openIds.map((id) => s.orders.entities[id]).filter(canAddItemsToOrder);
 

@@ -35,6 +35,7 @@ import { editableKeysFor, nextStatusesFor, normalizeStatus } from '../../../lib/
 import customOrderService from '../../../lib/appwrite/customOrder';
 import ConfirmDialog from '../../../ui/custom/modal/ConfirmDialog';
 import AdminSearchSelect from '../AdminSearchSelect';
+import SelectionGrid from '../../../ui/custom/input/SelectionGrid';
 import TextInput from '../../../ui/custom/input/TextInput';
 import { buildWhatsAppUrl } from '../../../lib/phone';
 
@@ -343,27 +344,31 @@ export default function OrderForm({ open, orderId, onClose }) {
           <Section title="Custom request" subtitle="Manage customer contact and the quote" appIcon="single_box" tone={6}>
             {customOrder ? (
               <>
-                <Field label="Request status" className="min-w-0 sm:col-span-2">
-                  <AdminSearchSelect className="min-w-0" aria-label="Request status" value={customStatus} onChange={setCustomStatus} options={CUSTOM_STATUS_CHOICES} size="md" />
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    <Btn primary busy={busy === 'custom-status' || busy === 'status'} onClick={saveCustomStatus}>Save status</Btn>
-                    <Btn busy={busy === 'contacted'} onClick={markContacted}>Contacted</Btn>
-                    {customerWhatsAppUrl(order.customerPhone) && (
-                      <a
-                        href={customerWhatsAppUrl(order.customerPhone)}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="btn btn-ghost min-h-10 px-4 py-2 text-sm"
-                      >
-                        Open WhatsApp
-                      </a>
-                    )}
-                  </div>
-                  {customOrder.contactedAt && <p className="mt-2 text-xs text-muted">Contacted {fullDate(customOrder.contactedAt)}</p>}
-                </Field>
-                <Field label="Contact method" className="min-w-0">
-                  <AdminSearchSelect className="min-w-0" aria-label="Contact method" value={customContactMethod} onChange={setCustomContactMethod} options={CONTACT_CHOICES} placeholder="Choose a method" clearable size="md" />
-                </Field>
+                <div className="sm:col-span-2">
+                  <SelectionGrid className="gap-4">
+                    <Field label="Request status" className="min-w-0">
+                      <AdminSearchSelect className="min-w-0" aria-label="Request status" value={customStatus} onChange={setCustomStatus} options={CUSTOM_STATUS_CHOICES} size="md" />
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        <Btn primary busy={busy === 'custom-status' || busy === 'status'} onClick={saveCustomStatus}>Save status</Btn>
+                        <Btn busy={busy === 'contacted'} onClick={markContacted}>Contacted</Btn>
+                        {customerWhatsAppUrl(order.customerPhone) && (
+                          <a
+                            href={customerWhatsAppUrl(order.customerPhone)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="btn btn-ghost min-h-10 px-4 py-2 text-sm"
+                          >
+                            Open WhatsApp
+                          </a>
+                        )}
+                      </div>
+                      {customOrder.contactedAt && <p className="mt-2 text-xs text-muted">Contacted {fullDate(customOrder.contactedAt)}</p>}
+                    </Field>
+                    <Field label="Contact method" className="min-w-0">
+                      <AdminSearchSelect className="min-w-0" aria-label="Contact method" value={customContactMethod} onChange={setCustomContactMethod} options={CONTACT_CHOICES} placeholder="Choose a method" clearable size="md" />
+                    </Field>
+                  </SelectionGrid>
+                </div>
                 <TextInput label="Quoted total (Rs)" type="number" min="0" value={customQuotedTotal} onChange={(event) => setCustomQuotedTotal(event.target.value)} />
                 <Field label="Admin notes" className="sm:col-span-2">
                   <textarea value={customAdminNotes} onChange={(event) => setCustomAdminNotes(event.target.value)} maxLength={2000} rows={3} className={`${inputCls()} resize-none py-2`} />
@@ -389,55 +394,59 @@ export default function OrderForm({ open, orderId, onClose }) {
               </div>
             </div>
           )}
-          <Field label="Order status" className="min-w-0 sm:col-span-2">
-            <AdminSearchSelect className="min-w-0" aria-label="Order status" value={nextStatus} onChange={setNextStatus} options={statusChoices} size="md" />
-            {statusDirty && (
-              <div className="mt-3 flex flex-wrap items-center gap-2">
-                <Btn primary busy={busy === 'status'} disabled={nextStatus === 'returned' && order.returnRequestStatus !== 'requested'} onClick={onStatusClick}>
-                  Set as {STATUS_META[nextStatus]?.label}
-                </Btn>
-                <Btn onClick={() => setNextStatus(currentStatus)}>Undo</Btn>
-              </div>
-            )}
-            <p className="mt-2 text-xs text-muted">
-              A customer or staff member can cancel until the order is dispatched. Stock is deducted when dispatched and restored after an approved return. A delivered cash on delivery order is marked paid.
-            </p>
-          </Field>
-          <Field label="Order confirmation" className="min-w-0 sm:col-span-2">
-            <AdminSearchSelect
-              className="min-w-0"
-              aria-label="Order confirmation"
-              value={nextConfirmation}
-              onChange={setNextConfirmation}
-              options={CONFIRMATION_CHOICES}
-              size="md"
-            />
-            {nextConfirmation !== (order.isConfirmed ? 'true' : 'false') && (
-              <div className="mt-3 flex flex-wrap items-center gap-2">
-                <Btn primary busy={busy === 'confirmation'} onClick={saveConfirmation}>
-                  Set as {nextConfirmation === 'true' ? 'confirmed' : 'not confirmed'}
-                </Btn>
-                <Btn onClick={() => setNextConfirmation(order.isConfirmed ? 'true' : 'false')}>Undo</Btn>
-              </div>
-            )}
-            {order.confirmedAt && order.isConfirmed && <p className="mt-2 text-xs text-muted">Confirmed {fullDate(order.confirmedAt)}</p>}
-            <p className="mt-2 text-xs text-muted">
-              {confirmationLocked
-                ? 'A cancelled or returned order cannot be confirmed.'
-                : 'Orders start confirmed. Customers who cancel more than they buy start as not confirmed and confirm through the link in "Send message".'}
-            </p>
-          </Field>
-          <Field label="Payment" className="min-w-0 sm:col-span-2">
-            <AdminSearchSelect className="min-w-0" aria-label="Payment status" value={nextPayment} onChange={setNextPayment} options={PAYMENT_CHOICES} size="md" />
-            {paymentDirty && (
-              <div className="mt-3 flex flex-wrap items-center gap-2">
-                <Btn primary busy={busy === 'payment'} onClick={savePayment}>
-                  Set as {PAYMENT_META[nextPayment]?.label}
-                </Btn>
-                <Btn onClick={() => setNextPayment(order.paymentStatus)}>Undo</Btn>
-              </div>
-            )}
-          </Field>
+          <div className="sm:col-span-2">
+            <SelectionGrid className="gap-4">
+              <Field label="Order status" className="min-w-0">
+                <AdminSearchSelect className="min-w-0" aria-label="Order status" value={nextStatus} onChange={setNextStatus} options={statusChoices} size="md" />
+                {statusDirty && (
+                  <div className="mt-3 flex flex-wrap items-center gap-2">
+                    <Btn primary busy={busy === 'status'} disabled={nextStatus === 'returned' && order.returnRequestStatus !== 'requested'} onClick={onStatusClick}>
+                      Set as {STATUS_META[nextStatus]?.label}
+                    </Btn>
+                    <Btn onClick={() => setNextStatus(currentStatus)}>Undo</Btn>
+                  </div>
+                )}
+                <p className="mt-2 text-xs text-muted">
+                  A customer or staff member can cancel until the order is dispatched. Stock is deducted when dispatched and restored after an approved return. A delivered cash on delivery order is marked paid.
+                </p>
+              </Field>
+              <Field label="Order confirmation" className="min-w-0">
+                <AdminSearchSelect
+                  className="min-w-0"
+                  aria-label="Order confirmation"
+                  value={nextConfirmation}
+                  onChange={setNextConfirmation}
+                  options={CONFIRMATION_CHOICES}
+                  size="md"
+                />
+                {nextConfirmation !== (order.isConfirmed ? 'true' : 'false') && (
+                  <div className="mt-3 flex flex-wrap items-center gap-2">
+                    <Btn primary busy={busy === 'confirmation'} onClick={saveConfirmation}>
+                      Set as {nextConfirmation === 'true' ? 'confirmed' : 'not confirmed'}
+                    </Btn>
+                    <Btn onClick={() => setNextConfirmation(order.isConfirmed ? 'true' : 'false')}>Undo</Btn>
+                  </div>
+                )}
+                {order.confirmedAt && order.isConfirmed && <p className="mt-2 text-xs text-muted">Confirmed {fullDate(order.confirmedAt)}</p>}
+                <p className="mt-2 text-xs text-muted">
+                  {confirmationLocked
+                    ? 'A cancelled or returned order cannot be confirmed.'
+                    : 'Orders start confirmed. Customers who cancel more than they buy start as not confirmed and confirm through the link in "Send message".'}
+                </p>
+              </Field>
+              <Field label="Payment" className="min-w-0">
+                <AdminSearchSelect className="min-w-0" aria-label="Payment status" value={nextPayment} onChange={setNextPayment} options={PAYMENT_CHOICES} size="md" />
+                {paymentDirty && (
+                  <div className="mt-3 flex flex-wrap items-center gap-2">
+                    <Btn primary busy={busy === 'payment'} onClick={savePayment}>
+                      Set as {PAYMENT_META[nextPayment]?.label}
+                    </Btn>
+                    <Btn onClick={() => setNextPayment(order.paymentStatus)}>Undo</Btn>
+                  </div>
+                )}
+              </Field>
+            </SelectionGrid>
+          </div>
         </Section>
 
         {/* 2. tracking (tracking number in orders table, link + timeline in tracker table) */}

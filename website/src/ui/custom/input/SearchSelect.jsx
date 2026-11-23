@@ -143,7 +143,7 @@ export default function SearchSelect({
 
       <div
         id={id}
-        style={place ? { left: place.left, width: place.width } : undefined}
+        style={place ? { left: place.left, width: place.width, maxHeight: place.panelMax } : undefined}
         className={`absolute z-30 overflow-hidden rounded-lg border border-border bg-surface shadow-soft transition-all duration-200 motion-reduce:transition-none ${
           place ? '' : 'left-0 right-0'
         } ${dropUp ? 'bottom-full mb-1.5 origin-bottom' : 'top-full mt-1.5 origin-top'} ${

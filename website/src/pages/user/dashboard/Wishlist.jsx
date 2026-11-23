@@ -415,13 +415,14 @@ export default function Wishlist() {
           </div>
 
           {/* Search, category, sort */}
-          <div className="grid items-start gap-3 sm:grid-cols-[1fr_12rem_13rem]">
+          <div className="grid grid-cols-2 items-start gap-3 sm:grid-cols-[minmax(0,1fr)_12rem_13rem]">
             <SearchInput
               value={query}
               onSearch={setQuery}
               size="sm"
               label="Search wishlist"
               placeholder="Search your wishlist"
+              className="col-span-2 sm:col-span-1"
             />
             <SelectInput
               className="min-w-0"

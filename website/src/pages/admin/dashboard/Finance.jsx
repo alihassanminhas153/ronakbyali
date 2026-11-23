@@ -14,6 +14,7 @@ import FormattedValue from '../../../ui/graphs/FormattedValue';
 import ActionButton from '../../../ui/custom/button/ActionButton';
 import SearchInput from '../../../ui/custom/input/SearchInput';
 import SearchSelect from '../../../ui/custom/input/SearchSelect';
+import SelectionGrid from '../../../ui/custom/input/SelectionGrid';
 import Segmented from '../../../ui/custom/input/Segmented';
 import ConfirmDialog from '../../../ui/custom/modal/ConfirmDialog';
 import Tabs, { TabPanel } from '../../../ui/custom/tabs/Tabs';
@@ -235,11 +236,13 @@ export default function Finance() {
 
       {tab === 'ledger' && (
         <TabPanel key="ledger" className="space-y-6">
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_11rem_11rem_11rem]">
-            <SearchInput size="sm" value={search} onSearch={onSearch} placeholder="Search title, category, note" label="Search entries" className="sm:col-span-2 xl:col-span-1" />
-            <SearchSelect aria-label="Filter by type" options={TYPE_LABELS} value={typeLabel} onChange={(v) => { setTypeLabel(v); setVisible(PAGE); }} creatable={false} placeholder="All types" searchPlaceholder="Search types…" />
-            <SearchSelect aria-label="Filter by category" options={categories} value={category} onChange={(v) => { setCategory(v); setVisible(PAGE); }} creatable={false} placeholder="All categories" searchPlaceholder="Search categories…" />
-            <SearchSelect aria-label="Sort entries" options={SORTS} value={sort} onChange={(v) => setSort(v || 'Newest')} creatable={false} clearable={false} placeholder="Sort" searchPlaceholder="Search…" />
+          <div className="space-y-3">
+            <SearchInput size="sm" value={search} onSearch={onSearch} placeholder="Search title, category, note" label="Search entries" className="w-full min-w-0" />
+            <SelectionGrid>
+              <SearchSelect aria-label="Filter by type" options={TYPE_LABELS} value={typeLabel} onChange={(v) => { setTypeLabel(v); setVisible(PAGE); }} creatable={false} placeholder="All types" searchPlaceholder="Search types…" />
+              <SearchSelect aria-label="Filter by category" options={categories} value={category} onChange={(v) => { setCategory(v); setVisible(PAGE); }} creatable={false} placeholder="All categories" searchPlaceholder="Search categories…" />
+              <SearchSelect aria-label="Sort entries" options={SORTS} value={sort} onChange={(v) => setSort(v || 'Newest')} creatable={false} clearable={false} placeholder="Sort" searchPlaceholder="Search…" />
+            </SelectionGrid>
           </div>
 
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">

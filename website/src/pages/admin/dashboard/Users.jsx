@@ -269,7 +269,7 @@ export default function Users() {
             <TabPanel key="overview" className="space-y-6">
               <UserStats loading={loading} />
 
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_11rem_11rem_auto]">
+              <div className="grid grid-cols-2 gap-3 lg:grid-cols-[minmax(0,1fr)_11rem_11rem_auto]">
                 <SearchInput
                   size="sm"
                   delay={200}
@@ -277,7 +277,7 @@ export default function Users() {
                   onSearch={(query) => dispatch(setUserQuery(query))}
                   placeholder="Search name, email, username, phone, city, role"
                   label="Search users"
-                  className="sm:col-span-2 lg:col-span-1"
+                  className="col-span-2 lg:col-span-1"
                 />
                 <AdminSearchSelect
                   className="min-w-0"

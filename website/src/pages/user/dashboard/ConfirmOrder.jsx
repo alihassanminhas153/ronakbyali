@@ -17,6 +17,7 @@ import {
 import PageHeader from '../../../ui/custom/PageHeader';
 import SearchInput from '../../../ui/custom/input/SearchInput';
 import SelectInput from '../../../ui/custom/input/SelectInput';
+import SelectionGrid from '../../../ui/custom/input/SelectionGrid';
 import EmptyState from '../../../ui/art/EmptyState';
 import { useAppDispatch, useAppSelector } from '../../../store/slices/hooks';
 import {
@@ -390,39 +391,41 @@ export default function ConfirmOrder() {
         </div>
       )}
 
-      <div className="grid items-start gap-3 sm:grid-cols-2 xl:grid-cols-[minmax(0,2fr)_1fr_1fr_1fr]">
+      <div className="space-y-3">
         <SearchInput
           value={query}
           onSearch={setQuery}
           size="sm"
           label="Search orders to confirm"
           placeholder="Search order number, product, name or address"
-          className="sm:col-span-2 xl:col-span-1"
+          className="w-full min-w-0"
         />
-        <SelectInput
-          className="min-w-0"
-          value={period}
-          onChange={setPeriod}
-          options={PERIOD_OPTIONS}
-          size="sm"
-          aria-label="Filter by order date"
-        />
-        <SelectInput
-          className="min-w-0"
-          value={type}
-          onChange={setType}
-          options={TYPE_OPTIONS}
-          size="sm"
-          aria-label="Filter by order type"
-        />
-        <SelectInput
-          className="min-w-0"
-          value={sort}
-          onChange={setSort}
-          options={SORT_OPTIONS}
-          size="sm"
-          aria-label="Sort orders"
-        />
+        <SelectionGrid>
+          <SelectInput
+            className="min-w-0"
+            value={period}
+            onChange={setPeriod}
+            options={PERIOD_OPTIONS}
+            size="sm"
+            aria-label="Filter by order date"
+          />
+          <SelectInput
+            className="min-w-0"
+            value={type}
+            onChange={setType}
+            options={TYPE_OPTIONS}
+            size="sm"
+            aria-label="Filter by order type"
+          />
+          <SelectInput
+            className="min-w-0"
+            value={sort}
+            onChange={setSort}
+            options={SORT_OPTIONS}
+            size="sm"
+            aria-label="Sort orders"
+          />
+        </SelectionGrid>
       </div>
 
       {loadingFirst ? (

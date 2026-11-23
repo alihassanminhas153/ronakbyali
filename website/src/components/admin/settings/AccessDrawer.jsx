@@ -93,60 +93,64 @@ export default function AccessDrawer({ open, user, locked, onClose }) {
       onClose={onClose}
       busy={pending}
       footer={
-        <>
+        <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:justify-end sm:gap-3">
           <ActionButton variant="secondary" onClick={onClose} disabled={pending}>Close</ActionButton>
           <ActionButton variant="primary" onClick={() => setConfirmOpen(true)} disabled={!dirty || Boolean(tagError) || disabled} loading={pending}>
             Save changes
           </ActionButton>
-        </>
+        </div>
       }
     >
       {user && (
-        <div className="space-y-5">
-          <div className="flex items-center gap-3 border-b border-border pb-4">
-            <Avatar user={user} size="size-12 text-sm" />
+        <div className="w-full min-w-0 space-y-4 sm:space-y-5">
+          <div className="flex items-center gap-2.5 border-b border-border pb-3 sm:gap-3 sm:pb-4">
+            <Avatar user={user} size="size-10 text-xs sm:size-12 sm:text-sm" />
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-medium text-text">{user.name || user.username}</p>
               <p className="truncate text-xs text-muted">@{user.username || '—'}</p>
             </div>
-            <RoleChip role={user.role} />
+            <span className="shrink-0"><RoleChip role={user.role} /></span>
           </div>
 
           {locked && <Banner kind="error">You cannot change your own access. Ask another admin.</Banner>}
-          {note && <Banner kind="error">{note}</Banner>}
+          {note && <div className="min-w-0 break-words"><Banner kind="error">{note}</Banner></div>}
           {result && <Banner kind={result.kind} onDismiss={() => setResult(null)}>{result.text}</Banner>}
 
-          <AdminSearchSelect
-            className="min-w-0"
-            label="Role"
-            options={ROLE_OPTIONS}
-            value={role}
-            onChange={(v) => v && setRole(v)}
-            disabled={disabled}
-            hint="Admin, Support and Manager also become Appwrite labels."
-          />
+          <div className="min-w-0">
+            <AdminSearchSelect
+              className="min-w-0 w-full"
+              label="Role"
+              options={ROLE_OPTIONS}
+              value={role}
+              onChange={(v) => v && setRole(v)}
+              disabled={disabled}
+              hint="Admin, Support and Manager also become Appwrite labels."
+            />
+          </div>
 
-          <TagInput
-            label="Extra labels"
-            value={extras}
-            onChange={setExtras}
-            max={MAX_EXTRA_LABELS}
-            maxLength={36}
-            placeholder="e.g. vip, wholesale"
-            disabled={disabled}
-            error={tagError}
-            hint="Letters and numbers only. Press Enter to add."
-          />
+          <div className="min-w-0 [&_*]:max-w-full">
+            <TagInput
+              label="Extra labels"
+              value={extras}
+              onChange={setExtras}
+              max={MAX_EXTRA_LABELS}
+              maxLength={36}
+              placeholder="e.g. vip, wholesale"
+              disabled={disabled}
+              error={tagError}
+              hint="Letters and numbers only. Press Enter to add."
+            />
+          </div>
 
-          <div className="border-t border-border pt-4 text-sm">
+          <div className="min-w-0 border-t border-border pt-3 text-[13px] sm:pt-4 sm:text-sm">
             <p className="mb-2 text-xs font-semibold uppercase tracking-[0.14em] text-muted">What will change</p>
             {current === null ? (
               <p className="text-muted">{loadFailed ? 'Live labels are unavailable.' : 'Reading current labels…'}</p>
             ) : (
-              <dl className="space-y-3">
-                <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                  <dt className="w-16 text-muted">Role</dt>
-                  <dd className="text-text">
+              <dl className="min-w-0 space-y-3">
+                <div className="flex flex-col gap-1 sm:flex-row sm:items-baseline sm:gap-x-3">
+                  <dt className="shrink-0 text-muted sm:w-16">Role</dt>
+                  <dd className="min-w-0 break-words text-text">
                     {roleChanged ? (
                       <>{user.role || 'new'} → <span className="font-medium">{role}</span></>
                     ) : (
@@ -154,9 +158,9 @@ export default function AccessDrawer({ open, user, locked, onClose }) {
                     )}
                   </dd>
                 </div>
-                <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                  <dt className="w-16 text-muted">Labels</dt>
-                  <dd className="flex flex-wrap gap-1.5">
+                <div className="flex flex-col gap-1 sm:flex-row sm:items-baseline sm:gap-x-3">
+                  <dt className="shrink-0 text-muted sm:w-16">Labels</dt>
+                  <dd className="flex min-w-0 flex-wrap gap-1.5 break-all">
                     {next.length === 0 && removed.length === 0 && <span className="text-muted">No labels</span>}
                     {next.map((l) => <Chip key={l} tone={added.includes(l) ? 'add' : 'plain'}>{l}</Chip>)}
                     {removed.map((l) => <Chip key={`r-${l}`} tone="remove">{l}</Chip>)}

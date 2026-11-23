@@ -165,7 +165,8 @@ export const setUserBlocked = createAsyncThunk(
     }
 );
 
-// Team only (admin label in practice).
+// Team only (admin label in practice). Goes through the labels function so the Appwrite Auth
+// labels and the table role always change together. Existing extra labels are kept.
 export const setUserRole = createAsyncThunk(
     'users/setUserRole',
     async ({ userId, role }, { getState, rejectWithValue }) => {
@@ -173,9 +174,15 @@ export const setUserRole = createAsyncThunk(
         if (state.users.scope !== 'team') return rejectWithValue('Only the team can change roles.');
         if (userId === state.users.meId) return rejectWithValue('You cannot change your own role.');
 
-        const profile = await userService.setRole({ userId, role });
-        if (!profile) return rejectWithValue('Could not change the role.');
-        return profile;
+        const live = await labelService.getAccess({ userId });
+        if (!live || !live.ok) {
+            return rejectWithValue(labelService.lastError || 'Could not read the current labels.');
+        }
+        const extras = (live.labels || []).filter((l) => !['admin', 'support', 'manager'].includes(l));
+
+        const res = await labelService.setAccess({ userId, role, labels: extras });
+        if (!res || !res.ok) return rejectWithValue(labelService.lastError || 'Could not change the role.');
+        return res.profile;
     }
 );
 
@@ -188,7 +195,8 @@ export const setUserAccess = createAsyncThunk(
         if (userId === state.users.meId) return rejectWithValue('You cannot change your own access.');
 
         const res = await labelService.setAccess({ userId, role, labels });
-        if (!res.ok) return rejectWithValue(res.message);
+        // setAccess returns false on failure; the reason is in labelService.lastError
+        if (!res || !res.ok) return rejectWithValue(labelService.lastError || 'Could not save access.');
         return res.profile;
     }
 );
@@ -377,7 +385,7 @@ export const selectIsTeam = (state) => isStaffRole(selectMe(state)?.role);
 // to show the blocked page on every URL.
 export const selectIsBlocked = (state) => selectMe(state)?.isBlocked === true;
 
-// Search (name, email, username, phone, city, role) + role filter + blocked filter.
+// Search (name, email, username, phone, city, role, labels) + role filter + blocked filter.
 export const selectVisibleUsers = createSelector(
     [selectAllUsers, selectUserFilters],
     (users, { query, role, blocked }) => {
@@ -387,7 +395,7 @@ export const selectVisibleUsers = createSelector(
             if (blocked === 'blocked' && !u.isBlocked) return false;
             if (blocked === 'active' && u.isBlocked) return false;
             if (!term) return true;
-            return [u.name, u.email, u.username, u.phone, u.lastCity, u.role].some((v) =>
+            return [u.name, u.email, u.username, u.phone, u.lastCity, u.role, ...(u.labels || [])].some((v) =>
                 String(v || '').toLowerCase().includes(term)
             );
         });
