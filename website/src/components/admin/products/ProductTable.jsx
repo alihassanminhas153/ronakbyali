@@ -138,6 +138,7 @@ export default function ProductTable({ products = [], busyId, onEdit, onDelete, 
               <Thumb product={p} />
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-medium text-text">{p.name}</p>
+                {p.hasDesigns && <p className="text-[11px] text-accent-tone-6">{(p.imageIds || []).length} designs</p>}
                 <div className="mt-0.5 flex flex-wrap items-center gap-1.5"><CategoryChip name={p.category} />{p.group && <span className="truncate text-xs text-muted">{p.group}</span>}</div>
                 <div className="mt-1.5"><Price pricing={getEffectivePricing(p, sales)} /></div>
                 <div className="mt-1.5"><Sale product={p} sales={sales} /></div>
@@ -175,6 +176,7 @@ export default function ProductTable({ products = [], busyId, onEdit, onDelete, 
                     <div className="min-w-0">
                       <p className="max-w-64 truncate text-sm font-medium text-text">{p.name}</p>
                       <p className="max-w-64 truncate text-xs text-muted transition-colors duration-200 group-hover/row:text-accent-tone-7">/{p.slug}</p>
+                      {p.hasDesigns && <p className="text-[11px] text-accent-tone-6">{(p.imageIds || []).length} designs</p>}
                     </div>
                   </div>
                 </td>

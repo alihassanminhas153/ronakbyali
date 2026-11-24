@@ -23,6 +23,7 @@ import Tooltip from '../../../ui/custom/tooltip/Tooltip';
 import { formatCardNumber } from '../../../ui/graphs/CardMoney';
 
 import { useAppDispatch, useAppSelector } from '../../../store/slices/hooks';
+import { selectProfile } from '../../../store/slices/authSlice';
 import { selectMe } from '../../../store/slices/userSlice';
 import {
   dismissAlert,
@@ -34,7 +35,7 @@ import {
   selectVisitorAlertsStatus,
   trackAlertImpression,
 } from '../../../store/slices/alertSlice';
-import { STAFF_ROLES } from '../../../lib/appwrite/order';
+import { isStaffLabels } from '../../../lib/appwrite/user';
 import Tabs, { TabPanel } from '../../../ui/custom/tabs/Tabs';
 import CountUp from '../../../ui/custom/motion/CountUp';
 import useEntered from '../../../ui/custom/motion/useEntered';
@@ -225,6 +226,7 @@ function AlertsView({ me }) {
   const entered = useEntered();
   const noticeTimer = useRef(null);
 
+  const authProfile = useAppSelector(selectProfile);
   const bars = useAppSelector(selectAlertBars);
   const popups = useAppSelector(selectAlertPopups);
   const status = useAppSelector(selectVisitorAlertsStatus);
@@ -239,7 +241,7 @@ function AlertsView({ me }) {
   const [updatedAt, setUpdatedAt] = useState(null);
   const ago = useTimeAgo(updatedAt);
 
-  const isStaff = STAFF_ROLES.includes(me.role);
+  const isStaff = isStaffLabels(authProfile?.labels || []);
   useEffect(() => setVisibleCount(PAGE_SIZE), [tab, type, query, sort]);
 
   const notify = (kind, text) => {

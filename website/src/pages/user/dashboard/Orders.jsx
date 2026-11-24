@@ -635,18 +635,20 @@ function OrderCard({ order, busy, username, index }) {
             </div>
           )}
 
-          {/* actions available while the order can still be changed */}
-          {editable && !editing && (
+          {/* actions available while the order can still be changed or cancelled */}
+          {(editable || canCancelOrder(order)) && !editing && (
             <div className="flex flex-wrap items-center gap-3 border-t border-border pt-4">
-              <button
-                type="button"
-                onClick={startEdit}
-                disabled={busy}
-                className="btn btn-ghost !min-h-10 gap-2 !px-4 !py-2 text-sm disabled:opacity-50"
-              >
-                <Pencil size={15} aria-hidden="true" />
-                Change delivery details
-              </button>
+              {editable && (
+                <button
+                  type="button"
+                  onClick={startEdit}
+                  disabled={busy}
+                  className="btn btn-ghost !min-h-10 gap-2 !px-4 !py-2 text-sm disabled:opacity-50"
+                >
+                  <Pencil size={15} aria-hidden="true" />
+                  Change delivery details
+                </button>
+              )}
               {itemsEditable && <Link to={PATHS.products} className="btn btn-ghost !min-h-10 !px-4 !py-2 text-sm">Add more products</Link>}
               {canCancelOrder(order) && (
                 <button
@@ -661,10 +663,12 @@ function OrderCard({ order, busy, username, index }) {
               )}
               <p className="w-full text-xs text-muted">
                 {order.isCustom
-                  ? 'You can change delivery details while this order is being prepared. Cancellation is only available before confirmation.'
+                  ? 'You can change delivery details while this order is being prepared. You can cancel it any time before it is dispatched.'
                   : itemsEditable
-                    ? <>Add products while the order is pending by putting them in your cart and choosing “Add to order” at <Link to={PATHS.user.checkout(username)} className="underline">checkout</Link>.</>
-                    : 'Delivery details can still be changed while the order is processing. Cancellation is unavailable after confirmation.'}
+                    ? <>Add products while the order is pending by putting them in your cart and choosing “Add to order” at <Link to={PATHS.user.checkout(username)} className="underline">checkout</Link>. You can cancel any time before the order is dispatched.</>
+                    : editable
+                      ? 'Delivery details can still be changed while the order is processing. You can cancel any time before it is dispatched.'
+                      : 'Your order is packed. You can still cancel it until it is dispatched.'}
               </p>
             </div>
           )}
@@ -677,7 +681,7 @@ function OrderCard({ order, busy, username, index }) {
         busy={busy}
         error={cancelError}
         title={`Cancel order ${order.orderNumber}?`}
-        message="This cannot be undone. If you still want these items, you will need to place a new order."
+        message="This cannot be undone. If you still want these items, you will need to place a new order. Cancelling many orders can mean we ask you to confirm future orders."
         confirmLabel="Yes, cancel order"
         onConfirm={confirmCancel}
         onCancel={() => setCancelOpen(false)}
@@ -807,7 +811,7 @@ export default function Orders() {
       <PageHeader
         art="orders"
         title="Orders"
-        subtitle="Add products while an order is pending, cancel an unconfirmed processing order, and request a return after delivery."
+        subtitle="Add products while an order is pending, cancel any order before it is dispatched, and request a return after delivery."
         actions={(
           <div className="flex items-center gap-3">
             {ago && (

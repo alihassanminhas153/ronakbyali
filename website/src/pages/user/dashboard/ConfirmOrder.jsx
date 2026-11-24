@@ -29,7 +29,7 @@ import {
   selectMyOrdersTotal,
 } from '../../../store/slices/ordersSlice';
 import orderConfirmService from '../../../lib/appwrite/orderConfirm';
-import orderService from '../../../lib/appwrite/order';
+import orderService, { normalizeStatus } from '../../../lib/appwrite/order';
 import { formatDateTime, formatMoney } from '../../../components/user/profile/profileMeta';
 
 const PAGE_SIZE = 100;
@@ -88,20 +88,22 @@ function orderSearchText(order) {
     .toLowerCase();
 }
 
+const CONFIRMABLE = ['pending', 'processing', 'packed'];
+
 // What to say when the order from the e-mail link cannot be confirmed (any more).
 function linkedMessage(order, justConfirmed) {
   const name = order.orderNumber || 'This order';
   if (justConfirmed || order.isConfirmed) {
-    return { tone: 'success', title: `${name} is confirmed`, text: 'Thank you! We are preparing your order now.' };
+    return { tone: 'success', title: `${name} is confirmed`, text: 'Thank you! Your order is confirmed.' };
   }
-  switch (order.status) {
-    case 'processing':
-      return null; // confirmable
+  switch (normalizeStatus(order.status)) {
     case 'pending':
-      return { tone: 'info', title: `${name} is not ready yet`, text: 'We are still reviewing your order. We will e-mail you a new confirm button as soon as it is being processed.' };
+    case 'processing':
+    case 'packed':
+      return null; // confirmable until it is dispatched
     case 'cancelled':
       return { tone: 'error', title: `${name} was cancelled`, text: 'A cancelled order cannot be confirmed.' };
-    case 'shipped':
+    case 'dispatched':
       return { tone: 'info', title: `${name} is already on its way`, text: 'It was dispatched, so nothing more is needed from you.' };
     case 'delivered':
       return { tone: 'info', title: `${name} was delivered`, text: 'This order is complete.' };
@@ -270,7 +272,7 @@ export default function ConfirmOrder() {
   };
 
   const confirmableOrders = useMemo(
-    () => orders.filter((order) => order.status === 'processing' && !order.isConfirmed && !confirmedIds.has(order.$id)),
+    () => orders.filter((order) => CONFIRMABLE.includes(normalizeStatus(order.status)) && !order.isConfirmed && !confirmedIds.has(order.$id)),
     [orders, confirmedIds]
   );
 
@@ -307,7 +309,7 @@ export default function ConfirmOrder() {
   };
 
   const confirmOrder = async (order) => {
-    if (confirmingId || order.status !== 'processing' || order.isConfirmed) return;
+    if (confirmingId || !CONFIRMABLE.includes(normalizeStatus(order.status)) || order.isConfirmed) return;
     setConfirmingId(order.$id);
     setNotice(null);
     try {

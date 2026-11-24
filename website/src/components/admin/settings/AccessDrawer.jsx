@@ -8,7 +8,7 @@ import TagInput from '../../../ui/custom/input/TagInput';
 import ActionButton from '../../../ui/custom/button/ActionButton';
 import ConfirmDialog from '../../../ui/custom/modal/ConfirmDialog';
 import { Avatar, Banner, Chip, Portal, RoleChip, SlideDrawer } from './SettingsParts';
-import { MAX_EXTRA_LABELS, ROLE_OPTIONS, buildLabels, labelsError, splitLabels } from './settingsMeta';
+import { MAX_EXTRA_LABELS, ROLE_OPTIONS, STAFF_ROLES, buildLabels, labelsError, splitLabels } from './settingsMeta';
 
 // Role + labels for one user. One save updates Appwrite Auth AND the users table.
 export default function AccessDrawer({ open, user, locked, onClose }) {
@@ -43,6 +43,9 @@ export default function AccessDrawer({ open, user, locked, onClose }) {
       if (!live) return;
       if (res?.ok) {
         const labels = res.labels || [];
+        const liveStaffRole = splitLabels(labels).staff;
+        const tableRole = STAFF_ROLES.includes(user.role) ? 'new' : user.role || 'new';
+        setRole(liveStaffRole || tableRole);
         setCurrent(labels);
         setExtras(splitLabels(labels).extras);
         setNote('');
@@ -60,7 +63,10 @@ export default function AccessDrawer({ open, user, locked, onClose }) {
   const next = useMemo(() => buildLabels(role, extras), [role, extras]);
   const added = current ? next.filter((l) => !current.includes(l)) : [];
   const removed = current ? current.filter((l) => !next.includes(l)) : [];
-  const roleChanged = user ? role !== (user.role || 'new') : false;
+  const liveRole = current
+    ? splitLabels(current).staff || (STAFF_ROLES.includes(user?.role) ? 'new' : user?.role || 'new')
+    : user?.role || 'new';
+  const roleChanged = user && current !== null ? role !== liveRole : false;
   const dirty = roleChanged || added.length > 0 || removed.length > 0;
   const tagError = labelsError(extras);
   const grantsAdmin = added.includes('admin');
@@ -109,7 +115,7 @@ export default function AccessDrawer({ open, user, locked, onClose }) {
               <p className="truncate text-sm font-medium text-text">{user.name || user.username}</p>
               <p className="truncate text-xs text-muted">@{user.username || '—'}</p>
             </div>
-            <span className="shrink-0"><RoleChip role={user.role} /></span>
+            <span className="shrink-0"><RoleChip role={current ? liveRole : user.role} /></span>
           </div>
 
           {locked && <Banner kind="error">You cannot change your own access. Ask another admin.</Banner>}
@@ -152,7 +158,7 @@ export default function AccessDrawer({ open, user, locked, onClose }) {
                   <dt className="shrink-0 text-muted sm:w-16">Role</dt>
                   <dd className="min-w-0 break-words text-text">
                     {roleChanged ? (
-                      <>{user.role || 'new'} → <span className="font-medium">{role}</span></>
+                      <>{liveRole} → <span className="font-medium">{role}</span></>
                     ) : (
                       <span className="text-muted">No change</span>
                     )}

@@ -11,12 +11,12 @@ import { createAsyncThunk, createSlice, isAnyOf } from '@reduxjs/toolkit';
 import { authService, userService } from './services';
 import { fail, getUserId, isRow, stripToast } from './utils';
 import { AVATAR_PREF_KEY } from '../../lib/appwrite/accountExtras';
-
-const STAFF_ROLES = ['admin', 'support', 'manager'];
+import { hasAdminLabel, isStaffLabels } from '../../lib/appwrite/user';
 
 const flagsFor = (profile) => {
   const role = profile?.role || null;
-  return { role, isAdmin: role === 'admin', isStaff: STAFF_ROLES.includes(role) };
+  const labels = Array.isArray(profile?.labels) ? profile.labels : [];
+  return { role, isAdmin: hasAdminLabel(labels), isStaff: isStaffLabels(labels) };
 };
 
 const initialState = {
@@ -85,7 +85,7 @@ export const saveName = createAsyncThunk('auth/saveName', async (arg, { getState
   const result = await userService.updateProfile({ userId, data: { name } });
   if (!result) return fail(rejectWithValue, 'Could not save your name. Please try again.', arg);
 
-  let savedProfile = isRow(result) ? result : { ...profile, name };
+  let savedProfile = { ...(isRow(result) ? result : { ...profile, name }), labels: profile.labels || [] };
   if (avatarFile) {
     const withAvatar = await userService.changeAvatar({
       userId,
@@ -203,6 +203,11 @@ const authSlice = createSlice({
     clearAuthError: (state) => {
       state.error = null;
     },
+    setAuthLabels: (state, { payload }) => {
+      if (!state.profile) return;
+      state.profile.labels = Array.isArray(payload) ? payload : [];
+      state.roleFlags = flagsFor(state.profile);
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -226,7 +231,10 @@ const authSlice = createSlice({
       })
       .addMatcher(isSessionEnded, () => ({ ...initialState, authChecked: true }))
       .addMatcher(isAnyOf(...profileSetters.map((t) => t.fulfilled)), (state, action) => {
-        state.profile = action.payload || null;
+        const next = action.payload || null;
+        state.profile = next
+          ? { ...next, labels: Array.isArray(next.labels) ? next.labels : state.profile?.labels || [] }
+          : null;
         state.roleFlags = flagsFor(state.profile);
       })
       .addMatcher(isAnyOf(...trackedThunks.map((t) => t.pending)), (state) => {
@@ -243,7 +251,7 @@ const authSlice = createSlice({
   },
 });
 
-export const { clearAuthError } = authSlice.actions;
+export const { clearAuthError, setAuthLabels } = authSlice.actions;
 export default authSlice.reducer;
 
 /* ---------- selectors ---------- */

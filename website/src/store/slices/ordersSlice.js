@@ -39,11 +39,24 @@ import {
   DELIVERY_TYPES,
   USER_EDITABLE_STATUSES,
   USER_ITEM_EDITABLE_STATUSES,
+  USER_CANCELLABLE_STATUSES,
   STAFF_ROLES,
+  canUserCancel,
+  nextStatusesFor,
   normalizeStatus,
 } from '../../lib/appwrite/order';
 
-export { ORDER_STATUS, PAYMENT_METHODS, PAYMENT_STATUS, DELIVERY_TYPES, USER_EDITABLE_STATUSES, USER_ITEM_EDITABLE_STATUSES };
+export {
+  ORDER_STATUS,
+  PAYMENT_METHODS,
+  PAYMENT_STATUS,
+  DELIVERY_TYPES,
+  USER_EDITABLE_STATUSES,
+  USER_ITEM_EDITABLE_STATUSES,
+  USER_CANCELLABLE_STATUSES,
+  nextStatusesFor,
+  normalizeStatus,
+};
 
 const byNewest = (a, b) => (b.$createdAt || '').localeCompare(a.$createdAt || '');
 const adapter = createEntityAdapter({ selectId: (o) => o.$id, sortComparer: byNewest });
@@ -101,7 +114,8 @@ const initialState = adapter.getInitialState({
 
 export const canEditOrder = (order) => !!order && USER_EDITABLE_STATUSES.includes(normalizeStatus(order.status));
 export const canAddItemsToOrder = (order) => !!order && USER_ITEM_EDITABLE_STATUSES.includes(normalizeStatus(order.status));
-export const canCancelOrder = (order) => !!order && normalizeStatus(order.status) === 'processing' && !order.isConfirmed;
+// A customer can cancel until the order is dispatched (pending, processing, packed).
+export const canCancelOrder = (order) => canUserCancel(order);
 
 const linesToItems = (lines, paymentType = 'cod', sales = []) =>
   lines.map((l) => ({
@@ -910,7 +924,7 @@ export const selectOpenOrdersStatus = (s) => s.orders.openStatus;
 export const selectOrderUpdating = (s) => s.orders.updating;
 export const selectOrderUpdateError = (s) => s.orders.updateError;
 
-// Orders that have not been dispatched yet, newest first.
+// Orders that are still pending, newest first.
 export const selectOpenOrders = (s) =>
   s.orders.openIds.map((id) => s.orders.entities[id]).filter(canAddItemsToOrder);
 

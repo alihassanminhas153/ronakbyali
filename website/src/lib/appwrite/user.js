@@ -20,6 +20,8 @@ export const LOYAL_AFTER_ORDERS = 2;
 
 // true for admin / support / manager ("team" accounts).
 export const isStaffRole = (role) => STAFF_ROLES.includes(role);
+export const isStaffLabels = (labels = []) => labels.some((label) => STAFF_ROLES.includes(label));
+export const hasAdminLabel = (labels = []) => labels.includes(ROLES.ADMIN);
 
 // The ONLY columns a signed-in user may change on their own profile.
 // role, isBlocked, ordersCount, totalSpent, cartId... are never in this list.

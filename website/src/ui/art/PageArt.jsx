@@ -52,6 +52,7 @@ const ARTS = {
 
 // Width on phone, then tablet (sm), then desktop (lg). The height follows by itself.
 export const PAGE_ART_SIZES = {
+  header: "w-20 sm:w-24 lg:w-44",
   sm: "w-24 sm:w-32 lg:w-40",
   md: "w-32 sm:w-44 lg:w-60",
   lg: "w-48 sm:w-72 lg:w-96",

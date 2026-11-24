@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { AlertTriangle, Check, CheckCircle2, ChevronDown, ChevronRight, ImagePlus, Loader2, Plus, Search, Star, X } from 'lucide-react';
+import { AlertTriangle, Check, CheckCircle2, ChevronDown, ChevronRight, ImagePlus, Loader2, Pencil, Plus, Search, Star, X } from 'lucide-react';
 
 import { addProduct, updateProduct, fetchAllProducts, selectAllProducts } from '../../../store/slices/productsSlice';
 import { fetchSales, selectSaleOptions, selectSalesList } from '../../../store/slices/saleSlice';
@@ -14,6 +14,7 @@ import { getSaleStatus } from '../../../lib/saleMath';
 import { normalizeNumberInput } from '../../../lib/numberInput';
 import { toTitleCase } from '../../../lib/textCase';
 import { autoPrice, slugify, toForm, toPayload, validate } from './productSchema';
+import { resolveImageIds } from '../../../lib/productImages';
 
 /* ---------- small helpers (theme tokens only) ---------- */
 
@@ -194,6 +195,40 @@ function Thumb({ id, url, className }) {
 }
 
 /* ---------- product picker (opens like a file-chooser box) ---------- */
+
+// Design name of one image: plain text with an Edit button. The input only appears after Edit.
+function DesignNameRow({ name, onSave }) {
+  const [editing, setEditing] = useState(false);
+  if (!editing) {
+    return (
+      <div className="mt-1.5 flex items-center justify-between gap-1">
+        <span className="truncate text-xs font-medium text-text" title={name}>{name}</span>
+        <button type="button" onClick={() => setEditing(true)} aria-label={`Edit the name of ${name}`} className="grid size-6 shrink-0 place-items-center rounded text-muted transition-colors hover:bg-surface-alt hover:text-text">
+          <Pencil size={12} aria-hidden="true" />
+        </button>
+      </div>
+    );
+  }
+  const finish = (value) => {
+    const next = value.trim();
+    if (next) onSave(next);
+    setEditing(false);
+  };
+  return (
+    <input
+      autoFocus
+      defaultValue={name}
+      maxLength={100}
+      aria-label="Design name"
+      onBlur={(e) => finish(e.target.value)}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') { e.preventDefault(); finish(e.currentTarget.value); }
+        if (e.key === 'Escape') { e.stopPropagation(); setEditing(false); }
+      }}
+      className={`${inputCls(false)} mt-1.5 !h-8 !px-2 text-xs`}
+    />
+  );
+}
 
 const PAGE = 12;
 
@@ -414,7 +449,7 @@ export default function ProductForm({ open, product, categories = [], groups = [
 
   // Images in display order. Existing: { key, id, url }  New (uploaded on save): { key, file, url }
   const [images, setImages] = useState(() =>
-    (product?.imageIds || []).map((id) => ({ key: id, id, url: productService.getImageUrl(id) }))
+    (product?.imageIds || []).map((id, i) => ({ key: id, id, url: productService.getImageUrl(id), name: product?.designNames?.[i] || '' }))
   );
   const [sampleImages, setSampleImages] = useState(() =>
     product?.customFileId
@@ -580,7 +615,7 @@ export default function ProductForm({ open, product, categories = [], groups = [
 
       /* images: reuse the SAME bucket file ids (nothing is downloaded or re-uploaded) */
       const ids = (Array.isArray(p.imageIds) ? p.imageIds : []).filter(Boolean);
-      const copied = ids.map((id) => ({ key: id, id, url: productService.getImageUrl(id) }));
+      const copied = ids.map((id, i) => ({ key: id, id, url: productService.getImageUrl(id), name: p.designNames?.[i] || '' }));
 
       let sample = [];
       if (customMode && p.customFileId) {
@@ -600,6 +635,7 @@ export default function ProductForm({ open, product, categories = [], groups = [
         group: toTitleCase(text(p.group)),
         tags: Array.isArray(p.tags) ? p.tags.map(toTitleCase) : [],
         featured: Boolean(p.featured),
+        hasDesigns: !customMode && Boolean(p.hasDesigns) && ids.length > 1,
         order: zeroBlank(p.order),
         saleId,
         discountName: toTitleCase(discountName),
@@ -712,12 +748,39 @@ export default function ProductForm({ open, product, categories = [], groups = [
 
   /* ----- images ----- */
 
+  // Design names: every image gets one while "different designs" is on. New images get
+  // "Design N" until the admin edits the name.
+  const defaultName = (taken, n) => {
+    const used = new Set(taken.map((x) => String(x || '').trim().toLowerCase()));
+    let k = n;
+    while (used.has(`design ${k}`)) k += 1;
+    return `Design ${k}`;
+  };
+  const nameOf = (img, i) => (img.name || '').trim() || `Design ${i + 1}`;
   const addFiles = (list) => {
     const picked = Array.from(list || []).filter((f) => f.type.startsWith('image/'));
-    setImages((cur) => [...cur, ...picked.map((file) => {
-      const url = URL.createObjectURL(file);
-      return { key: url, file, url };
-    })]);
+    setImages((cur) => {
+      const all = [...cur];
+      picked.forEach((file) => {
+        const url = URL.createObjectURL(file);
+        all.push({ key: url, file, url, name: defaultName(all.map((x) => x.name), all.length + 1) });
+      });
+      return all;
+    });
+  };
+  const setDesigns = (on) => {
+    setForm((f) => ({ ...f, hasDesigns: on }));
+    setErrors((cur) => ({ ...cur, designs: undefined }));
+    if (!on) return;
+    setImages((cur) => {
+      const all = cur.map((x) => ({ ...x }));
+      all.forEach((img, i) => { if (!(img.name || '').trim()) img.name = defaultName(all.map((x) => x.name), i + 1); });
+      return all;
+    });
+  };
+  const renameImage = (img, name) => {
+    setImages((cur) => cur.map((x) => (x === img ? { ...x, name } : x)));
+    setErrors((cur) => ({ ...cur, designs: undefined }));
   };
   const removeImage = (img) => {
     if (img.file) URL.revokeObjectURL(img.url);
@@ -735,6 +798,16 @@ export default function ProductForm({ open, product, categories = [], groups = [
     const partialOptions = optionDrafts.some((row) => row.label.trim() || row.price !== '');
     if (customMode && customOptions.length === 0) found.customOptions = 'Add at least one customization.';
     if (customMode && partialOptions) found.customOptions = 'Add or remove the unfinished customization row.';
+    if (customMode) {
+      if (!sampleImages.length) found.sample = 'Add the sample image. It is also the product image.';
+    } else {
+      if (!images.length) found.images = 'Add at least one image.';
+      if (form.hasDesigns) {
+        const names = images.map((img, i) => nameOf(img, i).toLowerCase());
+        if (images.length < 2) found.designs = 'Designs need at least two images. Add another image or turn designs off.';
+        else if (new Set(names).size !== names.length) found.designs = 'Each design needs a different name.';
+      }
+    }
     setErrors(found);
     if (Object.keys(found).length) {
       setSubmitError('Please fix the highlighted fields.');
@@ -744,39 +817,27 @@ export default function ProductForm({ open, product, categories = [], groups = [
     setSaving(true);
     setSubmitError('');
     let uploadedIds = [];
-    let uploadedSampleId = null;
     try {
       // 1. unique slug
       const slug = await productService.generateUniqueSlug(slugify(form.slug || form.name), product?.$id);
       if (!slug) throw new Error('Could not create a unique slug. Try another name.');
 
-      // 2. upload new images (kept ones stay as they are)
-      const fresh = images.filter((i) => i.file);
-      if (fresh.length) {
-        const uploaded = await productService.uploadImages(fresh.map((i) => i.file));
-        if (!uploaded) throw new Error('Image upload failed.');
-        uploadedIds = uploaded.map((f) => f.$id);
-      }
-      let next = 0;
-      const imageIds = images.map((i) => (i.file ? uploadedIds[next++] : i.id)); // keeps the admin's order
-
-      let customFileId = null;
-      if (customMode && sampleImages[0]) {
-        if (sampleImages[0].kind === 'new') {
-          const uploaded = await productService.uploadImage(sampleImages[0].file);
-          if (!uploaded) throw new Error('Sample image upload failed.');
-          uploadedSampleId = uploaded.$id;
-          customFileId = uploadedSampleId;
-        } else {
-          customFileId = sampleImages[0].id;
-        }
-      }
+      // 2. take the ids of images already in the bucket (also the ones copied from another
+      //    product) and upload ONLY the new files. In the custom form the sample image is the
+      //    product image. Every product must end up with at least one image id.
+      const resolved = await resolveImageIds(customMode ? sampleImages : images, productService);
+      uploadedIds = resolved.uploadedIds;
+      const imageIds = resolved.ids;
+      if (!imageIds.length) throw new Error(customMode ? 'Add the sample image.' : 'Add at least one image.');
+      const customFileId = customMode ? imageIds[0] : null;
+      const designNames = !customMode && form.hasDesigns ? images.map((img, i) => nameOf(img, i)) : [];
 
       // 3. save the row (service fills priceFormat, remaining and status)
       const payload = {
         ...toPayload({ ...form, isCustom: customMode, customOptions }),
         slug,
         imageIds,
+        designNames,
         customFileId: customMode ? customFileId : null,
       };
       if (customMode) {
@@ -800,7 +861,6 @@ export default function ProductForm({ open, product, categories = [], groups = [
       onSaved?.();
     } catch (err) {
       if (uploadedIds.length) await productService.deleteImages(uploadedIds); // roll back
-      if (uploadedSampleId) await productService.deleteImage(uploadedSampleId);
       setSubmitError(typeof err === 'string' ? err : err?.message || 'Could not save the product.');
     } finally {
       setSaving(false);
@@ -1141,18 +1201,28 @@ export default function ProductForm({ open, product, categories = [], groups = [
                   items={sampleImages}
                   onChange={setSampleImages}
                   label="Sample image"
-                  hint="Optional example shown to customers."
+                  hint="Required. Customers see it as the product image."
                   max={1}
                   maxSizeMB={5}
                   disabled={saving}
                 />
+                {errors.sample && <p role="alert" className="mt-1 text-xs text-error">{errors.sample}</p>}
               </div>
             </Section>
           )}
 
+          {!customMode && (
           <section style={{ animationDelay: '180ms' }} className="animate-rise rounded-xl border border-border bg-surface p-4 sm:p-5">
             <h3 className="text-sm font-semibold text-text">Images</h3>
             <p className="mt-0.5 text-xs text-muted">The first image is the main one. Tap the star on an image to make it main.</p>
+            <div className="mt-3">
+              <Switch
+                checked={Boolean(form.hasDesigns)}
+                onChange={setDesigns}
+                label="The images are different designs"
+                hint="Off: the same product from different angles. On: each image is a design or style the customer chooses before ordering."
+              />
+            </div>
             <button
               type="button"
               onClick={() => fileInput.current?.click()}
@@ -1171,25 +1241,30 @@ export default function ProductForm({ open, product, categories = [], groups = [
             </button>
 
             {errors.images && <p className="mt-2 text-xs text-error">{errors.images}</p>}
+            {errors.designs && <p role="alert" className="mt-2 text-xs text-error">{errors.designs}</p>}
 
             {images.length > 0 && (
               <div className="mt-3 grid grid-cols-3 gap-3 sm:grid-cols-4">
                 {images.map((img, i) => (
-                  <div key={img.key} className="group animate-rise relative aspect-square overflow-hidden rounded-md border border-border bg-bg">
-                    <Thumb id={img.id} url={img.url} className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" />
-                    {i === 0 && <span className="absolute left-1.5 top-1.5 rounded-full bg-accent px-2 py-0.5 text-[10px] font-medium text-white">Main</span>}
-                    <div className="absolute inset-x-0 bottom-0 flex justify-end gap-1 bg-gradient-to-t from-black/50 to-transparent p-1.5 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100">
-                      {i !== 0 && (
-                        <button type="button" aria-label="Make main" onClick={() => makeMain(img)} className="grid h-7 w-7 place-items-center rounded bg-white/90 text-black"><Star size={14} /></button>
-                      )}
-                      <button type="button" aria-label="Remove image" onClick={() => removeImage(img)} className="grid h-7 w-7 place-items-center rounded bg-white/90 text-black"><X size={14} /></button>
+                  <div key={img.key} className="animate-rise">
+                    <div className="group relative aspect-square overflow-hidden rounded-md border border-border bg-bg">
+                      <Thumb id={img.id} url={img.url} className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" />
+                      {i === 0 && <span className="absolute left-1.5 top-1.5 rounded-full bg-accent px-2 py-0.5 text-[10px] font-medium text-white">Main</span>}
+                      <div className="absolute inset-x-0 bottom-0 flex justify-end gap-1 bg-gradient-to-t from-black/50 to-transparent p-1.5 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100">
+                        {i !== 0 && (
+                          <button type="button" aria-label="Make main" onClick={() => makeMain(img)} className="grid h-7 w-7 place-items-center rounded bg-white/90 text-black"><Star size={14} /></button>
+                        )}
+                        <button type="button" aria-label="Remove image" onClick={() => removeImage(img)} className="grid h-7 w-7 place-items-center rounded bg-white/90 text-black"><X size={14} /></button>
+                      </div>
                     </div>
+                    {form.hasDesigns && <DesignNameRow key={`${img.key}:${nameOf(img, i)}`} name={nameOf(img, i)} onSave={(name) => renameImage(img, name)} />}
                   </div>
                 ))}
               </div>
             )}
             <input ref={fileInput} type="file" accept="image/*" multiple hidden onChange={(e) => { addFiles(e.target.files); e.target.value = ''; }} />
           </section>
+          )}
 
           {editing && (
             <p className="px-1 text-xs text-muted">

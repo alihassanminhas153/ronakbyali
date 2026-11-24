@@ -21,7 +21,7 @@
 //   const rows = useSelector(selectAlertRows);
 import { createAsyncThunk, createEntityAdapter, createSlice } from '@reduxjs/toolkit';
 import alertService from '../../lib/appwrite/alert';
-import { STAFF_ROLES } from '../../lib/appwrite/order';
+import { hasAdminLabel, isStaffLabels } from '../../lib/appwrite/user';
 import { fail, getUserId, stripToast } from './utils';
 import { isSessionEnded } from './authSlice';
 
@@ -46,9 +46,9 @@ const initialState = adapter.getInitialState({
 /* ---------- helpers ---------- */
 
 // Staff = admin, support, manager. They never see alerts as a customer does.
-const isStaff = (profile) => !!profile?.role && STAFF_ROLES.includes(profile.role);
-// Only admins write (Appwrite enforces it with the admin label; this is the friendly check).
-const notAdmin = (profile) => profile?.role && profile.role !== 'admin';
+const isStaff = (profile) => isStaffLabels(profile?.labels || []);
+// Appwrite enforces the same label on writes; this is the friendly client-side check.
+const notAdmin = (profile) => !hasAdminLabel(profile?.labels || []);
 
 const putAll = (state, row) => {
   const i = state.all.findIndex((a) => a.$id === row.$id);
@@ -104,7 +104,7 @@ export const dismissAlert = createAsyncThunk('alerts/dismiss', async (arg, { get
 export const fetchAlertsPage = createAsyncThunk('alerts/fetchPage', async (arg, { getState, rejectWithValue }) => {
   const { limit = 10, offset = 0, ...filters } = stripToast(arg);
   const profile = getState().auth.profile;
-  if (profile?.role && !isStaff(profile)) return rejectWithValue('You do not have access to alerts.');
+  if (!isStaff(profile)) return rejectWithValue('You do not have access to alerts.');
   const result = await alertService.getAlertsPage({ limit, offset, ...filters });
   if (!result) return fail(rejectWithValue, alertService.lastError || 'Could not load alerts.', arg);
   return { rows: result.rows, total: result.total };

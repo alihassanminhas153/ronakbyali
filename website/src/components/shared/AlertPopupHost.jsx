@@ -3,7 +3,7 @@ import { Link } from 'react-router';
 import { ArrowUpRight, X } from 'lucide-react';
 
 import { TYPE_META } from '../admin/alerts/alertMeta';
-import { STAFF_ROLES } from '../../lib/appwrite/order';
+import { isStaffLabels } from '../../lib/appwrite/user';
 import { useAppDispatch, useAppSelector } from '../../store/slices/hooks';
 import { selectAuthChecked, selectProfile } from '../../store/slices/authSlice';
 import {
@@ -29,7 +29,7 @@ export default function AlertPopupHost() {
   const dialogRef = useRef(null);
   const userId = profile?.userId ?? profile?.$id ?? null;
   const userKey = userId || 'guest';
-  const isStaff = STAFF_ROLES.includes(profile?.role);
+  const isStaff = isStaffLabels(profile?.labels || []);
 
   useEffect(() => {
     let active = true;

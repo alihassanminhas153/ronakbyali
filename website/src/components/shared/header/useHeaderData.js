@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo } from 'react';
 import { useAppDispatch, useAppSelector } from '../../../store/slices/hooks';
 import { selectProfile } from '../../../store/slices/authSlice';
 import { selectMe } from '../../../store/slices/userSlice';
-import userService, { isStaffRole } from '../../../lib/appwrite/user';
+import userService, { isStaffLabels } from '../../../lib/appwrite/user';
 import { dashboardHome, PATHS } from '../../../router/path';
 import {
   fetchAlertBars,
@@ -33,7 +33,7 @@ export default function useHeaderData({ showOffers = false } = {}) {
   const userId = authProfile?.userId ?? authProfile?.$id ?? user?.$id ?? null;
   const { seen, markSeen } = useSeenAlerts(userId);
   const username = user?.username ?? authProfile?.username ?? '';
-  const isStaff = isStaffRole(user?.role ?? authProfile?.role);
+  const isStaff = isStaffLabels(authProfile?.labels || []);
   const cartPath = username && !isStaff ? PATHS.user.cart(username) : null;
   const alertPath = username
     ? isStaff

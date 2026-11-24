@@ -3,8 +3,8 @@ import { PATHS, dashboardHome } from "./path";
 
 /**
  * The only place the router reads the auth slice.
- *  isAdmin = role "admin" only
- *  isStaff = admin, support or manager (they use the admin panel, /team/:username)
+ *  isAdmin = the Appwrite Auth "admin" label only
+ *  isStaff = Appwrite Auth admin, support or manager labels (they use /team/:username)
  *  panel   = the one dashboard this person owns:
  *            staff -> /team/:username, everyone else -> /:username
  *            (/products when there is no username yet, so redirects can never loop)

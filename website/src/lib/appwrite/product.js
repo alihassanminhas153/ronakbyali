@@ -18,6 +18,7 @@ export class ProductService {
     tableId = envVars.ronakByAliProducts;
     bucketId = envVars.ronakByAliBucketId;
     lastAccessDenied = false;
+    lastError = null;
 
     constructor() {
         this.client
@@ -57,9 +58,49 @@ export class ProductService {
         return out;
     }
 
+    // Image rules, checked before a row is written:
+    //  - a product always has at least one image id
+    //  - with designs on, there are 2+ images and every image has its own different name
+    // `partial` = an update: nothing is checked unless imageIds is part of it.
+    _imageDataError(data = {}, { partial = false } = {}) {
+        if (partial && !('imageIds' in data)) return null;
+        const ids = (Array.isArray(data.imageIds) ? data.imageIds : []).filter(Boolean);
+        if (!ids.length) return 'A product needs at least one image.';
+        if (data.hasDesigns) {
+            const names = (Array.isArray(data.designNames) ? data.designNames : []).map((n) => String(n || '').trim());
+            if (ids.length < 2) return 'Designs need at least two images.';
+            if (names.length !== ids.length || names.some((n) => !n)) return 'Give every design a name.';
+            if (new Set(names.map((n) => n.toLowerCase())).size !== names.length) return 'Design names must be different.';
+        }
+        return null;
+    }
+
+    // [{ id, name }] for the product's current images.
+    _imagePairs(product) {
+        const names = product?.designNames || [];
+        return (product?.imageIds || []).map((id, i) => ({ id, name: names[i] || '' }));
+    }
+
+    // imageIds (+ designNames kept in step) for a new order of the pairs.
+    _imageFields(product, pairs) {
+        const data = { imageIds: pairs.map((p) => p.id) };
+        if (product.hasDesigns) {
+            if (pairs.length < 2) {
+                data.hasDesigns = false;
+                data.designNames = [];
+            } else {
+                data.designNames = pairs.map((p, i) => p.name || `Design ${i + 1}`);
+            }
+        }
+        return data;
+    }
+
     // ---------- Create ----------
 
     async addProduct(data) {
+        this.lastError = null;
+        const problem = this._imageDataError(data);
+        if (problem) { this.lastError = problem; return false; }
         try {
             const product = await this.table.createRow({
                 databaseId: this.databaseId,
@@ -76,6 +117,9 @@ export class ProductService {
 
     // items: array of product objects (bulk upload), 10 at a time.
     async addProducts(items) {
+        this.lastError = null;
+        const problem = (items || []).map((item) => this._imageDataError(item)).find(Boolean);
+        if (problem) { this.lastError = problem; return false; }
         try {
             return await this._inChunks(items, 10, (data) =>
                 this.table.createRow({
@@ -95,6 +139,9 @@ export class ProductService {
 
     // data: only the fields that changed
     async updateProduct(rowId, data) {
+        this.lastError = null;
+        const problem = this._imageDataError(data, { partial: true });
+        if (problem) { this.lastError = problem; return false; }
         try {
             const product = await this.table.updateRow({
                 databaseId: this.databaseId,
@@ -641,6 +688,7 @@ export class ProductService {
     }
 
     // Upload files and append their ids to the product's imageIds.
+    // With designs on, every new image gets a default name ("Design 3") the admin can rename.
     async addImages(rowId, files) {
         try {
             const current = await this.getProduct(rowId);
@@ -649,9 +697,9 @@ export class ProductService {
             const uploaded = await this.uploadImages(files);
             if (!uploaded) return false;
 
-            const product = await this.updateProduct(rowId, {
-                imageIds: [...(current.imageIds || []), ...uploaded.map((f) => f.$id)],
-            });
+            const pairs = this._imagePairs(current);
+            uploaded.forEach((f) => pairs.push({ id: f.$id, name: '' }));
+            const product = await this.updateProduct(rowId, this._imageFields(current, pairs));
             if (!product) {
                 await this.deleteImages(uploaded.map((f) => f.$id)); // roll back
                 return false;
@@ -663,14 +711,16 @@ export class ProductService {
         }
     }
 
-    // Remove one image from the product and from the bucket.
+    // Remove one image from the product and from the bucket (if no other product uses it).
+    // The last image cannot be removed. Design names move with their images.
     async removeImage(rowId, fileId) {
+        this.lastError = null;
         try {
             const current = await this.getProduct(rowId);
             if (!current) return false;
-            const product = await this.updateProduct(rowId, {
-                imageIds: (current.imageIds || []).filter((id) => id !== fileId),
-            });
+            const pairs = this._imagePairs(current).filter((p) => p.id !== fileId);
+            if (!pairs.length) { this.lastError = 'A product needs at least one image.'; return false; }
+            const product = await this.updateProduct(rowId, this._imageFields(current, pairs));
             if (!product) return false;
             await this.deleteImagesIfUnused([fileId]);
             return product;
@@ -680,14 +730,14 @@ export class ProductService {
         }
     }
 
-    // Make an existing image the main one (moves it to the front).
+    // Make an existing image the main one (moves it, and its design name, to the front).
     async setMainImage(rowId, fileId) {
         try {
             const current = await this.getProduct(rowId);
             if (!current || !(current.imageIds || []).includes(fileId)) return false;
-            return await this.updateProduct(rowId, {
-                imageIds: [fileId, ...current.imageIds.filter((id) => id !== fileId)],
-            });
+            const pairs = this._imagePairs(current);
+            const main = pairs.find((p) => p.id === fileId);
+            return await this.updateProduct(rowId, this._imageFields(current, [main, ...pairs.filter((p) => p.id !== fileId)]));
         } catch (error) {
             console.error(error.message);
             return false;

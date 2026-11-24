@@ -67,7 +67,7 @@ export class AuthService {
         const updated = await userService.updateProfile({ userId, data: { name } });
         if (!updated) return this._fail('Could not save your name. Please try again.');
         await this.updateName({ name });
-        return { ...result.profile, ...updated, name };
+        return { ...result.profile, ...updated, name, labels: result.profile.labels || [] };
     }
 
     // Both email forms use the same flow. Account creation is only attempted
@@ -126,7 +126,8 @@ export class AuthService {
     async getCurrentProfile() {
         const user = await this.getCurrentUser();
         if (!user) return false;
-        return userService.getProfile({ userId: user.$id });
+        const profile = await userService.getProfile({ userId: user.$id });
+        return profile ? { ...profile, labels: Array.isArray(user.labels) ? user.labels : [] } : profile;
     }
 
     async _finishLogin(provider) {
@@ -151,7 +152,7 @@ export class AuthService {
         if (profile.isNew && profile.avatarFileId) {
             await this.updatePref({ key: AVATAR_PREF_KEY, value: profile.avatarFileId });
         }
-        return profile;
+        return { ...profile, labels: Array.isArray(user.labels) ? user.labels : [] };
     }
 
     async _getGoogleAvatarFile() {

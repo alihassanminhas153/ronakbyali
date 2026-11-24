@@ -3,7 +3,8 @@
 // Editable columns : name, slug, description, category, group, tags, featured, order,
 //                    originalPrice, discountPercentage, discountName, price, costPrice,
 //                    priceAdvance, priceCOD, deliveryCharges, deliveryTime, deliveryFrom,
-//                    totalAvailable, sold, imageIds
+//                    totalAvailable, sold, imageIds, hasDesigns, designNames
+// designNames[i] is the design name of imageIds[i] (only when hasDesigns is true)
 // Calculated       : priceFormat, remaining, status   (productService.prepareProductData)
 // Managed elsewhere: reviewIds, reviewCount, ratingAverage (reviews), never edited here.
 
@@ -40,6 +41,7 @@ export function toForm(p) {
     group: str(p?.group),
     tags: Array.isArray(p?.tags) ? [...p.tags] : [],
     featured: Boolean(p?.featured),
+    hasDesigns: Boolean(p?.hasDesigns),
     order: str(p?.order ?? 0),
     saleId: str(p?.saleId),
     isCustom: Boolean(p?.isCustom),
@@ -100,6 +102,7 @@ export function toPayload(f) {
     group: textOrNull(f.group),
     tags: f.tags,
     featured: f.featured,
+    hasDesigns: !f.isCustom && Boolean(f.hasDesigns),
     order: numOrNull(f.order) ?? 0,
     saleId: textOrNull(f.saleId),
 

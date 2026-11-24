@@ -9,6 +9,7 @@ export const toAuthUser = (profile) => ({
   $id: profile.userId || profile.$id,
   email: profile.email,
   name: profile.name,
+  labels: profile.labels || [],
 });
 
 // Keeps state.users in step with the auth session, from ONE place:
@@ -26,12 +27,14 @@ export default function useProfileSync() {
   const userId = profile ? profile.userId || profile.$id : null;
   const email = profile?.email;
   const name = profile?.name;
+  const labels = Array.isArray(profile?.labels) ? profile.labels : [];
+  const labelsKey = labels.join('|');
 
   const lastKey = useRef('');
   const lastId = useRef(null);
 
   useEffect(() => {
-    const key = userId ? `${userId}|${email}|${name}` : '';
+    const key = userId ? `${userId}|${email}|${name}|${labelsKey}` : '';
     if (key === lastKey.current) return; // also keeps StrictMode's double effect harmless
     const previousId = lastId.current;
     lastKey.current = key;
@@ -41,7 +44,9 @@ export default function useProfileSync() {
       if (previousId) dispatch(clearUsers());
       return;
     }
-    if (userId !== previousId) dispatch(loadMyProfile({ user: { $id: userId, email, name } }));
+    if (userId !== previousId) {
+      dispatch(loadMyProfile({ user: { $id: userId, email, name, labels: labelsKey ? labelsKey.split('|') : [] } }));
+    }
     else dispatch(refreshMyProfile());
-  }, [userId, email, name, dispatch]);
+  }, [userId, email, name, labelsKey, dispatch]);
 }

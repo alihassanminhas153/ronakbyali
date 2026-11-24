@@ -5,17 +5,19 @@ import {
     createSlice,
 } from '@reduxjs/toolkit';
 
-import userService, { isStaffRole } from '../../lib/appwrite/user';
+import userService, { isStaffLabels } from '../../lib/appwrite/user';
 import orderService from '../../lib/appwrite/order';
 import labelService from '../../lib/appwrite/labels';
 import { clearAvatarPref } from '../../lib/appwrite/accountExtras';
+import authService from '../../lib/appwrite/auth';
+import { setAuthLabels } from './authSlice';
 
 /*
  * users slice
  * -----------------------------------------------------------------------------
  * One slice, two modes (state.users.scope):
  *
- *   'team' -> the signed-in user has a staff role (admin / support / manager).
+ *   'team' -> the signed-in user has a staff label in Appwrite Auth.
  *             `fetchUsers` loads EVERY profile row, so the admin Users page can
  *             list, search, block and change roles.
  *   'self' -> the signed-in user is new / customer / loyal. The slice only ever
@@ -57,7 +59,8 @@ export const loadMyProfile = createAsyncThunk(
     async ({ user }, { rejectWithValue }) => {
         const profile = await userService.ensureProfile({ user });
         if (!profile) return rejectWithValue('Could not load your profile.');
-        return (await orderService.syncUserTotalSpent(profile.$id)) || profile;
+        const synced = await orderService.syncUserTotalSpent(profile.$id);
+        return { ...(synced || profile), labels: Array.isArray(user.labels) ? user.labels : [] };
     }
 );
 
@@ -65,13 +68,21 @@ export const loadMyProfile = createAsyncThunk(
 // on route changes / window focus so a new block is noticed without a re-login.
 export const refreshMyProfile = createAsyncThunk(
     'users/refreshMyProfile',
-    async (_, { getState, rejectWithValue }) => {
+    async (_, { getState, dispatch, rejectWithValue }) => {
         const { meId } = getState().users;
         if (!meId) return rejectWithValue('Not signed in.');
         const profile = await userService.getProfile({ userId: meId });
         // `false` can also mean a network error, so never treat it as "blocked".
         if (!profile) return rejectWithValue('Could not refresh your profile.');
-        return profile;
+        const authUser = await authService.getCurrentUser();
+        const currentLabels = getState().auth.profile?.labels;
+        const labels = Array.isArray(authUser?.labels)
+            ? authUser.labels
+            : Array.isArray(currentLabels)
+                ? currentLabels
+                : [];
+        if (Array.isArray(authUser?.labels)) dispatch(setAuthLabels(labels));
+        return { ...profile, labels };
     }
 );
 
@@ -82,7 +93,7 @@ export const fetchUsers = createAsyncThunk(
         const me = selectMe(getState());
         if (!me) return rejectWithValue('Not signed in.');
 
-        if (!isStaffRole(me.role)) return { scope: 'self', rows: [me] };
+        if (!isStaffLabels(getState().auth.profile?.labels || [])) return { scope: 'self', rows: [me] };
 
         const [rows, paidTotals] = await Promise.all([
             userService.getProfiles(),
@@ -249,7 +260,7 @@ const usersSlice = createSlice({
                 }
                 adapter.upsertOne(state, payload);
                 state.meId = payload.$id;
-                state.scope = isStaffRole(payload.role) ? 'team' : 'self';
+                state.scope = isStaffLabels(payload.labels || []) ? 'team' : 'self';
                 state.meStatus = 'ready';
             })
             .addCase(loadMyProfile.rejected, (state, { payload, error }) => {
@@ -259,7 +270,7 @@ const usersSlice = createSlice({
 
             .addCase(refreshMyProfile.fulfilled, (state, { payload }) => {
                 adapter.upsertOne(state, payload);
-                state.scope = isStaffRole(payload.role) ? 'team' : 'self';
+                state.scope = isStaffLabels(payload.labels || []) ? 'team' : 'self';
                 // A demoted staff member must lose the team list immediately.
                 if (state.scope === 'self') {
                     const keep = state.entities[payload.$id];
@@ -379,7 +390,7 @@ export const selectPendingUserIds = (state) => state.users.pendingIds;
 export const selectMe = (state) =>
     state.users.meId ? state.users.entities[state.users.meId] || null : null;
 
-export const selectIsTeam = (state) => isStaffRole(selectMe(state)?.role);
+export const selectIsTeam = (state) => isStaffLabels(state.auth.profile?.labels || []);
 
 // True only when the signed-in user's own row says so. The router uses this
 // to show the blocked page on every URL.

@@ -9,7 +9,7 @@ import ThemeToggle from '../../../ui/custom/toggles/ThemeToggle';
 import PasswordDrawer from './PasswordDrawer';
 import ProfileDrawer from './ProfileDrawer';
 import { Avatar, Banner, Chip, Ico, Portal, RoleChip } from './SettingsParts';
-import { fmtDate, fmtDay, fmtMoney, val } from './settingsMeta';
+import { fmtDate, fmtDay, fmtMoney, STAFF_ROLES, splitLabels, val } from './settingsMeta';
 
 const rise = (i) => ({ animationDelay: `${i * 70}ms` });
 
@@ -107,7 +107,8 @@ export default function ProfileTab() {
   if (!me) return <p className="text-sm text-muted">Loading your profile…</p>;
 
   const labels = account?.labels ?? me.labels ?? [];
-  const extraLabels = labels.filter((l) => l !== me.role);
+  const liveRole = splitLabels(labels).staff || (STAFF_ROLES.includes(me.role) ? 'new' : me.role || 'new');
+  const extraLabels = labels.filter((l) => !STAFF_ROLES.includes(l));
   const verified = Boolean(account?.emailVerification);
   const edit = (field = 'avatar') => {
     setDrawerField(field);
@@ -152,7 +153,7 @@ export default function ProfileTab() {
       <Group title="Account" index={1}>
         <Row icon="settings_gear" tone={6} label="Role">
           <span className="mt-0.5 flex flex-wrap items-center gap-1.5">
-            <RoleChip role={me.role} />
+            <RoleChip role={liveRole} />
             {extraLabels.map((l) => <Chip key={l}>{l}</Chip>)}
           </span>
         </Row>

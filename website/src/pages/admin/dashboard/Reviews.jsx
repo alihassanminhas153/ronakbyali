@@ -231,9 +231,9 @@ export default function Reviews() {
           </>
         ) : 'Every review has been moderated'}
         actions={(
-          <div className="flex items-center gap-3">
+          <div className="flex w-full min-w-0 flex-wrap items-center justify-end gap-2 sm:gap-3">
             {ago && (
-              <span className="hidden items-center gap-1.5 text-xs text-muted sm:flex" aria-live="polite">
+              <span className="order-last flex w-full min-w-0 basis-full items-center justify-end gap-1.5 text-xs text-muted sm:order-none sm:w-auto sm:basis-auto" aria-live="polite">
                 <span className={`h-1.5 w-1.5 rounded-full ${loading ? 'animate-pulse bg-accent-tone-3' : 'bg-accent-tone-7'}`} />
                 {loading ? 'Syncing…' : `Updated ${ago}`}
               </span>

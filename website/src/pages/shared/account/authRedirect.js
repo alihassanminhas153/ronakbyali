@@ -1,9 +1,7 @@
 import { PATHS } from '../../../router/path';
+import { isStaffLabels } from '../../../lib/appwrite/user';
 
-const STAFF_ROLES = ['admin', 'support', 'manager'];
 const AUTH_PATHS = [PATHS.signin, PATHS.signup, '/auth/callback'];
-
-export const isStaffRole = (role) => STAFF_ROLES.includes(role);
 
 const isSafeLocalPath = (p) =>
   typeof p === 'string' &&
@@ -20,7 +18,7 @@ const isSafeLocalPath = (p) =>
 // Signin, GuestRoute, AuthCallback and Signup all use this one function,
 // so they can never disagree about where a person lands.
 export function homePathFor(profile, from) {
-  const staff = isStaffRole(profile?.role);
+  const staff = isStaffLabels(Array.isArray(profile?.labels) ? profile.labels : []);
 
   if (isSafeLocalPath(from) && (staff || !/^\/team(\/|$)/.test(from))) {
     return from;
