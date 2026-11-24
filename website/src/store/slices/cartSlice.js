@@ -1,5 +1,6 @@
 // USAGE
 //   dispatch(addToCart({ productId: p.$id, quantity: 1, variant: 'M', toast: true }));
+//   dispatch(addDesignsToCart({ productId: p.$id, picks: [{ imageId, name, quantity }], toast: true }));  // product with designs
 //   dispatch(setCartQuantity({ productId, quantity: 3, variant }));   // 0 removes
 //   const lines = useAppSelector(selectCartLines);
 //   const subtotal = useAppSelector(selectCartSubtotal);
@@ -15,7 +16,7 @@ import { getDeliveryChargesForLines } from '../../lib/orderDelivery';
 export { getDeliveryChargesForLines };
 
 const initialState = {
-  lines: [], // [{ productId, quantity, variant, product }]
+  lines: [], // [{ productId, quantity, variant, imageId, product }]  variant/imageId = the chosen design
   itemCount: 0,
   subtotal: 0,
   deliveryCharges: 0,
@@ -76,6 +77,11 @@ export const addToCart = mutation(
   ({ profile, productId, quantity = 1, variant }) => cartService.addItem({ profile, productId, quantity, variant }),
   'Could not add this item to your cart.'
 );
+export const addDesignsToCart = mutation(
+  'cart/addDesigns',
+  ({ profile, productId, picks }) => cartService.addDesigns({ profile, productId, picks }),
+  'Could not add these designs to your cart.'
+);
 export const setCartQuantity = mutation(
   'cart/setQuantity',
   ({ userId, productId, quantity, variant }) => cartService.setQuantity({ userId, productId, quantity, variant }),
@@ -92,7 +98,7 @@ export const clearCart = mutation(
   'Could not clear your cart.'
 );
 
-const mutations = [addToCart, setCartQuantity, removeFromCart, clearCart];
+const mutations = [addToCart, addDesignsToCart, setCartQuantity, removeFromCart, clearCart];
 
 const cartSlice = createSlice({
   name: 'cart',

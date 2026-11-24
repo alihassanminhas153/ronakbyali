@@ -32,9 +32,12 @@ import { LOGIN_REQUIRED } from "../../../store/slices/utils";
 import AlertPopupHost from "../../../components/shared/AlertPopupHost";
 import {
   addToCart,
+  addDesignsToCart,
   selectCartLines,
   selectCartUpdating,
 } from "../../../store/slices/cartSlice";
+import { useDesignChooser } from "../../../components/shop/DesignChooser";
+import { hasDesigns } from "../../../lib/designPicks";
 import {
   toggleWishlist,
   selectIsWished,
@@ -483,6 +486,9 @@ function Details({ product, ratingSummary }) {
   const navigate = useNavigate();
   const sales = useSelector(selectSalesList);
   const [qty, setQty] = useState(1);
+  const needsDesign = hasDesigns(product);
+  const chooser = useDesignChooser();
+  const [draftPicks, setDraftPicks] = useState([]);
   const [added, setAdded] = useState(false);
   const [copyError, setCopyError] = useState(false);
   const [cartError, setCartError] = useState(null);
@@ -525,19 +531,34 @@ function Details({ product, ratingSummary }) {
 
   const step = (d) => setQty((q) => Math.min(maxQty, Math.max(1, q + d)));
 
-  const handleAdd = async () => {
-    setCartError(null);
-    // Guests: the thunk opens the login modal and rejects with LOGIN_REQUIRED.
-    const result = await dispatch(
-      addToCart({ productId: product.$id, quantity: qty, toast: true })
-    );
-    if (addToCart.fulfilled.match(result)) {
+  const finishAdd = (result, thunk) => {
+    if (thunk.fulfilled.match(result)) {
       setAdded(true);
       setQty(1);
       window.setTimeout(() => setAdded(false), 2000);
     } else if (result.payload && result.payload !== LOGIN_REQUIRED) {
       setCartError(String(result.payload));
     }
+  };
+
+  const handleAdd = async () => {
+    setCartError(null);
+    // A product with designs asks for the designs first, then adds one line per design.
+    if (needsDesign) {
+      chooser.ask(product, {
+        confirmLabel: "Add to cart",
+        onConfirm: async (picks) => {
+          const result = await dispatch(addDesignsToCart({ productId: product.$id, picks, toast: true }));
+          finishAdd(result, addDesignsToCart);
+        },
+      });
+      return;
+    }
+    // Guests: the thunk opens the login modal and rejects with LOGIN_REQUIRED.
+    const result = await dispatch(
+      addToCart({ productId: product.$id, quantity: qty, toast: true })
+    );
+    finishAdd(result, addToCart);
   };
 
   // Optimistic: the heart flips at once and rolls back if saving fails.
@@ -577,7 +598,10 @@ function Details({ product, ratingSummary }) {
     if (!inStock || room < 1) return;
     reopened.current = true;
     const draft = loadDraft();
-    if (draft?.productId === product.$id) setQty(Math.min(maxQty, Math.max(1, Number(draft.quantity) || 1)));
+    if (draft?.productId === product.$id) {
+      setQty(Math.min(maxQty, Math.max(1, Number(draft.quantity) || 1)));
+      if (Array.isArray(draft.designs)) setDraftPicks(draft.designs);
+    }
     navigate(`${location.pathname}${location.search}`, { replace: true, state: null });
     openCheckout();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -673,6 +697,7 @@ function Details({ product, ratingSummary }) {
       ) : (
       <>
       <div className="mt-4 flex flex-wrap items-stretch gap-3">
+        {!needsDesign && (
         <div
           className="flex items-center rounded-md border border-border bg-surface"
           role="group"
@@ -700,7 +725,7 @@ function Details({ product, ratingSummary }) {
             +
           </button>
         </div>
-
+        )}
 
         <button
           type="button"
@@ -815,8 +840,10 @@ function Details({ product, ratingSummary }) {
         }}
         product={product}
         quantity={qty}
+        designs={draftPicks}
         account={account || authProfile}
       />
+      {chooser.element}
     </section>
   );
 }

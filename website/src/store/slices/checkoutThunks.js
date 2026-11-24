@@ -2,7 +2,7 @@
 //
 // USAGE
 //   // guest, email + password (the order button asks for the password first):
-//   const res = await dispatch(placeGuestOrder({ product, quantity, form, password }));
+//   const res = await dispatch(placeGuestOrder({ product, quantity, form, password, designs }));  // designs only for products with designs
 //
 //   // on the /auth/callback page, right after completeLogin() succeeded:
 //   const res = await dispatch(finishGoogleCheckout());
@@ -15,6 +15,7 @@ import { authenticateWithEmail, saveName } from './authSlice';
 import { placeCustomOrder, placeDirectOrder } from './ordersSlice';
 import { fetchProductById } from './productsSlice';
 import { PATHS } from '../../router/path';
+import { getDesigns, picksToLines } from '../../lib/designPicks';
 import { clearDraft, fillFromProfile, loadDraft, saveDraft, validateDetails } from '../../lib/checkoutDraft';
 
 const MIN_PASSWORD = 8; // Appwrite's minimum
@@ -25,7 +26,7 @@ const MIN_PASSWORD = 8; // Appwrite's minimum
 //                      (phone, city and address are saved on the profile by the order itself)
 // Then the order is created.
 export const placeGuestOrder = createAsyncThunk('checkout/placeGuest', async (arg, { dispatch, rejectWithValue }) => {
-  const { product, quantity, form = {}, password } = arg;
+  const { product, quantity, form = {}, password, designs } = arg;
 
   // client-side checks first
   if (Object.keys(validateDetails(form, { needEmail: true })).length) {
@@ -48,7 +49,7 @@ export const placeGuestOrder = createAsyncThunk('checkout/placeGuest', async (ar
     }
   }
 
-  const placed = await dispatch(placeDirectOrder({ product, quantity, form: { ...form, customerEmail: email }, toast: true }));
+  const placed = await dispatch(placeDirectOrder({ product, quantity, designs, form: { ...form, customerEmail: email }, toast: true }));
   if (!placeDirectOrder.fulfilled.match(placed)) {
     return rejectWithValue(placed.payload || 'You are signed in, but the order could not be placed. Please try again.');
   }
@@ -124,9 +125,16 @@ const finish = async ({ dispatch, getState }) => {
   const fetched = await dispatch(fetchProductById(draft.productId));
   if (!fetchProductById.fulfilled.match(fetched)) return back;
 
+  // 2b. a product with designs needs the saved design choice (draft.designs = [{ imageId, name, quantity }])
+  const designs = getDesigns(fetched.payload).length ? picksToLines(fetched.payload, draft.designs) : undefined;
+  if (designs && !designs.length) {
+    saveDraft({ ...draft, form });
+    return back;
+  }
+
   // 3. place the order
   clearDraft(); // taken before sending, so it can never be placed twice
-  const placed = await dispatch(placeDirectOrder({ product: fetched.payload, quantity: draft.quantity, form, toast: true }));
+  const placed = await dispatch(placeDirectOrder({ product: fetched.payload, quantity: draft.quantity, designs, form, toast: true }));
   if (!placeDirectOrder.fulfilled.match(placed)) {
     saveDraft({ ...draft, form });
     return back;

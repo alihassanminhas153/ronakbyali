@@ -248,10 +248,10 @@ function ProfileView({ me }) {
             title="Profile"
             subtitle="Your account details and settings."
             actions={(
-              <div className="flex items-center gap-3">
+              <div className="flex w-full min-w-0 flex-wrap items-center justify-end gap-3">
                 <ActionButton icon={Pencil} onClick={() => openDrawer('details')}>Edit profile</ActionButton>
                 {ago && (
-                  <span className="hidden items-center gap-1.5 text-xs text-muted sm:flex" aria-live="polite">
+                  <span className="order-last flex w-full min-w-0 basis-full items-center justify-end gap-1.5 text-xs text-muted" aria-live="polite">
                     <span className={`h-1.5 w-1.5 rounded-full ${refreshing ? 'animate-pulse bg-accent-tone-3' : 'bg-accent-tone-7'}`} />
                     {refreshing ? 'Syncing…' : `Updated ${ago}`}
                   </span>

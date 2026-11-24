@@ -3,6 +3,7 @@ import { Client, TablesDB, Permission, Role, Query } from 'appwrite';
 import productService from './product';
 import { getEffectivePricing } from '../saleMath';
 import { isAccessDeniedError } from './accessErrors';
+import { getDesigns } from '../designPicks';
 
 // ONE cart row per user. rowId = the user's $id (same value stored in
 // users.cartId), so lookups are direct.
@@ -10,7 +11,8 @@ import { isAccessDeniedError } from './accessErrors';
 // Columns (full list in extras/Detail.md):
 //   userId, username, name, email, phone, city, address   <- copied from the user
 //   productIds (array)   product ids currently in the cart
-//   items (Text, JSON)   [{ productId, quantity, variant }]
+//   items (Text, JSON)   [{ productId, quantity, variant, imageId }]
+//                        variant = design name, imageId = design image (only for products with designs)
 //   itemCount            total quantity
 //   purchasedProductIds (array)   every product this user has bought
 export class CartService {
@@ -107,7 +109,7 @@ export class CartService {
         }
     }
 
-    async addItem({ profile, productId, quantity = 1, variant = null }) {
+    async addItem({ profile, productId, quantity = 1, variant = null, imageId = null }) {
         try {
             const product = await productService.getProduct(productId);
             if (!product || product.isCustom === true) return false;
@@ -117,8 +119,43 @@ export class CartService {
             const items = this.parseItems(cart);
             const found = items.find((i) => i.productId === productId && (i.variant || null) === variant);
             if (found) found.quantity += Number(quantity) || 1;
-            else items.push({ productId, quantity: Number(quantity) || 1, variant });
+            else items.push({ productId, quantity: Number(quantity) || 1, variant, imageId });
 
+            return await this._save(cart.$id, items);
+        } catch (error) {
+            console.error(error.message);
+            return false;
+        }
+    }
+
+    // Adds several designs of ONE product in a single write (one line per design).
+    // picks: [{ imageId, name, quantity }]. The design name and image are re-read from the product,
+    // so a stale or made-up pick can never put a wrong design in the cart.
+    async addDesigns({ profile, productId, picks = [] }) {
+        try {
+            const product = await productService.getProduct(productId);
+            if (!product || product.isCustom === true) return false;
+            const designs = getDesigns(product);
+            if (!designs.length) return false;
+            const cart = await this.getOrCreateCart({ profile });
+            if (!cart) return false;
+
+            const items = this.parseItems(cart);
+            let added = 0;
+            for (const pick of picks) {
+                const design = designs.find((d) => d.id === pick?.imageId);
+                const quantity = Math.floor(Number(pick?.quantity));
+                if (!design || !(quantity > 0)) continue;
+                const found = items.find((i) => i.productId === productId && (i.variant || null) === design.name);
+                if (found) {
+                    found.quantity += quantity;
+                    found.imageId = design.id;
+                } else {
+                    items.push({ productId, quantity, variant: design.name, imageId: design.id });
+                }
+                added += 1;
+            }
+            if (!added) return false;
             return await this._save(cart.$id, items);
         } catch (error) {
             console.error(error.message);

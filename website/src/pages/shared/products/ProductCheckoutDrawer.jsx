@@ -7,6 +7,11 @@
 //              "Confirm order" signs in (existing email) or creates the account
 //              (new email) and then places the order.
 // Logged in  : saved customer details are filled in and can be edited.
+//
+// Designs: when product.hasDesigns is true the drawer asks for the designs first (how many of each) and
+// the order uses the total of those. They show as plain text with an Edit button. `designs` (optional)
+// pre-fills the choice if the page already asked. Orders are sent with `designs`, one line per design:
+// [{ productId, quantity, variant (design name), designImageId }].
 import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 
@@ -20,6 +25,8 @@ import { fillFromProfile, loadDraft, saveDraft, validateDetails } from "../../..
 import { GoogleButton, OrDivider, PasswordField } from "../../../ui/custom/checkout/CheckoutParts";
 import { ContactTable, EmailRow, SectionCard, StepDots } from "../../../ui/custom/checkout/CheckoutUI";
 import Drawer from "../../../ui/custom/modal/Drawer";
+import { DesignSummary, useDesignChooser } from "../../../components/shop/DesignChooser";
+import { hasDesigns, picksToLines, totalQty } from "../../../lib/designPicks";
 import TextInput from "../../../ui/custom/input/TextInput";
 
 const money = (v) => `Rs ${Number(v || 0).toLocaleString("en-PK")}`;
@@ -43,7 +50,7 @@ const initialForm = (account, product) => {
   return draft && draft.productId === product?.$id ? { ...base, ...draft.form, deliveryType: "regular" } : base;
 };
 
-export default function ProductCheckoutDrawer({ mounted, open, onClose, onPlaced, product, quantity, account }) {
+export default function ProductCheckoutDrawer({ mounted, open, onClose, onPlaced, product, quantity: quantityProp, account, designs: designsProp }) {
   const dispatch = useDispatch();
   const sales = useSelector(selectSalesList);
   const isGuest = !account;
@@ -60,6 +67,24 @@ export default function ProductCheckoutDrawer({ mounted, open, onClose, onPlaced
   const [deliveryLoading, setDeliveryLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
+  /* designs: [{ imageId, name, quantity }] */
+  const needsDesign = hasDesigns(product);
+  const [picks, setPicks] = useState(() => (needsDesign && Array.isArray(designsProp) ? designsProp : []));
+  const chooser = useDesignChooser();
+  const { ask } = chooser;
+  const quantity = needsDesign ? totalQty(picks) : quantityProp;
+  const designLines = needsDesign ? picksToLines(product, picks) : null;
+
+  const editDesigns = () =>
+    ask(product, { initialPicks: picks, confirmLabel: "Save designs", onConfirm: setPicks });
+
+  // asked once when the drawer opens; closing the box without a choice closes the drawer too
+  useEffect(() => {
+    if (!open || !needsDesign || picks.length) return;
+    ask(product, { confirmLabel: "Continue", onConfirm: setPicks, onCancel: onClose });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, needsDesign]);
+
   const checkoutUnitPrice = getProductCheckoutPrice(product, form.paymentType, sales);
   const subtotal = checkoutUnitPrice * quantity;
   const originalSubtotal = Math.max(Number(product.originalPrice) || 0, checkoutUnitPrice) * quantity;
@@ -71,6 +96,10 @@ export default function ProductCheckoutDrawer({ mounted, open, onClose, onPlaced
   useEffect(() => {
     if (!mounted) return undefined;
     let active = true;
+    if (!quantity) {
+      setDeliveryLoading(false);
+      return undefined;
+    }
     getDeliveryChargesForLines([{ product, quantity }], subtotal)
       .then((charge) => {
         if (!active) return;
@@ -138,6 +167,7 @@ export default function ProductCheckoutDrawer({ mounted, open, onClose, onPlaced
       productId: product.$id,
       slug: product.slug,
       quantity,
+      designs: picks,
       form,
       returnPath: `${window.location.pathname}${window.location.search}`,
     });
@@ -156,10 +186,16 @@ export default function ProductCheckoutDrawer({ mounted, open, onClose, onPlaced
       }
       setErrors({});
       setSubmitting(true);
-      const result = await dispatch(placeGuestOrder({ product, quantity, form, password }));
+      const result = await dispatch(placeGuestOrder({ product, quantity, form, password, designs: designLines }));
       setSubmitting(false);
       if (placeGuestOrder.fulfilled.match(result)) onPlaced(result.payload);
       else setServerError(String(result.payload || result.error?.message || "Could not place your order. Please try again."));
+      return;
+    }
+
+    if (needsDesign && !picks.length) {
+      setServerError("Choose a design first.");
+      editDesigns();
       return;
     }
 
@@ -177,7 +213,7 @@ export default function ProductCheckoutDrawer({ mounted, open, onClose, onPlaced
 
     /* logged in: place the order */
     setSubmitting(true);
-    const result = await dispatch(placeDirectOrder({ product, quantity, form, toast: true }));
+    const result = await dispatch(placeDirectOrder({ product, quantity, form, designs: designLines, toast: true }));
     setSubmitting(false);
     if (placeDirectOrder.fulfilled.match(result)) onPlaced(result.payload);
     else if (result.payload && result.payload !== LOGIN_REQUIRED) setServerError(String(result.payload));
@@ -320,6 +356,7 @@ export default function ProductCheckoutDrawer({ mounted, open, onClose, onPlaced
                 <dt className="text-muted">Product</dt>
                 <dd className="min-w-0 text-right font-medium text-text">{product.name} × {quantity}</dd>
               </div>
+              {needsDesign && <DesignSummary picks={picks} onEdit={editDesigns} />}
               {discountSavings > 0 && (
                 <>
                   <div className="flex justify-between gap-4 py-2.5">
@@ -354,6 +391,7 @@ export default function ProductCheckoutDrawer({ mounted, open, onClose, onPlaced
           </p>
         )}
       </div>
+      {chooser.element}
     </Drawer>
   );
 }

@@ -264,13 +264,13 @@ function OverviewView({ me }) {
         title="Overview"
         subtitle={new Date().toLocaleDateString('en', { weekday: 'long', day: 'numeric', month: 'long' }) + ' · everything in your account'}
         actions={(
-          <div className="flex items-center gap-3">
+          <div className="flex w-full min-w-0 flex-wrap items-center justify-end gap-3">
             <Link to="/products" className="btn btn-ghost !min-h-10 !px-4 !py-2 text-sm">
               <ShoppingCart size={16} aria-hidden="true" />
               Shop now
             </Link>
             {ago && (
-              <span className="hidden items-center gap-1.5 text-xs text-muted sm:flex" aria-live="polite">
+              <span className="order-last flex w-full min-w-0 basis-full items-center justify-end gap-1.5 text-xs text-muted" aria-live="polite">
                 <span className={`h-1.5 w-1.5 rounded-full ${busy ? 'animate-pulse bg-accent-tone-3' : 'bg-accent-tone-7'}`} />
                 {busy ? 'Syncing…' : `Updated ${ago}`}
               </span>

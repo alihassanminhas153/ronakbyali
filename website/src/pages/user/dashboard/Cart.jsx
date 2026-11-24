@@ -37,6 +37,7 @@ import {
   selectCartError,
 } from '../../../store/slices/cartSlice';
 import { getMainImageUrl } from '../../../store/slices/productsSlice';
+import productService from '../../../lib/appwrite/product';
 import { selectSalesList } from '../../../store/slices/saleSlice';
 import { getEffectivePricing } from '../../../lib/saleMath';
 import { PATHS } from '../../../router/path';
@@ -136,7 +137,8 @@ function CartLine({ line, price, busy, onQty, onRemove, index }) {
   const qty = Number(line.quantity) || 0;
   const { remaining, out, over } = stockOf(line);
   const max = remaining != null ? Math.max(1, remaining) : 99;
-  const img = getMainImageUrl(p);
+  // A design line shows its own design picture; other lines show the main image.
+  const img = (line.imageId && productService.getThumbUrl(line.imageId, 300)) || getMainImageUrl(p);
   const href = PATHS.product(p.category, p.group, p.slug);
   const problem = out || over;
   const color = problem ? 'var(--error)' : 'var(--accent-tone-1)';
@@ -159,7 +161,7 @@ function CartLine({ line, price, busy, onQty, onRemove, index }) {
               {p.name}
             </Link>
             <p className="truncate text-xs text-muted">
-              {[p.category, line.variant && `Option: ${line.variant}`].filter(Boolean).join(' · ')}
+              {[p.category, line.variant && `${p.hasDesigns ? 'Design' : 'Option'}: ${line.variant}`].filter(Boolean).join(' · ')}
             </p>
           </div>
           <p className="shrink-0 font-display text-lg font-semibold tabular-nums text-text">
@@ -304,9 +306,9 @@ export default function Cart() {
         title="Cart"
         subtitle="Review your items, then check out."
         actions={(
-          <div className="flex items-center gap-3">
+          <div className="flex w-full min-w-0 flex-wrap items-center justify-end gap-3">
             {ago && (
-              <span className="hidden items-center gap-1.5 text-xs text-muted sm:flex" aria-live="polite">
+              <span className="order-last flex w-full min-w-0 basis-full items-center justify-end gap-1.5 text-xs text-muted" aria-live="polite">
                 <span className={`h-1.5 w-1.5 rounded-full ${busy ? 'animate-pulse bg-accent-tone-3' : 'bg-accent-tone-7'}`} />
                 {busy ? 'Syncing…' : `Updated ${ago}`}
               </span>

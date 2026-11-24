@@ -22,7 +22,7 @@ const sign = `Thank you,\n${STORE}`;
 const itemsLine = (order) => {
   const items = orderService
     .parseItems(order)
-    .map((item) => `${item.name || 'Product'} x${Number(item.quantity) || 0}`)
+    .map((item) => `${item.name || 'Product'}${item.variant ? ` (${item.variant})` : ''} x${Number(item.quantity) || 0}`)
     .join(', ');
   return items ? `Items: ${items}.` : null;
 };

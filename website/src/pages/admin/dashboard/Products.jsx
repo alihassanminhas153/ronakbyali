@@ -206,7 +206,7 @@ export default function Products() {
             <ActionButton icon={Plus} onClick={openAdd}>Add product</ActionButton>
             <ActionButton variant="secondary" icon={Tag} onClick={() => setSalesOpen(true)}>Sales</ActionButton>
             {ago && (
-              <span className="order-last flex w-full min-w-0 basis-full items-center justify-end gap-1.5 text-xs text-muted sm:order-none sm:w-auto sm:basis-auto" aria-live="polite">
+              <span className="order-last flex w-full min-w-0 basis-full items-center justify-end gap-1.5 text-xs text-muted" aria-live="polite">
                 <span className={`h-1.5 w-1.5 rounded-full ${busy ? 'animate-pulse bg-accent-tone-3' : 'bg-accent-tone-7'}`} />
                 {busy ? 'Syncing…' : `Updated ${ago}`}
               </span>

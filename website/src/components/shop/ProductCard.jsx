@@ -42,6 +42,7 @@ import { getMainImageUrl } from '../../store/slices/productsSlice';
 import { PATHS } from '../../router/path';
 import useEntered from '../../ui/custom/motion/useEntered';
 import { PAGE_SIZE } from './shopFilters';
+import { useDesignAddToCart } from './DesignChooser';
 
 /* ---------- helpers ---------- */
 
@@ -133,6 +134,8 @@ function ProductCard({
   const entered = useEntered((index % PAGE_SIZE) * 40);
   const [imgFailed, setImgFailed] = useState(false);
   const sales = useSelector(selectSalesList);
+  const design = useDesignAddToCart(product, onAddToCart);
+  onAddToCart = design.onAddToCart;
   if (!product) return null;
 
   const image = getMainImageUrl(product);
@@ -394,6 +397,7 @@ function ProductCard({
           </div>
         </div>
       </article>
+      {design.element}
     </li>
   );
 }

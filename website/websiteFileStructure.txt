@@ -69,7 +69,8 @@ Generated from the current project tree. Local .env files, dependencies, generat
 |  |-- robots.txt
 |  \-- sitemap.xml
 |-- scripts
-|  \-- generate-sitemap.mjs
+|  |-- generate-sitemap.mjs
+|  \-- migrate-order-statuses.mjs
 |-- src
 |  |-- assets
 |  |  |-- auth
@@ -108,12 +109,14 @@ Generated from the current project tree. Local .env files, dependencies, generat
 |  |  |  |-- orders
 |  |  |  |  |-- FormParts.jsx
 |  |  |  |  |-- index.js
+|  |  |  |  |-- messageTemplates.js
 |  |  |  |  |-- OrderAnalytics.jsx
 |  |  |  |  |-- OrderBadges.jsx
 |  |  |  |  |-- OrderForm.jsx
 |  |  |  |  |-- orderMeta.js
 |  |  |  |  |-- OrderTable.jsx
-|  |  |  |  \-- OrderTracker.jsx
+|  |  |  |  |-- OrderTracker.jsx
+|  |  |  |  \-- SendMessageModal.jsx
 |  |  |  |-- overview
 |  |  |  |  |-- adminLinks.js
 |  |  |  |  |-- index.js
@@ -195,6 +198,8 @@ Generated from the current project tree. Local .env files, dependencies, generat
 |  |  |  |-- CardShared.jsx
 |  |  |  |-- CategoryNav.jsx
 |  |  |  |-- CustomOrderDrawer.jsx
+|  |  |  |-- DesignChooser.jsx
+|  |  |  |-- DesignPicker.jsx
 |  |  |  |-- DiscountedProductCard.jsx
 |  |  |  |-- FeaturedCard.jsx
 |  |  |  |-- FilterDrawer.jsx
@@ -224,6 +229,7 @@ Generated from the current project tree. Local .env files, dependencies, generat
 |  |  \-- PlainLayout.jsx
 |  |-- lib
 |  |  |-- appwrite
+|  |  |  |-- accessErrors.js
 |  |  |  |-- accountExtras.js
 |  |  |  |-- alert.js
 |  |  |  |-- auth.js
@@ -250,12 +256,15 @@ Generated from the current project tree. Local .env files, dependencies, generat
 |  |  |  |-- usePanelAccess.js
 |  |  |  \-- useUserLabels.js
 |  |  |-- checkoutDraft.js
+|  |  |-- designPicks.js
 |  |  |-- entityColors.js
 |  |  |-- imageOptimizer.js
 |  |  |-- numberInput.js
 |  |  |-- orderDelivery.js
 |  |  |-- orderMath.js
 |  |  |-- phone.js
+|  |  |-- productDesigns.js
+|  |  |-- productImages.js
 |  |  |-- saleMath.js
 |  |  |-- siteInfo.js
 |  |  |-- textCase.js
@@ -404,6 +413,7 @@ Generated from the current project tree. Local .env files, dependencies, generat
 |  |  |  |  |-- inputStyles.js
 |  |  |  |  |-- SearchInput.jsx
 |  |  |  |  |-- SearchSelect.jsx
+|  |  |  |  |-- SelectionGrid.jsx
 |  |  |  |  |-- Segmented.jsx
 |  |  |  |  |-- SelectInput.jsx
 |  |  |  |  |-- SwitchField.jsx
@@ -456,4 +466,6 @@ Generated from the current project tree. Local .env files, dependencies, generat
 |-- package-lock.json
 |-- README.md
 |-- vercel.json
-\-- vite.config.js
+|-- vite.config.js
+\-- websiteFileStructure.txt
+

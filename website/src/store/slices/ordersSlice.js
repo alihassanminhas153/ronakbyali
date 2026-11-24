@@ -17,6 +17,7 @@
 //   dispatch(fetchStaffCounts());
 //   dispatch(updateOrderStatus({ orderId, status: 'dispatched' }));
 //   dispatch(placeCustomOrder({ product, quantity, selectedIds, form, files }));
+//   dispatch(placeDirectOrder({ product, quantity, form, designs }));   // designs: [{ designImageId, quantity }] for products with designs
 //   dispatch(fetchStaffCustomOrders({ status: 'requested' }));
 //   dispatch(fetchStaffConfirmedOrders({ isCustom: true }));
 //   dispatch(updateOrderPayment({ orderId, paymentStatus: 'paid' }));
@@ -30,6 +31,7 @@ import { LOGIN_REQUIRED, fail, getUserId, stripToast } from './utils';
 import { isSessionEnded, refreshProfile } from './authSlice';
 import { refreshMyProfile } from './userSlice';
 import { fetchCart, getDeliveryChargesForLines, getProductCheckoutPrice } from './cartSlice';
+import { getDesigns } from '../../lib/designPicks';
 import { fetchWishlist } from './wishlistSlice';
 import { openLoginModal } from './uiSlice';
 import {
@@ -117,14 +119,22 @@ export const canAddItemsToOrder = (order) => !!order && USER_ITEM_EDITABLE_STATU
 // A customer can cancel until the order is dispatched (pending, processing, packed).
 export const canCancelOrder = (order) => canUserCancel(order);
 
+// A line of a product with designs carries the design name (variant) and the design image
+// (designImageId from a direct order, imageId from the cart). The image must still belong to the product.
+const lineImageId = (l) => {
+  const wanted = l.designImageId ?? l.imageId ?? null;
+  const ids = l.product?.imageIds || [];
+  return wanted && ids.includes(wanted) ? wanted : ids[0] ?? null;
+};
+
 const linesToItems = (lines, paymentType = 'cod', sales = []) =>
   lines.map((l) => ({
     productId: l.productId,
     name: l.product?.name,
     price: getProductCheckoutPrice(l.product, paymentType, sales),
     quantity: l.quantity,
-    fileId: l.product?.imageIds?.[0] ?? null,
-    variant: l.variant,
+    fileId: lineImageId(l),
+    variant: l.variant ?? null,
   }));
 
 // Checks the cart lines against current stock. `already` = items of an
@@ -223,13 +233,29 @@ export const placeOrder = createAsyncThunk('orders/place', async (arg, { getStat
 });
 
 export const placeDirectOrder = createAsyncThunk('orders/placeDirect', async (arg, { getState, dispatch, rejectWithValue }) => {
-  const { product, quantity, form = {} } = stripToast(arg);
+  const { product, quantity, form = {}, designs: designsArg } = stripToast(arg);
   const state = getState();
   const profile = state.auth.profile;
   if (!profile) return needLogin(dispatch, rejectWithValue);
-  if (!product?.$id || !Number.isInteger(Number(quantity)) || Number(quantity) < 1) {
+
+  // Products with designs: one line per chosen design. Name and image are re-read from the product.
+  const productDesigns = getDesigns(product);
+  let designLines = null;
+  if (productDesigns.length) {
+    designLines = (Array.isArray(designsArg) ? designsArg : [])
+      .map((d) => {
+        const match = productDesigns.find((x) => x.id === (d?.designImageId ?? d?.imageId));
+        const qty = Math.floor(Number(d?.quantity));
+        return match && qty > 0
+          ? { productId: product.$id, product, quantity: qty, variant: match.name, designImageId: match.id }
+          : null;
+      })
+      .filter(Boolean);
+    if (!designLines.length) return fail(rejectWithValue, 'Choose a design before ordering.', arg);
+  } else if (!product?.$id || !Number.isInteger(Number(quantity)) || Number(quantity) < 1) {
     return fail(rejectWithValue, 'Choose a valid product quantity.', arg);
   }
+  if (!product?.$id) return fail(rejectWithValue, 'Choose a valid product quantity.', arg);
   if (product.isCustom === true) return fail(rejectWithValue, 'Use the Customize form for this product.', arg);
   const paymentType = form.paymentType === 'advance' ? 'advance' : 'cod';
   const deliveryType = form.deliveryType || 'regular';
@@ -237,7 +263,7 @@ export const placeDirectOrder = createAsyncThunk('orders/placeDirect', async (ar
     return fail(rejectWithValue, 'Choose a valid delivery option.', arg);
   }
 
-  const lines = [{ productId: product.$id, product, quantity: Number(quantity) }];
+  const lines = designLines || [{ productId: product.$id, product, quantity: Number(quantity) }];
   const problem = stockProblem(lines);
   if (problem) return fail(rejectWithValue, problem, arg);
 

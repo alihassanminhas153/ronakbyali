@@ -31,6 +31,7 @@ import { Crown } from 'lucide-react';
 import { selectSalesList } from '../../store/slices/saleSlice';
 import useEntered from '../../ui/custom/motion/useEntered';
 import { PAGE_SIZE } from './shopFilters';
+import { useDesignAddToCart } from './DesignChooser';
 import { CardImage, CardSkeleton, CompactActions, HoverDetails, StockTag, getCardData, money } from './CardShared';
 
 function FeaturedCard({
@@ -47,6 +48,8 @@ function FeaturedCard({
 }) {
   const entered = useEntered((index % PAGE_SIZE) * 40);
   const sales = useSelector(selectSalesList);
+  const design = useDesignAddToCart(product, onAddToCart);
+  onAddToCart = design.onAddToCart;
   const d = getCardData(product, sales);
   if (!d) return null;
 
@@ -108,6 +111,7 @@ function FeaturedCard({
           <HoverDetails actions={actions} tone="dark" />
         </div>
       </article>
+      {design.element}
     </li>
   );
 }

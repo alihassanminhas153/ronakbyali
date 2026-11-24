@@ -8,7 +8,6 @@ import trackerService from './tracker';
 import orderConfirmationService from './orderConfirmation';
 import { paidAmountForOrder } from '../orderMath';
 import { isValidPhoneNumber } from '../phone';
-import { isAccessDeniedError } from './accessErrors';
 
 // The statuses below are the real enum values of ronakbyali_orders.status.
 export const ORDER_STATUS = ['pending', 'processing', 'packed', 'dispatched', 'delivered', 'cancelled', 'returned'];
@@ -129,7 +128,6 @@ export class OrderService {
 
     // Plain-language reason for the last failure. The slice shows it to the user.
     lastError = null;
-    lastAccessDenied = false;
 
     constructor() {
         this.client
@@ -206,6 +204,7 @@ export class OrderService {
                 quantity: Math.floor(Number(i.quantity)) || 1,
                 fileId: i.fileId || null,
                 variant: i.variant || null,
+                designId: i.designId || null,
             }))
             .filter((i) => i.productId && i.quantity > 0);
     }
@@ -253,7 +252,8 @@ export class OrderService {
     // =====================================================================
     //
     // profile: the logged-in user's profile row
-    // items:   [{ productId, name, price, quantity, fileId, variant }]
+    // items:   [{ productId, name, price, quantity, fileId, variant, designId }]
+//          a product with designs is one line per design: variant = design name, designId = its image id
     // form:    { customerName, customerPhone, customerEmail, city, address,
     //            paymentMethod, deliveryType, deliveryTime, estimatedDelivery,
     //            deliveryCharges, discount, advanceAmount, notes }
@@ -354,7 +354,7 @@ export class OrderService {
                 await userService.applyOrderToProfile({ profile, order });
                 await this.syncUserTotalSpent(profile.$id);
             })(),
-            trackerService.createForOrder({ order, by: 'customer' }), // timeline starts with "Order pending"
+            trackerService.createForOrder({ order, by: 'customer' }), // timeline starts with "Order placed"
             wishlistService.markPurchased({ userId: profile.$id, productIds }),
         ];
         if (!skipCart) tasks.push(cartService.markPurchased({ userId: profile.$id, productIds }));
@@ -451,7 +451,7 @@ export class OrderService {
         return saved;
     }
 
-    // Adds cart items only while the order is still pending.
+    // Adds cart items only while the order is still placed.
     // items: same shape as placeOrder. deliveryCharges: recalculated for the new subtotal.
     // The added products leave the cart, like a normal order.
     async addItemsToOrder({ profile, orderId, items, deliveryCharges }) {
@@ -716,7 +716,6 @@ export class OrderService {
 
     // Staff search over order number, name, phone, email, username, tracking id.
     async searchOrders({ term, status, isCustom } = {}) {
-        this.lastAccessDenied = false;
         try {
             const trimmed = (term || '').trim().toLowerCase();
             const queries = [];
@@ -730,7 +729,6 @@ export class OrderService {
                 )
             );
         } catch (error) {
-            this.lastAccessDenied = isAccessDeniedError(error);
             console.error(error.message);
             return false;
         }
