@@ -9,6 +9,34 @@ import { Banner } from './SettingsParts';
 
 const ACCEPTED_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
 
+function BannerImagePreview({ id, index }) {
+  const [useFullImage, setUseFullImage] = useState(false);
+  const [failed, setFailed] = useState(false);
+  const thumbnail = productService.getThumbUrl(id, 640);
+  const fullImage = productService.getImageUrl(id);
+
+  if (failed || (!thumbnail && !fullImage)) {
+    return (
+      <div role="img" aria-label={`Preview unavailable for slide ${index + 1}`} className="grid h-full place-items-center text-sm text-muted">
+        Preview unavailable
+      </div>
+    );
+  }
+
+  return (
+    <img
+      src={useFullImage ? fullImage : thumbnail || fullImage}
+      alt={`Banner slide ${index + 1}`}
+      decoding="async"
+      className="h-full w-full object-cover"
+      onError={() => {
+        if (!useFullImage && thumbnail && fullImage) setUseFullImage(true);
+        else setFailed(true);
+      }}
+    />
+  );
+}
+
 export default function AllProductsBannerSettings() {
   const [savedIds, setSavedIds] = useState(null);
   const [draftIds, setDraftIds] = useState([]);
@@ -181,12 +209,7 @@ export default function AllProductsBannerSettings() {
           {draftIds.map((id, index) => (
             <li key={id} className="overflow-hidden rounded-xl border border-border bg-surface-alt/40">
               <div className="aspect-[16/8] overflow-hidden bg-surface-alt">
-                <img
-                  src={productService.getThumbUrl(id, 640) || productService.getImageUrl(id)}
-                  alt={`Banner slide ${index + 1}`}
-                  loading="lazy"
-                  className="h-full w-full object-cover"
-                />
+                <BannerImagePreview id={id} index={index} />
               </div>
               <div className="flex items-center justify-between gap-2 px-3 py-2">
                 <span className="text-sm font-medium text-text">Slide {index + 1}</span>

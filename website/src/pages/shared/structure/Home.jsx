@@ -321,6 +321,13 @@ const RIGHT_CURVES = [
 const CURVES_CSS = `
 .hc-path { stroke-opacity: 0.035; }                 /* phones: very faint */
 @media (min-width: 640px) { .hc-path { stroke-opacity: 0.08; } }
+/* The SVG box is only a third of the screen wide, but the curls are wider than that. The box must NOT
+   clip them (that made hard vertical cut-offs and left the middle of the hero looking empty), so the
+   SVG is overflow-visible and the hero section clips at the real screen edge. On phones the whole
+   drawing is also scaled down from the screen edge, so each full curl fits without crowding the middle. */
+.hc-svg-l { transform-origin: 0% 50%; }
+.hc-svg-r { transform-origin: 100% 50%; }
+@media (max-width: 639px) { .hc-svg { transform: scale(0.72); } }
 .hc-float { animation: hc-float var(--hc-dur, 9s) ease-in-out infinite alternate; }
 .hc-paused .hc-float { animation-play-state: paused; }
 @media (max-width: 639px) { .hc-desk { display: none; } }
@@ -338,8 +345,8 @@ function CurveSide({ curves, side, ready, visible, instant }) {
       aria-hidden="true"
       viewBox="0 0 400 800"
       preserveAspectRatio={left ? "xMinYMid slice" : "xMaxYMid slice"}
-      className={`pointer-events-none absolute top-0 -z-10 h-full w-[34%] overflow-hidden text-text sm:w-[30%] lg:w-[26%] ${
-        left ? "left-0" : "right-0"
+      className={`hc-svg pointer-events-none absolute top-0 -z-10 h-full w-[34%] overflow-visible text-text sm:w-[30%] lg:w-[26%] ${
+        left ? "hc-svg-l left-0" : "hc-svg-r right-0"
       } ${visible ? "" : "hc-paused"}`}
       fill="none"
       strokeLinecap="round"
