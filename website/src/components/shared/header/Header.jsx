@@ -151,7 +151,7 @@ export default function Header({ logo, pages = [], showOffers = false }) {
           />
         </aside>
       )}
-      <header className="sticky top-0 z-40 border-b border-border/80 bg-bg/95 shadow-sm backdrop-blur-md">
+      <header className="sticky top-0 z-40 border-b border-border/60 bg-bg/70 shadow-sm backdrop-blur-xl">
         <div className="mx-auto flex h-[4.25rem] w-full max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:h-[4.5rem] lg:px-8">
           <Link
             to={PATHS.home}

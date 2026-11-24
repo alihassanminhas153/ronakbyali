@@ -813,8 +813,8 @@ function Details({ product, ratingSummary }) {
         <section className="mt-6" aria-labelledby="product-keywords-heading">
           <h2 id="product-keywords-heading" className="text-sm font-semibold text-text">Explore by keyword</h2>
           <ul className="mt-3 flex flex-wrap gap-2">
-            {product.tags.map((t) => (
-              <li key={t}>
+            {product.tags.map((t, i) => (
+              <li key={`${i}-${t}`}>
                 <Link
                   to={`${PATHS.products}?q=${encodeURIComponent(t)}`}
                   className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface px-3 py-1.5 text-sm text-muted shadow-sm transition hover:border-accent/60 hover:bg-accent-soft hover:text-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"

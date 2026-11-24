@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useLayoutEffect, useState } from "react";
 import { Navigate, Routes, Route, useLocation, useParams } from "react-router";
 import { useDispatch, useSelector } from "react-redux";
 
@@ -22,42 +22,39 @@ import RouteErrorBoundary from "./router/RouteErrorBoundary";
 import { PATHS, PRODUCT_LIST_ALIASES } from "./router/path";
 import NotFound from "./pages/shared/structure/NotFound";
 import ToastViewport from "./ui/custom/toast/ToastViewport";
+import useScrollLock from "./ui/custom/motion/useScrollLock";
 
-// shared pages
-import Home from "./pages/shared/structure/Home";
-import AllProducts from "./pages/shared/products/AllProducts";
-import Product from "./pages/shared/products/Product";
-import CustomizeCheckout from "./pages/shared/products/CustomizeCheckout";
-import Signin from "./pages/shared/account/Signin";
-import Signup from "./pages/shared/account/Signup";
-import AuthCallback from "./pages/shared/account/AuthCallback";
-
-// user dashboard
-import UserProfile from "./pages/user/dashboard/Profile";
-import UserOrders from "./pages/user/dashboard/Orders";
-import UserCart from "./pages/user/dashboard/Cart";
-import UserCheckout from "./pages/user/dashboard/CheckoutPage";
-import ConfirmOrder from "./pages/user/dashboard/ConfirmOrder";
-import UserWishlist from "./pages/user/dashboard/Wishlist";
-import UserReviews from "./pages/user/dashboard/Reviews";
-import UserAlerts from "./pages/user/dashboard/Alerts";
-
-// admin dashboard
-import AdminLayout from "./pages/admin/dashboard/Layout";
-import AdminOverview from "./pages/admin/dashboard/Overview";
-import AdminOrders from "./pages/admin/dashboard/Orders";
-import AdminProducts from "./pages/admin/dashboard/Products";
-import AdminUsers from "./pages/admin/dashboard/Users";
-import AdminFinance from "./pages/admin/dashboard/Finance";
-import AdminCartAndWishlist from "./pages/admin/dashboard/CartAndWishlist";
-import AdminReviews from "./pages/admin/dashboard/Reviews";
-import AdminAlerts from "./pages/admin/dashboard/Alerts";
-import AdminSettings from "./pages/admin/dashboard/Settings";
-import Contact from "./pages/static/Contact";
-import Privacy from "./pages/static/Privacy";
-import Disclaimer from "./pages/static/Disclaimer";
-import FAQs from "./pages/static/FAQs";
-import CustomStudioPage from "./pages/static/CustomStudio";
+// Route pages load only when visited, keeping the initial storefront bundle small.
+const Home = lazy(() => import("./pages/shared/structure/Home"));
+const AllProducts = lazy(() => import("./pages/shared/products/AllProducts"));
+const Product = lazy(() => import("./pages/shared/products/Product"));
+const CustomizeCheckout = lazy(() => import("./pages/shared/products/CustomizeCheckout"));
+const Signin = lazy(() => import("./pages/shared/account/Signin"));
+const Signup = lazy(() => import("./pages/shared/account/Signup"));
+const AuthCallback = lazy(() => import("./pages/shared/account/AuthCallback"));
+const UserProfile = lazy(() => import("./pages/user/dashboard/Profile"));
+const UserOrders = lazy(() => import("./pages/user/dashboard/Orders"));
+const UserCart = lazy(() => import("./pages/user/dashboard/Cart"));
+const UserCheckout = lazy(() => import("./pages/user/dashboard/CheckoutPage"));
+const ConfirmOrder = lazy(() => import("./pages/user/dashboard/ConfirmOrder"));
+const UserWishlist = lazy(() => import("./pages/user/dashboard/Wishlist"));
+const UserReviews = lazy(() => import("./pages/user/dashboard/Reviews"));
+const UserAlerts = lazy(() => import("./pages/user/dashboard/Alerts"));
+const AdminLayout = lazy(() => import("./pages/admin/dashboard/Layout"));
+const AdminOverview = lazy(() => import("./pages/admin/dashboard/Overview"));
+const AdminOrders = lazy(() => import("./pages/admin/dashboard/Orders"));
+const AdminProducts = lazy(() => import("./pages/admin/dashboard/Products"));
+const AdminUsers = lazy(() => import("./pages/admin/dashboard/Users"));
+const AdminFinance = lazy(() => import("./pages/admin/dashboard/Finance"));
+const AdminCartAndWishlist = lazy(() => import("./pages/admin/dashboard/CartAndWishlist"));
+const AdminReviews = lazy(() => import("./pages/admin/dashboard/Reviews"));
+const AdminAlerts = lazy(() => import("./pages/admin/dashboard/Alerts"));
+const AdminSettings = lazy(() => import("./pages/admin/dashboard/Settings"));
+const Contact = lazy(() => import("./pages/static/Contact"));
+const Privacy = lazy(() => import("./pages/static/Privacy"));
+const Disclaimer = lazy(() => import("./pages/static/Disclaimer"));
+const FAQs = lazy(() => import("./pages/static/FAQs"));
+const CustomStudioPage = lazy(() => import("./pages/static/CustomStudio"));
 
 const SITE_URL = "https://ronakbyali.com";
 
@@ -105,6 +102,18 @@ const LEGACY_USER_ROUTES = [
   ["alerts", "alerts"],
 ];
 
+function PageChunkFallback() {
+  useScrollLock(true);
+  return (
+    <div role="status" aria-busy="true" className="fixed inset-0 z-[90] flex items-center justify-center bg-bg/65 backdrop-blur-sm">
+      <div className="flex items-center gap-3 rounded-full border border-border bg-surface/95 px-4 py-2.5 shadow-soft">
+        <span className="h-4 w-4 animate-spin rounded-full border-2 border-accent border-t-transparent" aria-hidden="true" />
+        <span className="text-sm font-medium text-text">Loading page…</span>
+      </div>
+    </div>
+  );
+}
+
 function LongProductRoute() {
   const { category = "" } = useParams();
   if (category.toLowerCase() === "p") return <NotFound />;
@@ -126,6 +135,7 @@ export default function App() {
   const salesStatus = useSelector(selectSalesStatus);
   const { pathname } = useLocation();
   const [isNavigating, setIsNavigating] = useState(false);
+  useScrollLock(isNavigating);
 
   useEffect(() => {
     const route = pathname.replace(/\/+$/, "") || "/";
@@ -206,7 +216,7 @@ export default function App() {
   return (
     <>
     {isNavigating && (
-      <div className="fixed inset-0 z-[90] flex items-center justify-center bg-bg/65 backdrop-blur-sm">
+      <div role="status" aria-busy="true" className="fixed inset-0 z-[90] flex items-center justify-center bg-bg/65 backdrop-blur-sm">
         <div className="flex items-center gap-3 rounded-full border border-border bg-surface/95 px-4 py-2.5 shadow-soft">
           <span className="h-4 w-4 animate-spin rounded-full border-2 border-accent border-t-transparent" aria-hidden="true" />
           <span className="text-sm font-medium text-text">Loading page…</span>
@@ -215,6 +225,7 @@ export default function App() {
     )}
     <ToastViewport />
     <RouteErrorBoundary>
+    <Suspense fallback={isNavigating ? null : <PageChunkFallback />}>
     <Routes>
       {/* Pathless layout route ABOVE every other route: blocked users may see Home;
           every other URL is replaced by the Blocked page. */}
@@ -321,6 +332,7 @@ export default function App() {
         <Route path="*" element={<NotFound />} />
       </Route>
     </Routes>
+    </Suspense>
     </RouteErrorBoundary>
     </>
   );

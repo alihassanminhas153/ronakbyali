@@ -6,6 +6,7 @@ import wishlistService from './wishlist';
 import productService from './product';
 import trackerService from './tracker';
 import orderConfirmationService from './orderConfirmation';
+import customOrderService from './customOrder';
 import { paidAmountForOrder } from '../orderMath';
 import { isValidPhoneNumber } from '../phone';
 
@@ -840,7 +841,6 @@ export class OrderService {
         }[status];
         if (!customStatus) return true;
         try {
-            const { default: customOrderService } = await import('./customOrder');
             const custom = await customOrderService.getByOrderId(order.$id);
             if (custom === false) return false;
             return custom ? customOrderService.updateCustomOrder(custom.$id, { status: customStatus }) : true;
@@ -1063,7 +1063,7 @@ export class OrderService {
             const related = await Promise.allSettled([
                 trackerService.deleteForOrder(rowId),
                 orderConfirmationService.deleteForOrder(rowId),
-                import('./customOrder').then(({ default: service }) => service.deleteForOrder(rowId)),
+                customOrderService.deleteForOrder(rowId),
             ]);
             if (related.some((result) => result.status === 'rejected' || result.value === false)) {
                 this.lastError = 'The order was deleted, but some related details could not be removed.';

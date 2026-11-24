@@ -1,7 +1,7 @@
 // src/store/slices/checkoutThunks.js
 //
 // USAGE
-//   // guest, email + password (the order button asks for the password first):
+//   // guest: the form generates the password; pass it in. result.meta.accountCreated says if it was used to create the account:
 //   const res = await dispatch(placeGuestOrder({ product, quantity, form, password, designs }));  // designs only for products with designs
 //
 //   // on the /auth/callback page, right after completeLogin() succeeded:
@@ -25,36 +25,42 @@ const MIN_PASSWORD = 8; // Appwrite's minimum
 // New email         -> creates the account, saves the name, then signs in.
 //                      (phone, city and address are saved on the profile by the order itself)
 // Then the order is created.
-export const placeGuestOrder = createAsyncThunk('checkout/placeGuest', async (arg, { dispatch, rejectWithValue }) => {
+export const placeGuestOrder = createAsyncThunk('checkout/placeGuest', async (arg, { dispatch, rejectWithValue, fulfillWithValue }) => {
   const { product, quantity, form = {}, password, designs } = arg;
+
+  // meta.accountCreated tells the form that THIS call created the account, so it
+  // can show the generated password (also when a later step fails).
+  let accountCreated = false;
+  const fail = (message) => rejectWithValue(message, { accountCreated });
 
   // client-side checks first
   if (Object.keys(validateDetails(form, { needEmail: true })).length) {
-    return rejectWithValue('Please complete the form.');
+    return fail('Please complete the form.');
   }
   if (!password || password.length < MIN_PASSWORD) {
-    return rejectWithValue(`Password must be at least ${MIN_PASSWORD} characters.`);
+    return fail(`Password must be at least ${MIN_PASSWORD} characters.`);
   }
 
   const email = form.customerEmail.trim().toLowerCase();
   const auth = await dispatch(authenticateWithEmail({ email, password }));
   if (!authenticateWithEmail.fulfilled.match(auth)) {
-    return rejectWithValue(auth.payload || 'Could not sign you in. Please try again.');
+    return fail(auth.payload || 'Could not sign you in. Please try again.');
   }
+  accountCreated = Boolean(auth.payload.created);
 
-  if (auth.payload.created) {
+  if (accountCreated) {
     const named = await dispatch(saveName({ name: form.customerName.trim() }));
     if (!saveName.fulfilled.match(named)) {
-      return rejectWithValue(named.payload || 'Your account was created, but we could not save your name.');
+      return fail(named.payload || 'Your account was created, but we could not save your name.');
     }
   }
 
   const placed = await dispatch(placeDirectOrder({ product, quantity, designs, form: { ...form, customerEmail: email }, toast: true }));
   if (!placeDirectOrder.fulfilled.match(placed)) {
-    return rejectWithValue(placed.payload || 'You are signed in, but the order could not be placed. Please try again.');
+    return fail(placed.payload || 'You are signed in, but the order could not be placed. Please try again.');
   }
   clearDraft();
-  return placed.payload; // the order row
+  return fulfillWithValue(placed.payload, { accountCreated }); // payload is still the order row
 });
 
 export const placeGuestCustomOrder = createAsyncThunk('checkout/placeGuestCustom', async (arg, { dispatch, rejectWithValue }) => {

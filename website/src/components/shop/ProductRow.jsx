@@ -1,11 +1,11 @@
 // src/components/shop/ProductRow.jsx   (a titled, horizontally scrolling row of product cards)
 //
 // USAGE
-//   <ProductRow icon={Crown} title="Featured" hint="Hand-picked by us" count={items.length}>
+//   <ProductRow title="Featured" hint="Hand-picked by us" count={items.length}>
 //     {items.map((p, i) => <FeaturedCard key={p.$id} product={p} index={i} ... />)}
 //   </ProductRow>
 //
-//   <ProductRow icon={Crown} title="Featured" busy>          // loading: pass skeleton cards as children
+//   <ProductRow title="Featured" busy>                       // loading: pass skeleton cards as children
 //     {Array.from({ length: 4 }, (_, i) => <FeaturedCardSkeleton key={i} />)}
 //   </ProductRow>
 //
@@ -21,19 +21,12 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 const FOCUS = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent';
 
-export function SectionHeading({ icon: Icon, title, hint, children }) {
+export function SectionHeading({ title, hint, children }) {
   return (
     <div className="mb-3 flex items-end justify-between gap-3 sm:mb-4">
-      <div className="flex min-w-0 items-center gap-2.5">
-        {Icon && (
-          <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-accent-soft text-accent">
-            <Icon size={16} aria-hidden="true" />
-          </span>
-        )}
-        <div className="min-w-0">
-          <h2 className="font-heading text-base font-semibold leading-tight text-text sm:text-lg">{title}</h2>
-          {hint && <p className="truncate text-xs text-muted">{hint}</p>}
-        </div>
+      <div className="min-w-0">
+        <h2 className="font-heading text-xl font-semibold leading-tight text-text sm:text-2xl lg:text-3xl">{title}</h2>
+        {hint && <p className="truncate text-xs text-muted">{hint}</p>}
       </div>
       {children}
     </div>
@@ -55,7 +48,7 @@ function ArrowButton({ direction, disabled, onClick }) {
   );
 }
 
-export default function ProductRow({ icon, title, hint, count, busy = false, children }) {
+export default function ProductRow({ title, hint, count, busy = false, children }) {
   const scroller = useRef(null);
   const [canPrev, setCanPrev] = useState(false);
   const [canNext, setCanNext] = useState(false);
@@ -92,7 +85,7 @@ export default function ProductRow({ icon, title, hint, count, busy = false, chi
 
   return (
     <section aria-label={title} aria-busy={busy || undefined}>
-      <SectionHeading icon={icon} title={title} hint={hint}>
+      <SectionHeading title={title} hint={hint}>
         {overflows && !busy && (
           <div className="flex shrink-0 items-center gap-2">
             <ArrowButton direction="prev" disabled={!canPrev} onClick={() => scrollByPage(-1)} />

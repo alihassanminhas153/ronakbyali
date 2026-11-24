@@ -1,5 +1,5 @@
 // src/pages/user/dashboard/Wishlist.jsx   (route: /:username/wishlist)
-// Same look as Profile.jsx / Orders.jsx. Uses the existing wishlistSlice and cartSlice unchanged.
+// Uses the wishlist/cart slices and opens the design chooser for multi-style products.
 import PageHeader from '../../../ui/custom/PageHeader';
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router';
@@ -45,6 +45,7 @@ import { formatMoney } from '../../../components/user/profile/profileMeta';
 import { entityColorStep, toneColor } from '../../../lib/entityColors';
 import { getEffectivePricing } from '../../../lib/saleMath';
 import { selectSalesList } from '../../../store/slices/saleSlice';
+import { useDesignAddToCart } from '../../../components/shop/DesignChooser';
 
 /* ---------- config ---------- */
 
@@ -141,6 +142,7 @@ function StatTile({ icon: Icon, label, color, children, tooltip }) {
 
 function WishCard({ product: p, sales, inCart, cartBusy, onRemove, onAdd, index }) {
   const entered = useEntered();
+  const design = useDesignAddToCart(p, onAdd);
   const out = isOut(p);
   const pricing = getEffectivePricing(p, sales);
   const price = pricing.price;
@@ -216,7 +218,7 @@ function WishCard({ product: p, sales, inCart, cartBusy, onRemove, onAdd, index 
 
         <button
           type="button"
-          onClick={onAdd}
+          onClick={() => design.onAddToCart?.(p)}
           disabled={out || cartBusy}
           className={`mt-3 inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border px-4 py-2 text-sm font-semibold transition-all duration-200 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 ${
             inCart
@@ -239,6 +241,7 @@ function WishCard({ product: p, sales, inCart, cartBusy, onRemove, onAdd, index 
           )}
         </button>
       </div>
+      {design.element}
     </li>
   );
 }
@@ -501,7 +504,7 @@ export default function Wishlist() {
                     inCart={inCartIds.has(p.$id)}
                     cartBusy={cartBusy}
                     onRemove={() => dispatch(toggleWishlist({ productId: p.$id }))}
-                    onAdd={() => dispatch(addToCart({ productId: p.$id, quantity: 1, toast: true }))}
+                    onAdd={(product) => dispatch(addToCart({ productId: product.$id, quantity: 1, toast: true }))}
                   />
                 ))}
               </ul>

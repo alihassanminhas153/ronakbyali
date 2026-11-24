@@ -33,6 +33,7 @@ import {
 } from '../../../store/slices/ordersSlice';
 import { editableKeysFor, nextStatusesFor, normalizeStatus } from '../../../lib/appwrite/order';
 import customOrderService from '../../../lib/appwrite/customOrder';
+import { getProductImageUrl } from '../../../store/slices/productsSlice';
 import ConfirmDialog from '../../../ui/custom/modal/ConfirmDialog';
 import AdminSearchSelect from '../AdminSearchSelect';
 import SelectionGrid from '../../../ui/custom/input/SelectionGrid';
@@ -531,15 +532,23 @@ export default function OrderForm({ open, orderId, onClose }) {
         {/* 4. items (read only) */}
         <Section title="Items and amounts" subtitle="Cannot be edited here" appIcon="single_box" tone={5} lockLabel="Read only" delay={180}>
           <ul className="divide-y divide-border rounded-md border border-border bg-surface sm:col-span-2">
-            {items.map((i) => (
-              <li key={orderItemKey(i)} className="flex items-center justify-between gap-3 px-3 py-2.5 text-sm">
-                <div className="min-w-0">
-                  <p className="truncate font-medium text-text">{i.name || 'Product'}</p>
-                  <p className="text-xs text-muted">{i.quantity} × {money(i.price)}{i.variant ? ` · ${i.variant}` : ''}</p>
-                </div>
-                <span className="shrink-0 font-medium tabular-nums text-text">{money((Number(i.price) || 0) * (Number(i.quantity) || 0))}</span>
-              </li>
-            ))}
+            {items.map((i) => {
+              const image = getProductImageUrl(i.fileId);
+              return (
+                <li key={orderItemKey(i)} className="flex items-center justify-between gap-3 px-3 py-2.5 text-sm">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <span className="size-12 shrink-0 overflow-hidden rounded-md border border-border bg-surface-alt">
+                      {image && <img src={image} alt="" loading="lazy" className="size-full object-cover" />}
+                    </span>
+                    <div className="min-w-0">
+                      <p className="truncate font-medium text-text">{i.name || 'Product'}</p>
+                      <p className="text-xs text-muted">{i.quantity} × {money(i.price)}{i.variant ? ` · ${i.variant}` : ''}</p>
+                    </div>
+                  </div>
+                  <span className="shrink-0 font-medium tabular-nums text-text">{money((Number(i.price) || 0) * (Number(i.quantity) || 0))}</span>
+                </li>
+              );
+            })}
           </ul>
           {order.isCustom && (
             <div className="space-y-3 rounded-md border border-accent-tone-6/30 bg-accent-tone-6/5 p-3 sm:col-span-2">

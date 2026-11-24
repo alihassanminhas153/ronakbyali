@@ -1,6 +1,6 @@
 import envVars from '../../../env/var';
 import { Client, Storage, TablesDB, Query, ID } from 'appwrite';
-import { optimizeImage, optimizeImages } from '../imageOptimizer';
+import { optimizeImage, optimizeImages, PRODUCT_IMAGE_OPTIONS } from '../imageOptimizer';
 import { getEffectivePricing } from '../saleMath';
 import { isAccessDeniedError } from './accessErrors';
 
@@ -593,9 +593,9 @@ export class ProductService {
     // imageIds[0] is the main image.
 
     // Every image is compressed and converted to .webp first (lib/imageOptimizer.js).
-    async uploadImage(file) {
+    async uploadImage(file, optimizeOptions) {
         try {
-            const optimized = await optimizeImage(file);
+            const optimized = await optimizeImage(file, optimizeOptions);
             const uploaded = await this.bucket.createFile({
                 bucketId: this.bucketId,
                 fileId: ID.unique(),
@@ -609,9 +609,9 @@ export class ProductService {
     }
 
     // files: array of File objects -> uploaded files in order, or false.
-    async uploadImages(files) {
+    async uploadImages(files, optimizeOptions = PRODUCT_IMAGE_OPTIONS) {
         try {
-            const optimized = await optimizeImages(files); // compress + .webp, one by one
+            const optimized = await optimizeImages(files, optimizeOptions); // compress + .webp, one by one
             return await this._inChunks(optimized, 5, (file) =>
                 this.bucket.createFile({
                     bucketId: this.bucketId,

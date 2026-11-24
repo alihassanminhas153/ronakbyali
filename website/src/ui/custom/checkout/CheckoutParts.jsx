@@ -3,7 +3,7 @@
 import { useState } from "react";
 
 const INPUT =
-  "mt-1 h-11 w-full rounded-md border bg-surface px-3 pr-16 text-text focus:border-accent focus:outline-none";
+  "mt-1 h-12 w-full rounded-xl border bg-surface-alt/50 px-3.5 pr-16 text-base text-text outline-none transition hover:border-accent/50 focus:border-accent focus:bg-bg focus:ring-4 focus:ring-accent/15";
 
 /* ---------- password with a show / hide control ---------- */
 export function PasswordField({ label = "Password *", value, onChange, error, autoComplete = "current-password", autoFocus = false }) {

@@ -31,6 +31,7 @@ import {
 import orderConfirmService from '../../../lib/appwrite/orderConfirm';
 import orderService, { normalizeStatus } from '../../../lib/appwrite/order';
 import { formatDateTime, formatMoney } from '../../../components/user/profile/profileMeta';
+import { getProductImageUrl } from '../../../store/slices/productsSlice';
 
 const PAGE_SIZE = 100;
 
@@ -81,7 +82,7 @@ function orderSearchText(order) {
     order.customerPhone,
     order.city,
     order.address,
-    ...items.map((item) => item.name),
+    ...items.map((item) => `${item.name || ''} ${item.variant || ''}`),
   ]
     .filter(Boolean)
     .join(' ')
@@ -153,10 +154,17 @@ function OrderCard({ order, busy, onConfirm }) {
         <ul className="divide-y divide-border rounded-lg border border-border">
           {items.length > 0 ? items.map((item, index) => {
             const count = Number(item.quantity) || 0;
+            const image = getProductImageUrl(item.fileId);
             return (
               <li key={`${item.productId || item.name || 'item'}-${index}`} className="flex items-start justify-between gap-4 px-3 py-2.5 text-sm">
-                <span className="min-w-0 text-text">
-                  {item.name || 'Product'} <span className="text-muted">× {count}</span>
+                <span className="flex min-w-0 items-center gap-3 text-text">
+                  <span className="size-12 shrink-0 overflow-hidden rounded-md border border-border bg-surface-alt">
+                    {image && <img src={image} alt="" loading="lazy" className="size-full object-cover" />}
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block">{item.name || 'Product'} × {count}</span>
+                    {item.variant && <span className="block text-xs text-muted">Design: {item.variant}</span>}
+                  </span>
                 </span>
                 <span className="shrink-0 font-medium tabular-nums text-text">
                   Rs {formatMoney((Number(item.price) || 0) * count)}

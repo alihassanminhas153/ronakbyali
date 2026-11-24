@@ -64,13 +64,16 @@ function useTimeAgo(date) {
   return `${Math.floor(sec / 3600)}h ago`;
 }
 
-// Stock state of one cart line.
-function stockOf(line) {
+// Stock available to a cart line after accounting for the product's other options/designs.
+function stockOf(line, otherQuantity = 0) {
   const p = line.product;
-  const remaining = p.remaining == null ? null : Number(p.remaining);
+  const rawRemaining = p.remaining == null ? null : Number(p.remaining);
+  const remaining = Number.isFinite(rawRemaining) ? rawRemaining : null;
   const out = p.status === 'outOfStock' || (remaining != null && remaining <= 0);
-  const over = !out && remaining != null && Number(line.quantity) > remaining;
-  return { remaining, out, over };
+  const other = Math.max(0, Number(otherQuantity) || 0);
+  const available = remaining == null ? null : Math.max(0, remaining - other);
+  const over = !out && available != null && Number(line.quantity) > available;
+  return { remaining, available, other, out, over };
 }
 
 const lineKey = (l) => `${l.productId}:${l.variant ?? ''}`;
@@ -131,12 +134,12 @@ function Row({ label, value, strong }) {
 
 /* ---------- one cart line ---------- */
 
-function CartLine({ line, price, busy, onQty, onRemove, index }) {
+function CartLine({ line, price, busy, onQty, onRemove, index, otherQuantity = 0 }) {
   const entered = useEntered();
   const p = line.product;
   const qty = Number(line.quantity) || 0;
-  const { remaining, out, over } = stockOf(line);
-  const max = remaining != null ? Math.max(1, remaining) : 99;
+  const { available, out, over, other } = stockOf(line, otherQuantity);
+  const max = available ?? 99;
   // A design line shows its own design picture; other lines show the main image.
   const img = (line.imageId && productService.getThumbUrl(line.imageId, 300)) || getMainImageUrl(p);
   const href = PATHS.product(p.category, p.group, p.slug);
@@ -172,7 +175,11 @@ function CartLine({ line, price, busy, onQty, onRemove, index }) {
         <p className="mt-0.5 text-xs tabular-nums text-muted">{formatMoney(price)} each</p>
 
         {out && <p className="mt-1 text-xs font-medium text-error">Out of stock. Remove it to continue.</p>}
-        {over && <p className="mt-1 text-xs font-medium text-warning">Only {remaining} available. Lower the quantity.</p>}
+        {over && (
+          <p className="mt-1 text-xs font-medium text-warning">
+            Only {available} available for this line{other > 0 ? ` (${other} in other options).` : '.'} Lower the quantity.
+          </p>
+        )}
 
         <div className="mt-auto flex items-center justify-between gap-3 pt-3">
           <div className="flex items-center overflow-hidden rounded-lg border border-border" role="group" aria-label={`Quantity of ${p.name}`}>
@@ -235,6 +242,13 @@ export default function Cart() {
   const [errorShown, setErrorShown] = useState(true);
   const [refreshRequested, setRefreshRequested] = useState(false);
   const ago = useTimeAgo(updatedAt);
+  const productQuantities = useMemo(
+    () => lines.reduce((totals, line) => {
+      totals.set(line.productId, (totals.get(line.productId) || 0) + (Number(line.quantity) || 0));
+      return totals;
+    }, new Map()),
+    [lines]
+  );
 
   // Refresh prices and stock whenever the page opens.
   useEffect(() => {
@@ -267,10 +281,12 @@ export default function Cart() {
   const hasProblem = useMemo(
     () =>
       lines.some((l) => {
-        const s = stockOf(l);
+        const quantity = Number(l.quantity) || 0;
+        const other = (productQuantities.get(l.productId) || 0) - quantity;
+        const s = stockOf(l, other);
         return s.out || s.over;
       }),
-    [lines]
+    [lines, productQuantities]
   );
 
   const loadingFirst = status === 'idle' || (status === 'loading' && lines.length === 0 && !refreshRequested);
@@ -370,6 +386,7 @@ export default function Cart() {
                   price={getEffectivePricing(line.product, sales).price}
                   index={i}
                   busy={busy}
+                  otherQuantity={(productQuantities.get(line.productId) || 0) - (Number(line.quantity) || 0)}
                   onQty={(q) => setQty(line, q)}
                   onRemove={() => remove(line)}
                 />

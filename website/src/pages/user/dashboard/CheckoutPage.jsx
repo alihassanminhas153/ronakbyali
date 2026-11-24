@@ -26,6 +26,7 @@ import { LOGIN_REQUIRED } from "../../../store/slices/utils";
 import { validateDetails } from "../../../lib/checkoutDraft";
 import TextInput from "../../../ui/custom/input/TextInput";
 import { selectSalesList } from "../../../store/slices/saleSlice";
+import { getProductImageUrl } from "../../../store/slices/productsSlice";
 
 const money = (v) => `Rs ${Number(v || 0).toLocaleString("en-PK")}`;
 const PAYMENT_OPTIONS = [
@@ -293,9 +294,18 @@ export default function Checkout() {
             {lines.map((line) => {
               const quantity = Number(line.quantity) || 0;
               const price = getProductCheckoutPrice(line.product, paymentType, sales);
+              const image = getProductImageUrl(line.imageId || line.product?.imageIds?.[0]);
               return (
                 <div key={`${line.productId}:${line.variant ?? ""}`} className="flex justify-between gap-4 py-2.5">
-                  <dt className="min-w-0 text-muted">{line.product.name} × {quantity}</dt>
+                  <dt className="flex min-w-0 items-center gap-3 text-muted">
+                    <span className="size-12 shrink-0 overflow-hidden rounded-md border border-border bg-surface-alt">
+                      {image && <img src={image} alt="" loading="lazy" className="size-full object-cover" />}
+                    </span>
+                    <span className="min-w-0">
+                      <span className="block">{line.product.name} × {quantity}</span>
+                      {line.variant && <span className="block text-xs text-muted">Design: {line.variant}</span>}
+                    </span>
+                  </dt>
                   <dd className="shrink-0 tabular-nums text-text">{money(price * quantity)}</dd>
                 </div>
               );

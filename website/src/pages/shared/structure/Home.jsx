@@ -11,6 +11,7 @@ import Faqs from "../../../components/home/Faqs";
 import Footer from "../../../components/home/Footer";
 import useSmoothScroll from "../../../components/home/useSmoothScroll";
 import HandwrittenLogo from "../../../components/home/HandwrittenLogo"; // the handwriting loader (new file)
+import useScrollLock from "../../../ui/custom/motion/useScrollLock";
 
 /* ==========================================================================
    HOME: hero section, then the products marquee, the order journey, then the FAQs
@@ -163,15 +164,18 @@ function useFitText(sectionRef, wrapRef, innerRef) {
 /* ---------- Loader ----------
    The logo writes itself stroke by stroke. When the last stroke is done, onWritten() fires
    and the page is allowed to appear (once its first image is also ready). */
-function Loader({ visible, onWritten }) {
+function Loader({ visible, onWritten, onRemoved }) {
   const [mounted, setMounted] = useState(true);
 
   // Remove from the DOM once the fade-out has finished
   useEffect(() => {
     if (visible) return;
-    const id = setTimeout(() => setMounted(false), 700);
+    const id = setTimeout(() => {
+      setMounted(false);
+      onRemoved?.();
+    }, 700);
     return () => clearTimeout(id);
-  }, [visible]);
+  }, [visible, onRemoved]);
 
   if (!mounted) return null;
 
@@ -385,16 +389,19 @@ export default function Home() {
   const sectionRef = useRef(null);
   const { images, firstDone } = useHeroImages();
   const visible = usePageVisible();
-  useSmoothScroll(); // eased wheel / touch scrolling for this page (npm i lenis)
 
   const [logoWritten, setLogoWritten] = useState(false); // the loader logo has finished writing itself
+  const [loaderRemoved, setLoaderRemoved] = useState(false);
   const [current, setCurrent] = useState(0); // which image is showing
   const [intro, setIntro] = useState(true); // true until the first slide change (the first image rises, later ones slide)
   const [statuses, setStatuses] = useState(() => HERO_IMAGES.map((_, i) => (i === 0 ? "below" : "parked")));
 
   const onLogoWritten = useCallback(() => setLogoWritten(true), []);
+  const onLoaderRemoved = useCallback(() => setLoaderRemoved(true), []);
 
   const ready = logoWritten && firstDone;
+  useScrollLock(!loaderRemoved);
+  useSmoothScroll({ enabled: loaderRemoved }); // start eased scrolling after the writing loader is gone
 
   // First image: once the loader is done it rises from the bottom
   useEffect(() => {
@@ -434,7 +441,7 @@ export default function Home() {
 
   return (
     <>
-      <Loader visible={!ready} onWritten={onLogoWritten} />
+      <Loader visible={!ready} onWritten={onLogoWritten} onRemoved={onLoaderRemoved} />
 
       {/* overflow-x-clip: nothing on the page can push it sideways (clip, unlike hidden, keeps sticky working) */}
       <div className="w-full max-w-full overflow-x-clip">

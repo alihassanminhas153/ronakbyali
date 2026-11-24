@@ -142,6 +142,7 @@ Generated from the current project tree. Local .env files, dependencies, generat
 |  |  |  |-- settings
 |  |  |  |  |-- AccessDrawer.jsx
 |  |  |  |  |-- AccessTab.jsx
+|  |  |  |  |-- AllProductsBannerSettings.jsx
 |  |  |  |  |-- DevicesTab.jsx
 |  |  |  |  |-- LayoutTab.jsx
 |  |  |  |  |-- PasswordDrawer.jsx
@@ -195,6 +196,7 @@ Generated from the current project tree. Local .env files, dependencies, generat
 |  |  |  |  |-- ProductReviews.jsx
 |  |  |  |  |-- ReviewFormModal.jsx
 |  |  |  |  \-- ReviewStars.jsx
+|  |  |  |-- AllProductsBanner.jsx
 |  |  |  |-- CardShared.jsx
 |  |  |  |-- CategoryNav.jsx
 |  |  |  |-- CustomOrderDrawer.jsx
@@ -246,6 +248,7 @@ Generated from the current project tree. Local .env files, dependencies, generat
 |  |  |  |-- product.js
 |  |  |  |-- review.js
 |  |  |  |-- sale.js
+|  |  |  |-- siteLayout.js
 |  |  |  |-- settings.js
 |  |  |  |-- tracker.js
 |  |  |  |-- user.js
@@ -428,7 +431,8 @@ Generated from the current project tree. Local .env files, dependencies, generat
 |  |  |  |-- motion
 |  |  |  |  |-- CountUp.jsx
 |  |  |  |  |-- Typewriter.jsx
-|  |  |  |  \-- useEntered.js
+|  |  |  |  |-- useEntered.js
+|  |  |  |  \-- useScrollLock.js
 |  |  |  |-- tabs
 |  |  |  |  \-- Tabs.jsx
 |  |  |  |-- toast

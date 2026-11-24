@@ -28,7 +28,8 @@ const adminThunk = (type, method, message) =>
 
 const adapter = createEntityAdapter({ selectId: (p) => p.$id });
 
-const PAGE_SIZE = 10;
+// 12 keeps every "Load more" boundary complete on the 2-, 3-, and 4-column grids.
+const PAGE_SIZE = 12;
 const defaultFilters = {
   category: null,
   group: null,

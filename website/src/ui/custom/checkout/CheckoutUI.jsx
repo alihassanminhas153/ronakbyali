@@ -1,4 +1,5 @@
-import TextInput from "../input/TextInput";
+import { Mail, Phone, User } from "lucide-react";
+import CheckoutField from "./CheckoutField";
 
 export function SectionCard({ id, title, action, children, className = "" }) {
   return (
@@ -34,9 +35,9 @@ export function StepDots({ steps, current }) {
 }
 
 const ROWS = [
-  { key: "customerName", label: "Full name", editable: true, input: { maxLength: 128, autoComplete: "name" } },
-  { key: "customerPhone", label: "Phone", editable: true, input: { type: "tel", inputMode: "tel", maxLength: 20, autoComplete: "tel" } },
-  { key: "customerEmail", label: "Email", editable: false, input: { type: "email", maxLength: 320, autoComplete: "email" } },
+  { key: "customerName", label: "Full name", icon: User, editable: true, input: { maxLength: 128, autoComplete: "name" } },
+  { key: "customerPhone", label: "Phone", icon: Phone, editable: true, input: { type: "tel", inputMode: "tel", maxLength: 20, autoComplete: "tel" } },
+  { key: "customerEmail", label: "Email", icon: Mail, editable: false, input: { type: "email", maxLength: 320, autoComplete: "email" } },
 ];
 
 export function ContactTable({ form, errors, onChange, editing, setEditing }) {
@@ -63,7 +64,7 @@ export function ContactTable({ form, errors, onChange, editing, setEditing }) {
               <div key={row.key} className="py-2.5">
                 <dt className="sr-only">{row.label}</dt>
                 <dd>
-                  <TextInput label={row.label} required={row.key !== "customerEmail"} value={form[row.key] ?? ""} onChange={onChange(row.key)} error={errors[row.key]} {...row.input} />
+                  <CheckoutField icon={row.icon} label={row.label} required={row.key !== "customerEmail"} value={form[row.key] ?? ""} onChange={onChange(row.key)} error={errors[row.key]} {...row.input} />
                 </dd>
               </div>
             );

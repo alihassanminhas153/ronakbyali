@@ -8,6 +8,7 @@ import { setPanelRows } from '../../../lib/layout/usePanelAccess';
 import useUserLabels from '../../../lib/layout/useUserLabels';
 import { STAFF_LABELS, canTarget } from '../../../lib/layout/accessRules';
 import { AREAS, PANEL_PAGES, defaultRow, mergeRows, urlFor, visiblePages } from '../../../lib/layout/layoutRegistry';
+import AllProductsBannerSettings from './AllProductsBannerSettings';
 import { Banner, Chip, Ico } from './SettingsParts';
 import { MAX_EXTRA_LABELS, ROLE_OPTIONS, labelsError } from './settingsMeta';
 
@@ -69,6 +70,7 @@ export default function LayoutTab() {
   const [open, setOpen] = useState(null); // row key whose access editor is open
   const [previewAs, setPreviewAs] = useState('support');
   const [saving, setSaving] = useState(false);
+  const [savingAccessKey, setSavingAccessKey] = useState(null);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
 
@@ -142,6 +144,31 @@ export default function LayoutTab() {
     setNotice('Saved. The sidebar and page access are updated.');
   };
 
+  const saveAccess = async (row) => {
+    const baseline = saved?.[area]?.find((item) => item.key === row.key);
+    if (!baseline || saving || savingAccessKey) return;
+
+    setSavingAccessKey(row.key);
+    setError('');
+    setNotice('');
+    const result = await navLayoutService.saveRows([{ ...baseline, blockedLabels: [...row.blockedLabels] }]);
+    setSavingAccessKey(null);
+    if (!result.ok) {
+      setError(`Could not save page access: ${result.message}`);
+      return;
+    }
+
+    const nextSaved = {
+      ...saved,
+      [area]: saved[area].map((item) =>
+        item.key === row.key ? { ...item, blockedLabels: [...row.blockedLabels] } : item
+      ),
+    };
+    setSaved(nextSaved);
+    setPanelRows([...nextSaved.admin, ...nextSaved.user]);
+    setNotice(`Access for ${row.label} saved.`);
+  };
+
   if (!draft) return <p className="text-sm text-muted">Loading the layout…</p>;
 
   const previewRoles = area === 'admin' ? STAFF_LABELS : ROLES;
@@ -185,9 +212,23 @@ export default function LayoutTab() {
             <span aria-hidden="true" className={`size-1.5 rounded-full ${changed.length ? 'bg-accent' : 'bg-muted'}`} />
             {changed.length ? `${changed.length} unsaved ${changed.length === 1 ? 'change' : 'changes'}` : 'All changes saved'}
           </span>
-          {isAdmin && <ActionButton variant="secondary" size="sm" icon={RotateCcw} onClick={restoreDefaults}>Defaults</ActionButton>}
-          <ActionButton variant="secondary" size="sm" onClick={() => setDraft(clone(saved))} disabled={!changed.length || saving}>Discard</ActionButton>
-          <ActionButton variant="primary" size="sm" icon={Save} onClick={save} disabled={!changed.length || invalid} loading={saving}>
+          {isAdmin && <ActionButton variant="secondary" size="sm" icon={RotateCcw} onClick={restoreDefaults} disabled={saving || Boolean(savingAccessKey)}>Defaults</ActionButton>}
+          <ActionButton
+            variant="secondary"
+            size="sm"
+            onClick={() => setDraft(clone(saved))}
+            disabled={!changed.length || saving || Boolean(savingAccessKey)}
+          >
+            Discard
+          </ActionButton>
+          <ActionButton
+            variant="primary"
+            size="sm"
+            icon={Save}
+            onClick={save}
+            disabled={!changed.length || invalid || Boolean(savingAccessKey)}
+            loading={saving}
+          >
             Save changes
           </ActionButton>
         </div>
@@ -240,6 +281,11 @@ export default function LayoutTab() {
             if (!page) return null;
             const Icon = page.icon;
             const extras = row.blockedLabels.filter((l) => !optionValues.includes(l));
+            const extrasError = labelsError(extras);
+            const savedRow = saved?.[area]?.find((item) => item.key === row.key);
+            const accessChanged =
+              savedRow &&
+              JSON.stringify([...row.blockedLabels].sort()) !== JSON.stringify([...(savedRow.blockedLabels || [])].sort());
             const isOpen = open === row.key && !page.locked;
             return (
               <li key={row.key} className="border-t border-border first:border-t-0 md:first:border-t">
@@ -366,9 +412,24 @@ export default function LayoutTab() {
                       max={MAX_EXTRA_LABELS}
                       maxLength={36}
                       placeholder="e.g. vip, wholesale"
-                      error={labelsError(extras)}
+                      error={extrasError}
                       hint="Custom Appwrite labels. Leave everything open so every label can see the page. Admins are never blocked."
                     />
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                      <p className="text-xs text-muted">
+                        {accessChanged ? 'Page access has unsaved label changes.' : 'Page access is up to date.'}
+                      </p>
+                      <ActionButton
+                        variant="primary"
+                        size="sm"
+                        icon={Save}
+                        onClick={() => saveAccess(row)}
+                        disabled={!accessChanged || Boolean(extrasError) || saving || Boolean(savingAccessKey)}
+                        loading={savingAccessKey === row.key}
+                      >
+                        Save access
+                      </ActionButton>
+                    </div>
                   </div>
                 )}
               </li>
@@ -420,6 +481,8 @@ export default function LayoutTab() {
           })}
         </ul>
       </section>
+
+      {isAdmin && <AllProductsBannerSettings />}
     </div>
   );
 }

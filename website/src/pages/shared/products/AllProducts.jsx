@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 import { useStore } from 'react-redux';
-import { Crown, Flame, LayoutGrid, PackageSearch, RotateCcw, Search, SlidersHorizontal, Tag, X } from 'lucide-react';
+import { PackageSearch, RotateCcw, Search, SlidersHorizontal, X } from 'lucide-react';
 
 import { useAppDispatch, useAppSelector } from '../../../store/slices/hooks';
 import { addToCart, selectCartLines, selectCartUpdating } from '../../../store/slices/cartSlice';
@@ -39,6 +39,7 @@ import {
   isNarrowed,
   toParams,
 } from '../../../components/shop';
+import AllProductsBanner from '../../../components/shop/AllProductsBanner';
 import FilterDrawer from '../../../components/shop/FilterDrawer';
 import FeaturedCard, { FeaturedCardSkeleton } from '../../../components/shop/FeaturedCard';
 import DiscountedProductCard, { DiscountedProductCardSkeleton } from '../../../components/shop/DiscountedProductCard';
@@ -297,7 +298,6 @@ export default function AllProducts({ pages = [] }) {
     featuredLoading || featured.length > 0 ? (
       <ProductRow
         key="featured"
-        icon={Crown}
         title="Featured"
         hint="Hand-picked for you"
         count={featured.length}
@@ -314,7 +314,6 @@ export default function AllProducts({ pages = [] }) {
     discountedLoading || discounted.length > 0 ? (
       <ProductRow
         key="discounted"
-        icon={Tag}
         title="On sale"
         hint="Active offers, biggest savings first"
         count={discounted.length}
@@ -329,7 +328,6 @@ export default function AllProducts({ pages = [] }) {
   const resultsBlock = (
     <section key="results" aria-label={refined ? 'Search results' : 'All products'}>
       <SectionHeading
-        icon={LayoutGrid}
         title={refined ? 'Results' : 'All products'}
         hint={refined ? 'Matches for your search and filters' : 'Everything in the shop'}
       >
@@ -418,7 +416,7 @@ export default function AllProducts({ pages = [] }) {
   const popularBlock =
     popular.length > 0 ? (
       <section key="popular" aria-label="Popular products">
-        <SectionHeading icon={Flame} title="Popular" hint="Most ordered of all time" />
+        <SectionHeading title="Popular" hint="Most ordered of all time" />
         <ul className={POPULAR_GRID}>
           {popular.map((product, index) => (
             <ProductCard key={product.$id} {...cardProps(product, index)} />
@@ -435,16 +433,14 @@ export default function AllProducts({ pages = [] }) {
   return (
     <div className="flex min-h-dvh flex-col bg-bg text-text">
       <Header pages={pages} showOffers />
-      <main className="mx-auto w-full max-w-7xl flex-1 px-3 py-8 sm:px-6 sm:py-10 lg:px-8">
+      <AllProductsBanner />
+      <main className="relative z-10 w-full flex-1 bg-bg">
         <div
-          className={`space-y-8 transition-opacity duration-300 motion-reduce:transition-none sm:space-y-10 ${
+          className={`mx-auto w-full max-w-7xl space-y-8 px-3 py-8 transition-opacity duration-300 motion-reduce:transition-none sm:px-6 sm:py-10 sm:space-y-10 lg:px-8 ${
             entered ? 'opacity-100' : 'opacity-0'
           }`}
         >
-          <header>
-            <h1 className="font-heading text-3xl font-semibold tracking-tight text-text sm:text-4xl">Shop</h1>
-            <span aria-hidden="true" className="mt-3 block h-0.5 w-12 rounded-full bg-thread" />
-          </header>
+          <h1 className="sr-only">Shop</h1>
 
           <div className="space-y-5">
             <div className="flex flex-wrap items-center gap-3">
