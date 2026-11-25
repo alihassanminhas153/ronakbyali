@@ -39,14 +39,25 @@ function Field({ label, hint, error, optional, children, className = '', as: Tag
 }
 
 // A card with a tinted header: icon tile, title and a one-line subtitle.
-function Section({ title, subtitle, icon, tone = 1, children, delay = 0, bodyClassName = 'grid gap-5 p-5 sm:grid-cols-2' }) {
+function Section({
+  title,
+  subtitle,
+  icon,
+  tone = 1,
+  children,
+  delay = 0,
+  bodyClassName = 'grid gap-5 p-5 sm:grid-cols-2',
+  overflowVisible = false,
+}) {
   const color = toneVar(tone);
   return (
     <section
       style={{ animationDelay: `${delay}ms` }}
-      className="group/sec animate-rise overflow-hidden rounded-lg border border-border bg-surface shadow-soft"
+      className={`group/sec animate-rise rounded-lg border border-border bg-surface shadow-soft ${
+        overflowVisible ? 'relative z-20 overflow-visible' : 'overflow-hidden'
+      }`}
     >
-      <div className="flex items-center gap-3 border-b border-border px-5 py-3.5" style={{ background: tint(color, 6) }}>
+      <div className="flex items-center gap-3 rounded-t-lg border-b border-border px-5 py-3.5" style={{ background: tint(color, 6) }}>
         <span className="grid size-10 shrink-0 place-items-center rounded-md" style={{ background: tint(color, 16) }}>
           <AppIcon
             name={resolveAppIconName(icon)}
@@ -449,7 +460,7 @@ export default function AlertForm({ open, alert, onClose, onSaved }) {
               )}
             </Section>
 
-            <Section title="Audience and schedule" subtitle="Who sees it, where, and when." icon={CalendarClock} tone={3} delay={120}>
+            <Section title="Audience and schedule" subtitle="Who sees it, where, and when." icon={CalendarClock} tone={3} delay={120} overflowVisible>
               <Field label="User id" hint="empty = everyone" optional error={errors.userId} className="sm:col-span-2">
                 <input value={form.userId} onChange={on('userId')} maxLength={ALERT_LIMITS.userId + 10} placeholder="Paste a user id to target one person" className={controlCls(errors.userId)} />
               </Field>

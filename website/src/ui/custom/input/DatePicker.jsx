@@ -58,7 +58,7 @@ export default function DatePicker({ value, onChange, max, error = false, cleara
       <div
         role="dialog"
         aria-label="Choose a date"
-        className={`absolute left-0 z-30 w-72 max-w-[calc(100vw-2rem)] rounded-lg border border-border bg-surface p-3 shadow-soft transition-all duration-200 ${
+        className={`absolute left-0 z-50 w-72 max-w-[calc(100vw-2rem)] rounded-lg border border-border bg-surface p-3 shadow-soft transition-all duration-200 ${
           dropUp ? 'bottom-full mb-1.5 origin-bottom' : 'top-full mt-1.5 origin-top'
         } ${open ? 'visible scale-100 opacity-100' : 'invisible scale-95 opacity-0'}`}
       >

@@ -84,7 +84,7 @@ export default function DevicesTab() {
                   <td className="hidden px-3 py-3 text-muted md:table-cell md:px-4">{fmtDate(s.$createdAt)}</td>
                   <td className="px-3 py-3 text-right sm:px-4">
                     {s.current ? (
-                      <Chip tone="add">This device</Chip>
+                      <Chip tone="add whtie-spave-pre text-sm">This device</Chip>
                     ) : (
                       <button type="button" onClick={() => revoke(s.$id)} disabled={busyId === s.$id} className={smallButton}>
                         {busyId === s.$id ? 'Working…' : 'Log out'}
