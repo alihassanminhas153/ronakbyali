@@ -71,7 +71,7 @@ function Price({ pricing }) {
 
 function Sale({ product, sales }) {
   const sale = sales.find((item) => item.$id === product.saleId);
-  if (!sale) return <span className="text-sm text-muted">—</span>;
+  if (!sale) return <span className="text-sm text-error bg-error-light inline-block">no sale</span>;
   const status = getSaleStatus(sale);
   const tones = {
     active: 'bg-success/10 text-success',
@@ -89,7 +89,7 @@ function Sale({ product, sales }) {
 function CustomBadge({ product }) {
   return product.isCustom
     ? <span className="rounded-full bg-accent-tone-6/10 px-2 py-0.5 text-xs font-medium text-accent-tone-6">Custom</span>
-    : <span className="text-sm text-muted">—</span>;
+    : <span className="text-sm text-info">Generic</span>;
 }
 
 function Actions({ product, busy, onEdit, onDelete, onToggleFeatured }) {

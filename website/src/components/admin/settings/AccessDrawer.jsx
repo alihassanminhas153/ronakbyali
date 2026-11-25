@@ -99,7 +99,7 @@ export default function AccessDrawer({ open, user, locked, onClose }) {
       onClose={onClose}
       busy={pending}
       footer={
-        <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:justify-end sm:gap-3">
+        <div className="grid w-full min-w-0 grid-cols-1 gap-2 sm:flex sm:justify-end sm:gap-3">
           <ActionButton variant="secondary" onClick={onClose} disabled={pending}>Close</ActionButton>
           <ActionButton variant="primary" onClick={() => setConfirmOpen(true)} disabled={!dirty || Boolean(tagError) || disabled} loading={pending}>
             Save changes
@@ -134,7 +134,7 @@ export default function AccessDrawer({ open, user, locked, onClose }) {
             />
           </div>
 
-          <div className="min-w-0 [&_*]:max-w-full">
+          <div className="min-w-0 [&_*]:max-w-full [&_span]:break-all [&_span]:whitespace-normal">
             <TagInput
               label="Extra labels"
               value={extras}
@@ -166,7 +166,7 @@ export default function AccessDrawer({ open, user, locked, onClose }) {
                 </div>
                 <div className="flex flex-col gap-1 sm:flex-row sm:items-baseline sm:gap-x-3">
                   <dt className="shrink-0 text-muted sm:w-16">Labels</dt>
-                  <dd className="flex min-w-0 flex-wrap gap-1.5 break-all">
+                  <dd className="flex min-w-0 flex-wrap gap-1.5 [&>span]:min-w-0 [&>span]:max-w-full [&>span]:break-all [&>span]:whitespace-normal">
                     {next.length === 0 && removed.length === 0 && <span className="text-muted">No labels</span>}
                     {next.map((l) => <Chip key={l} tone={added.includes(l) ? 'add' : 'plain'}>{l}</Chip>)}
                     {removed.map((l) => <Chip key={`r-${l}`} tone="remove">{l}</Chip>)}

@@ -60,24 +60,17 @@ export default function AccessTab() {
   };
 
   return (
-    <div className="space-y-4">
-      <div className="grid gap-3 sm:grid-cols-3">
-        <div className="rounded-2xl border border-border bg-surface p-4 shadow-soft">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">Total users</p>
-          <p className="mt-2 text-2xl font-semibold text-text">{users.length}</p>
-        </div>
-        <div className="rounded-2xl border border-border bg-surface p-4 shadow-soft">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">Staff</p>
-          <p className="mt-2 text-2xl font-semibold text-text">{staffCount}</p>
-        </div>
-        <div className="rounded-2xl border border-border bg-surface p-4 shadow-soft">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">Visible</p>
-          <p className="mt-2 text-2xl font-semibold text-text">{filtered.length}</p>
-        </div>
-      </div>
+    <div className="min-w-0 max-w-full space-y-4">
+      <p className="flex flex-wrap items-baseline gap-x-1.5 gap-y-1 text-xs font-normal leading-relaxed text-muted sm:text-sm">
+        <span className='text-xs'>You have total:</span>
+        <b className="text-lg font-semibold [font-variant:small-caps] text-accent capitalize">{users.length} <span>total users,</span></b>
+        <b className="text-lg font-semibold [font-variant:small-caps] text-info-fg capitalize">{staffCount} <span>staff members</span></b>
+        <span className='text-xs'>and</span>
+        <b className="text-lg font-semibold [font-variant:small-caps] text-success-fg capitalize">{filtered.length} <span>visible users</span></b>
+      </p>
 
       <div className="flex flex-col gap-3 rounded-2xl border border-border bg-surface p-3 shadow-soft sm:flex-row sm:items-center">
-        <SearchInput size="sm" delay={200} value={query} onSearch={setQuery} placeholder="Search name, email, role or label" label="Search users" className="flex-1" />
+        <SearchInput size="sm" delay={200} value={query} onSearch={setQuery} placeholder="Search name, email, role or label" label="Search users" className="min-w-0 flex-1" />
         <div className="flex items-center justify-between gap-3">
           <span className="text-xs text-muted">{filtered.length} {filtered.length === 1 ? 'user' : 'users'}</span>
           <button
@@ -94,16 +87,16 @@ export default function AccessTab() {
 
       {error && <Banner kind="error" onDismiss={() => dispatch(clearUserError())}>{error}</Banner>}
 
-      <div className="overflow-hidden rounded-2xl border border-border bg-surface shadow-soft">
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[20rem] border-collapse text-sm">
+      <div className="min-w-0 overflow-hidden rounded-2xl border border-border bg-surface shadow-soft">
+        <div className="min-w-0">
+          <table className="w-full min-w-0 table-fixed border-collapse text-sm">
             <thead>
               <tr className="bg-surface-alt/60 text-left text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">
-                <th scope="col" className="px-3 py-2.5 sm:px-4">User</th>
-                <th scope="col" className="hidden px-3 py-2.5 md:table-cell md:px-4">Email</th>
-                <th scope="col" className="px-3 py-2.5 sm:px-4">Role</th>
-                <th scope="col" className="hidden px-3 py-2.5 lg:table-cell lg:px-4">Labels</th>
-                <th scope="col" className="hidden px-3 py-2.5 xl:table-cell xl:px-4">Joined</th>
+                <th scope="col" className="min-w-0 px-3 py-2.5 sm:px-4">User</th>
+                <th scope="col" className="hidden px-3 py-2.5 xl:table-cell xl:w-64 xl:px-4">Email</th>
+                <th scope="col" className="w-20 px-3 py-2.5 sm:w-24 sm:px-4">Role</th>
+                <th scope="col" className="hidden px-3 py-2.5 2xl:table-cell 2xl:w-56 2xl:px-4">Labels</th>
+                <th scope="col" className="hidden px-3 py-2.5 2xl:table-cell 2xl:w-24 2xl:px-4">Joined</th>
                 <th scope="col" className="w-10 px-3 py-2.5"><span className="sr-only">Open</span></th>
               </tr>
             </thead>
@@ -138,7 +131,7 @@ export default function AccessTab() {
                     }}
                     className="cursor-pointer border-t border-border transition-colors hover:bg-surface-alt/50 focus-visible:bg-surface-alt/50 focus-visible:outline-none"
                   >
-                    <td className="px-3 py-3 sm:px-4">
+                    <td className="min-w-0 px-3 py-3 sm:px-4">
                       <span className="flex items-center gap-3">
                         <Avatar user={u} />
                         <span className="min-w-0">
@@ -146,21 +139,21 @@ export default function AccessTab() {
                             {u.name || u.username || '—'}
                             {u.$id === me?.$id && <span className="ml-2 text-xs font-normal text-muted">(you)</span>}
                           </span>
-                          <span className="block truncate text-xs text-muted md:hidden">{u.email}</span>
-                          <span className="hidden truncate text-xs text-muted md:block">@{u.username || '—'}</span>
+                          <span className="block truncate text-xs text-muted xl:hidden">{u.email}</span>
+                          <span className="hidden truncate text-xs text-muted xl:block">@{u.username || '—'}</span>
                         </span>
                       </span>
                     </td>
-                    <td className="hidden max-w-[16rem] truncate px-3 py-3 text-muted md:table-cell md:px-4">{u.email}</td>
-                    <td className="px-3 py-3 sm:px-4"><RoleChip role={u.role} /></td>
-                    <td className="hidden px-3 py-3 lg:table-cell lg:px-4">
+                    <td className="hidden max-w-[16rem] truncate px-3 py-3 text-muted xl:table-cell xl:px-4">{u.email}</td>
+                    <td className="w-20 px-3 py-3 sm:w-24 sm:px-4"><RoleChip role={u.role} /></td>
+                    <td className="hidden px-3 py-3 2xl:table-cell 2xl:px-4">
                       <span className="flex flex-wrap gap-1">
                         {labels.length === 0 && <span className="text-muted">—</span>}
                         {labels.slice(0, 3).map((l) => <Chip key={l}>{l}</Chip>)}
                         {labels.length > 3 && <span className="text-xs text-muted">+{labels.length - 3}</span>}
                       </span>
                     </td>
-                    <td className="hidden px-3 py-3 text-muted xl:table-cell xl:px-4">{fmtDay(u.$createdAt)}</td>
+                    <td className="hidden px-3 py-3 text-muted 2xl:table-cell 2xl:px-4">{fmtDay(u.$createdAt)}</td>
                     <td className="px-3 py-3 text-right text-muted"><ChevronRight size={16} aria-hidden="true" /></td>
                   </tr>
                 );

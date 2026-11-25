@@ -124,7 +124,7 @@ export function SlideDrawer({ open, title, subtitle, onClose, footer, busy = fal
         role="dialog"
         aria-modal="true"
         aria-label={title}
-        className={`absolute right-0 top-0 flex h-full w-full max-w-xl flex-col border-l border-border bg-bg shadow-soft transition-transform duration-[350ms] ease-[cubic-bezier(0.22,0.8,0.2,1)] ${
+        className={`absolute right-0 top-0 flex h-full w-full min-w-0 max-w-xl flex-col overflow-x-hidden border-l border-border bg-bg shadow-soft transition-transform duration-[350ms] ease-[cubic-bezier(0.22,0.8,0.2,1)] ${
           shown ? 'translate-x-0' : 'translate-x-full'
         }`}
       >
@@ -144,9 +144,9 @@ export function SlideDrawer({ open, title, subtitle, onClose, footer, busy = fal
           </button>
         </header>
 
-        <div className="flex-1 overflow-y-auto px-4 py-4 sm:px-6">{children}</div>
+        <div className="min-w-0 flex-1 overflow-x-hidden overflow-y-auto px-4 py-4 sm:px-6">{children}</div>
 
-        {footer && <footer className="flex items-center justify-end gap-3 border-t border-border bg-bg px-4 py-3 sm:px-6">{footer}</footer>}
+        {footer && <footer className="flex min-w-0 items-center justify-end gap-3 border-t border-border bg-bg px-4 py-3 sm:px-6">{footer}</footer>}
       </div>
     </div>,
     document.body
