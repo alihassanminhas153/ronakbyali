@@ -1,9 +1,9 @@
 // src/components/shop/CardParts.jsx   (pieces shared by FeaturedCard and DiscountedProductCard)
 //
-//   <WishlistButton />   heart button. variant "square" (white cards) or "glass" (over a photo)
-//   <CartButton />       shopping-cart button. variant "square" (icon only) or "pill" (icon + label).
+//   <WishlistButton />   heart button. variant "square" (white cards), "icon", or "glass" (over a photo)
+//   <CartButton />       shopping-cart button. variant "square" or "icon" (icon only), or "pill" (icon + label).
 //                        Custom products get a "Customize" button instead (calls onCustomize).
-//   <CardBottom />       price block + heart + cart, used by the white cards
+//   <CardBottom />       details grid + heart/cart actions, used by the white sale cards
 //   <SavingsRow />       "You save Rs 500" line
 //   <ProductCardSkeleton /> loading placeholder shaped like the white card (an <li>)
 //
@@ -27,11 +27,17 @@ export function WishlistButton({ product, active = false, busy = false, onToggle
       ? `grid size-9 shrink-0 place-items-center rounded-full border border-white/30 backdrop-blur-md sm:size-10 ${
           active ? 'bg-white text-accent' : 'bg-white/20 text-white hover:bg-white/30'
         } ${FOCUS_PHOTO}`
-      : `grid h-10 flex-1 place-items-center rounded-xl border sm:size-11 sm:flex-none ${
-          active
-            ? 'border-accent/40 bg-accent-soft text-accent'
-            : 'border-border bg-surface text-text hover:border-accent/60 hover:text-accent'
-        } ${FOCUS}`;
+      : variant === 'icon'
+        ? `grid size-9 shrink-0 place-items-center rounded-full border sm:size-10 ${
+            active
+              ? 'border-accent/40 bg-accent-soft text-accent'
+              : 'border-border bg-surface text-text hover:border-accent/60 hover:text-accent'
+          } ${FOCUS}`
+        : `grid h-10 flex-1 place-items-center rounded-xl border sm:size-11 sm:flex-none ${
+            active
+              ? 'border-accent/40 bg-accent-soft text-accent'
+              : 'border-border bg-surface text-text hover:border-accent/60 hover:text-accent'
+          } ${FOCUS}`;
 
   return (
     <button
@@ -57,10 +63,25 @@ export function WishlistButton({ product, active = false, busy = false, onToggle
 export function CartButton({ product, data, inCart = false, busy = false, onAddToCart, onCustomize, variant = 'square' }) {
   const isCustom = product.isCustom === true;
   const soldOut = data.outOfStock && !isCustom;
+  const icon = variant === 'icon';
   const pill = variant === 'pill';
 
   // ----- custom products: "Customize" -----
   if (isCustom) {
+    if (icon) {
+      return (
+        <button
+          type="button"
+          onClick={() => onCustomize?.(product)}
+          aria-label={`Customize ${product.name}`}
+          title="Customize"
+          className={`${BASE} grid size-9 shrink-0 place-items-center rounded-full border border-accent/40 bg-accent-soft text-accent hover:bg-accent hover:text-on-accent sm:size-10 ${FOCUS}`}
+        >
+          <Palette size={18} aria-hidden="true" />
+        </button>
+      );
+    }
+
     return (
       <button
         type="button"
@@ -78,7 +99,32 @@ export function CartButton({ product, data, inCart = false, busy = false, onAddT
   }
 
   const label = soldOut ? 'Sold out' : inCart ? 'In cart' : 'Add to cart';
-  const spinner = <Loader2 size={pill ? 16 : 20} className="animate-spin motion-reduce:animate-none" aria-hidden="true" />;
+  const spinner = <Loader2 size={pill || icon ? 16 : 20} className="animate-spin motion-reduce:animate-none" aria-hidden="true" />;
+
+  if (icon) {
+    return (
+      <button
+        type="button"
+        onClick={() => onAddToCart?.(product)}
+        disabled={soldOut || busy}
+        aria-label={soldOut ? `${product.name} is sold out` : inCart ? `${product.name} is in your cart` : `Add ${product.name} to cart`}
+        title={label}
+        className={`${BASE} grid size-9 shrink-0 place-items-center rounded-full border sm:size-10 ${
+          soldOut
+            ? 'border-border bg-surface-alt text-muted'
+            : inCart
+              ? 'border-accent/40 bg-accent-soft text-accent hover:border-accent'
+              : 'border-accent bg-accent text-on-accent shadow-sm hover:brightness-110'
+        } ${FOCUS}`}
+      >
+        {busy ? spinner : inCart && !soldOut ? (
+          <Check size={16} strokeWidth={3} aria-hidden="true" />
+        ) : (
+          <ShoppingCart size={16} aria-hidden="true" />
+        )}
+      </button>
+    );
+  }
 
   // ----- pill: icon + label (over a photo) -----
   if (pill) {
@@ -130,16 +176,15 @@ export function CartButton({ product, data, inCart = false, busy = false, onAddT
 
 /* ---------------- savings ---------------- */
 
-export function SavingsRow({ saved = 0 }) {
+export function SavingsRow({ saved = 0, percent = 0 }) {
+  const savingsText = saved > 0 ? `You save ${money(saved)}` : percent > 0 ? `You save ${percent}%` : '';
+  if (!savingsText) return null;
+
   return (
-    <div className="flex min-h-4 items-center">
-      {saved > 0 && (
-        <span className="inline-flex min-w-0 items-center gap-1 text-xs font-semibold text-success">
-          <BadgePercent size={14} className="shrink-0" aria-hidden="true" />
-          <span className="truncate">You save {money(saved)}</span>
-        </span>
-      )}
-    </div>
+    <p className="mt-1 flex min-h-4 items-center gap-1 text-xs font-semibold text-success">
+      <BadgePercent size={14} className="shrink-0" aria-hidden="true" />
+      <span className="truncate">{savingsText}</span>
+    </p>
   );
 }
 
@@ -148,6 +193,7 @@ export function SavingsRow({ saved = 0 }) {
 export function CardBottom({
   product,
   data,
+  saved = data.saved,
   accent = false,
   inCart = false,
   inWishlist = false,
@@ -157,24 +203,32 @@ export function CardBottom({
   onToggleWishlist,
   onCustomize,
 }) {
+  const hasActions = Boolean(onToggleWishlist || (product.isCustom ? onCustomize : onAddToCart));
+
   return (
-    // Keep price above the actions at every width so discounted cards keep a consistent height.
-    <div className="flex flex-col gap-2.5 pt-0.5">
-      <div className="min-w-0">
-        <div className="flex min-h-[1.1rem] flex-wrap items-center gap-1.5">
-          {data.hasDrop && (
-            <>
+    <div className="grid grid-cols-3 items-end gap-x-2">
+      <div className={`${hasActions ? 'col-span-2' : 'col-span-3'} min-w-0`}>
+        <h3
+          title={product.name}
+          className="line-clamp-2 break-words font-heading text-sm font-medium leading-5 text-text [overflow-wrap:anywhere] sm:text-[15px]"
+        >
+          {product.name}
+        </h3>
+        <SavingsRow saved={saved} percent={data.percent} />
+        {(data.hasDrop || data.percent > 0) && (
+          <div className="mt-1 flex flex-wrap items-center gap-1.5">
+            {data.hasDrop && (
               <span className="text-xs tabular-nums text-muted line-through sm:text-sm">{money(data.originalPrice)}</span>
-              {data.percent > 0 && (
-                <span className="rounded-md bg-accent-soft px-1.5 py-0.5 text-[11px] font-semibold leading-none tabular-nums text-accent">
-                  -{data.percent}%
-                </span>
-              )}
-            </>
-          )}
-        </div>
+            )}
+            {data.percent > 0 && (
+              <span className="rounded-md bg-accent-soft px-1.5 py-0.5 text-[11px] font-semibold leading-none tabular-nums text-accent">
+                -{data.percent}%
+              </span>
+            )}
+          </div>
+        )}
         <p
-          className={`break-words font-heading text-lg font-bold leading-tight tabular-nums sm:text-xl ${
+          className={`mt-1 break-words font-heading text-xl font-bold leading-tight tabular-nums sm:text-2xl ${
             accent ? 'text-accent' : 'text-text'
           }`}
         >
@@ -182,17 +236,24 @@ export function CardBottom({
         </p>
       </div>
 
-      <div className="flex w-full items-center gap-2 sm:w-auto">
-        <WishlistButton product={product} active={inWishlist} busy={wishBusy} onToggle={onToggleWishlist} />
-        <CartButton
-          product={product}
-          data={data}
-          inCart={inCart}
-          busy={cartBusy}
-          onAddToCart={onAddToCart}
-          onCustomize={onCustomize}
-        />
-      </div>
+      {hasActions && (
+        <div className="pointer-events-auto col-span-1 flex items-end justify-end gap-1.5">
+          {onToggleWishlist && (
+            <WishlistButton product={product} active={inWishlist} busy={wishBusy} onToggle={onToggleWishlist} variant="icon" />
+          )}
+          {(product.isCustom ? onCustomize : onAddToCart) && (
+            <CartButton
+              product={product}
+              data={data}
+              inCart={inCart}
+              busy={cartBusy}
+              onAddToCart={onAddToCart}
+              onCustomize={onCustomize}
+              variant="icon"
+            />
+          )}
+        </div>
+      )}
     </div>
   );
 }

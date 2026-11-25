@@ -57,6 +57,7 @@ export const PATHS = {
     overview: (u) => `${P}/team/${e(u)}`,
     orders: (u) => `${P}/team/${e(u)}/orders`,
     products: (u) => `${P}/team/${e(u)}/products`,
+    inventory: (u) => `${P}/team/${e(u)}/inventory`,
     users: (u) => `${P}/team/${e(u)}/users`,
     finance: (u) => `${P}/team/${e(u)}/finance`,
     cartAndWishlist: (u) => `${P}/team/${e(u)}/cart-and-wishlist`,

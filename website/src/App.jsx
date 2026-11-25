@@ -44,6 +44,7 @@ const AdminLayout = lazy(() => import("./pages/admin/dashboard/Layout"));
 const AdminOverview = lazy(() => import("./pages/admin/dashboard/Overview"));
 const AdminOrders = lazy(() => import("./pages/admin/dashboard/Orders"));
 const AdminProducts = lazy(() => import("./pages/admin/dashboard/Products"));
+const AdminInventory = lazy(() => import("./pages/admin/dashboard/Inventory"));
 const AdminUsers = lazy(() => import("./pages/admin/dashboard/Users"));
 const AdminFinance = lazy(() => import("./pages/admin/dashboard/Finance"));
 const AdminCartAndWishlist = lazy(() => import("./pages/admin/dashboard/CartAndWishlist"));
@@ -255,7 +256,7 @@ export default function App() {
 
         <Route path="p">
           <Route path="products" element={<RedirectRoute to={PATHS.products} />} />
-          <Route element={<PlainLayout pages={SITE_PAGES} />}>
+          <Route element={<PlainLayout pages={SITE_PAGES} smoothScroll />}>
             <Route index element={<NotFound />} />
             <Route path="contact" element={<Contact />} />
             <Route path="privacy" element={<Privacy />} />
@@ -278,6 +279,7 @@ export default function App() {
               <Route index element={<AdminOverview />} />
               <Route path="orders" element={<AdminOrders />} />
               <Route path="products" element={<AdminProducts />} />
+              <Route path="inventory" element={<AdminInventory />} />
               <Route path="users" element={<AdminUsers />} />
               <Route path="finance" element={<AdminFinance />} />
               <Route path="cart-and-wishlist" element={<AdminCartAndWishlist />} />

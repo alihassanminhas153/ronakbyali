@@ -1,5 +1,6 @@
 export { default as OverviewArt } from "./OverviewArt";
 export { default as ProductsArt } from "./ProductsArt";
+export { default as InventoryArt } from "./InventoryArt";
 export { default as OrdersArt } from "./OrdersArt";
 export { default as SettingsArt } from "./SettingsArt";
 export { default as CartArt } from "./CartArt";

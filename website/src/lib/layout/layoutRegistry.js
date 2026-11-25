@@ -1,6 +1,7 @@
 import {
   Bell,
   BadgeCheck,
+  Boxes,
   Heart,
   LayoutDashboard,
   Package,
@@ -27,6 +28,7 @@ export const PANEL_PAGES = {
     { key: 'overview', label: 'Overview', slug: '', icon: LayoutDashboard, end: true, locked: true, to: (u) => PATHS.admin.overview(u) },
     { key: 'orders', label: 'Orders', slug: 'orders', icon: Package, to: (u) => PATHS.admin.orders(u) },
     { key: 'products', label: 'Products', slug: 'products', icon: Store, to: (u) => PATHS.admin.products(u) },
+    { key: 'inventory', label: 'Inventory', slug: 'inventory', icon: Boxes, to: (u) => PATHS.admin.inventory(u) },
     { key: 'users', label: 'Users', slug: 'users', icon: Users, to: (u) => PATHS.admin.users(u) },
     { key: 'finance', label: 'Finance', slug: 'finance', icon: Wallet, to: (u) => PATHS.admin.finance(u) },
     { key: 'cart-and-wishlist', label: 'Cart & wishlist', slug: 'cart-and-wishlist', icon: ShoppingBag, to: (u) => PATHS.admin.cartAndWishlist(u) },

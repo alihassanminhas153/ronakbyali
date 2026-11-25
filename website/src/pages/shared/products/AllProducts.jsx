@@ -43,6 +43,7 @@ import AllProductsBanner from '../../../components/shop/AllProductsBanner';
 import FilterDrawer from '../../../components/shop/FilterDrawer';
 import FeaturedCard, { FeaturedCardSkeleton } from '../../../components/shop/FeaturedCard';
 import DiscountedProductCard, { DiscountedProductCardSkeleton } from '../../../components/shop/DiscountedProductCard';
+import { getCardData } from '../../../components/shop/CardShared';
 import ProductRow, { SectionHeading } from '../../../components/shop/ProductRow';
 import { getDiscountedProducts, getPopularProducts } from '../../../components/shop/Showcase';
 import {
@@ -57,6 +58,7 @@ import Footer from '../../../components/home/Footer';
 import ActionButton from '../../../ui/custom/button/ActionButton';
 import SearchSelect from '../../../ui/custom/input/SearchSelect';
 import useEntered from '../../../ui/custom/motion/useEntered';
+import useSmoothScroll from '../../../components/home/useSmoothScroll';
 import NoProductsArt from '../../../ui/art/NoProductsArt';
 
 const SKELETON_COUNT = 8;
@@ -121,6 +123,8 @@ function AppliedChip({ label, onRemove }) {
 // The two rows scroll sideways with arrow buttons. Popular shows the 4 most ordered products of all
 // time and only appears when some product has orders (see ORDER_COUNT_FIELDS in Showcase.js).
 export default function AllProducts({ pages = [] }) {
+  useSmoothScroll();
+
   const dispatch = useAppDispatch();
   const store = useStore();
   const navigate = useNavigate();
@@ -291,6 +295,12 @@ export default function AllProducts({ pages = [] }) {
     onCustomize: customizeProduct,
   });
 
+  const featuredCard = (product, index) => {
+    const data = getCardData(product, sales);
+    const Card = data?.onOffer && !data.outOfStock ? DiscountedProductCard : FeaturedCard;
+    return <Card key={product.$id} {...cardProps(product, index)} />;
+  };
+
   /* ---------- the blocks of the page ---------- */
 
   const featuredLoading = featured.length === 0 && (featuredStatus === 'idle' || featuredStatus === 'loading');
@@ -305,7 +315,7 @@ export default function AllProducts({ pages = [] }) {
       >
         {featuredLoading
           ? Array.from({ length: ROW_SKELETONS }, (_, i) => <FeaturedCardSkeleton key={i} />)
-          : featured.map((product, i) => <FeaturedCard key={product.$id} {...cardProps(product, i)} />)}
+          : featured.map(featuredCard)}
       </ProductRow>
     ) : null;
 

@@ -15,9 +15,8 @@
 //   <DiscountedProductCardSkeleton /> // loading placeholder, also an <li>
 //
 // DESIGN: white rounded card with an inset square photo and an "On sale" / offer-name pill on it.
-// Under the name it shows "You save Rs ..." (the difference between the old and the sale price), then
-// the struck-through old price with the "-25%" chip, the sale price in the accent colour, and the
-// heart + shopping-cart buttons side by side (Customize replaces the cart for custom products).
+// The details use a three-column grid: name, savings, old price/discount and final price span two columns,
+// while the cart/customize and wishlist icon buttons sit at the bottom of the third column.
 // The pill and the savings only show while the product really is discounted.
 // The whole card is a link; the buttons sit above it. costPrice is never shown.
 
@@ -28,11 +27,10 @@ import { Tag } from 'lucide-react';
 
 import { selectSalesList } from '../../store/slices/saleSlice';
 import useEntered from '../../ui/custom/motion/useEntered';
-import { getEffectivePricing } from '../../lib/saleMath';
 import { PAGE_SIZE } from './shopFilters';
 import { useDesignAddToCart } from './DesignChooser';
 import { CardImage, StockTag, getCardData } from './CardShared';
-import { CardBottom, ProductCardSkeleton, SavingsRow } from './CardParts';
+import { CardBottom, ProductCardSkeleton } from './CardParts';
 
 function DiscountedProductCard({
   product,
@@ -57,12 +55,7 @@ function DiscountedProductCard({
   // the offer name is only worth showing when it says more than "25% off"
   const offerLabel = d.offerName && d.offerName !== `${d.percent}% off` && d.offerName !== 'Offer' ? d.offerName : 'On sale';
 
-  // how much the customer saves: old price minus the price they pay now
-  const pricing = getEffectivePricing(product, sales);
-  const saved =
-    !d.outOfStock && pricing.price > 0 && pricing.originalPrice > pricing.price
-      ? pricing.originalPrice - pricing.price
-      : 0;
+  const saved = d.outOfStock ? 0 : d.saved;
 
   return (
     <li
@@ -100,17 +93,11 @@ function DiscountedProductCard({
         </div>
 
         {/* details */}
-        <div className="pointer-events-none flex flex-col px-1.5 pt-3 sm:px-2">
-          <h3
-            title={product.name}
-            className="h-5 truncate font-heading text-sm font-medium leading-5 text-text sm:text-[15px]"
-          >
-            {product.name}
-          </h3>
-          <SavingsRow saved={saved} />
+        <div className="pointer-events-none px-1.5 pt-3 sm:px-2">
           <CardBottom
             product={product}
             data={d}
+            saved={saved}
             accent={showOffer}
             inCart={inCart}
             inWishlist={inWishlist}

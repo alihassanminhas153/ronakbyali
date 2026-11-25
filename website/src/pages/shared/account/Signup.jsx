@@ -8,36 +8,21 @@ import {
   authenticateWithEmail,
   continueWithGoogle,
   clearAuthError,
+  saveName,
   selectAuthStatus,
-  selectPendingProfile,
 } from '../../../store/slices/authSlice';
 import { addToast } from '../../../store/slices/uiSlice';
 import AuthShell, { EmailChip, OrDivider } from '../auth/AuthShell';
 import AuthField from '../auth/AuthField';
 import AuthButton from '../auth/AuthButton';
 import GoogleButton from '../auth/GoogleButton';
-import ProfileStep from '../auth/ProfileStep';
 import { homePathFor } from './authRedirect';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 // Step 1 -> Google, or an email. Step 2 -> choose a password.
-// Once the account exists the slice sets pendingProfile and the small profile popup opens.
 export default function Signup() {
-  const navigate = useNavigate();
-  const pendingProfile = useAppSelector(selectPendingProfile);
-
-  return (
-    <>
-      <CredentialsStep />
-      {pendingProfile && (
-        <ProfileStep
-          profile={pendingProfile}
-          onDone={(profile) => navigate(homePathFor(profile), { replace: true })}
-        />
-      )}
-    </>
-  );
+  return <CredentialsStep />;
 }
 
 // 0 = too short, 1-4 = weak .. strong
@@ -51,6 +36,20 @@ function passwordScore(pw) {
 }
 
 const SCORE_LABELS = ['Too short', 'Weak', 'Fair', 'Good', 'Strong'];
+
+function displayNameFromEmail(email, username) {
+  const localPart = String(email || '').split('@')[0].split('+')[0];
+  const name = localPart
+    .replace(/[._-]+/g, ' ')
+    .replace(/[^a-zA-Z0-9 ]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  if (name.length >= 3 && (name.match(/[a-z]/gi) || []).length >= 2) {
+    return name.replace(/\b[a-z]/g, (letter) => letter.toUpperCase());
+  }
+  return String(username || '').trim() || name || 'Customer';
+}
 
 function PasswordMeter({ password }) {
   if (!password) return null;
@@ -120,13 +119,24 @@ function CredentialsStep() {
     const result = await dispatch(authenticateWithEmail({ email, password, toast: true }));
     if (!authenticateWithEmail.fulfilled.match(result)) return;
 
-    const { profile, created } = result.payload;
-    if (created) {
-      dispatch(addToast({ type: 'success', message: 'Account created. Finish setting up your profile.' }));
-      return;
+    const { created } = result.payload;
+    let profile = result.payload.profile;
+    if (!profile?.name?.trim()) {
+      const saved = await dispatch(saveName({
+        name: displayNameFromEmail(email, profile?.username),
+        toast: true,
+      }));
+      if (!saveName.fulfilled.match(saved)) {
+        setFieldErrors({ profile: saved.payload || 'Could not set your display name. Please try again.' });
+        return;
+      }
+      profile = saved.payload;
     }
 
-    dispatch(addToast({ type: 'success', message: 'You are now logged in.' }));
+    dispatch(addToast({
+      type: 'success',
+      message: created ? 'Account created.' : 'You are now logged in.',
+    }));
     navigate(homePathFor(profile), { replace: true });
   };
 
@@ -197,6 +207,8 @@ function CredentialsStep() {
             />
 
             <PasswordMeter password={password} />
+
+            {fieldErrors.profile && <p role="alert" className="-mt-3 text-sm text-error">{fieldErrors.profile}</p>}
 
             <AuthButton loading={status === 'loading'} disabled={busy}>Create account</AuthButton>
           </form>
