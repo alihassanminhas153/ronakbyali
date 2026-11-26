@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Check, ImagePlus, X } from 'lucide-react';
 
 import reviewService, { MAX_REVIEW_IMAGES } from '../../../lib/appwrite/review';
+import useScrollLock from '../../../ui/custom/motion/useScrollLock';
 import { StarPicker } from './ReviewStars';
 
 // "Write a review" dialog.
@@ -17,6 +18,7 @@ import { StarPicker } from './ReviewStars';
 const MAX_MESSAGE = 2000;
 const MAX_TITLE = 150;
 const MAX_FILE_MB = 8;
+const ACCEPTED_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
 
 const FIELD =
   'w-full rounded-xl border border-border bg-surface px-3.5 py-2.5 text-sm text-text placeholder:text-muted transition-colors duration-200 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/25 disabled:opacity-60';
@@ -31,6 +33,8 @@ export default function ReviewFormModal({ open, product, profile, onClose, onSub
   const [done, setDone] = useState(null);
   const dialogRef = useRef(null);
   const fileInput = useRef(null);
+
+  useScrollLock(open);
 
   const previews = useMemo(() => files.map((f) => URL.createObjectURL(f)), [files]);
   useEffect(() => () => previews.forEach((url) => URL.revokeObjectURL(url)), [previews]);
@@ -51,8 +55,6 @@ export default function ReviewFormModal({ open, product, profile, onClose, onSub
   useEffect(() => {
     if (!open) return undefined;
     const previous = document.activeElement;
-    const overflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
     window.requestAnimationFrame(() => dialogRef.current?.focus());
 
     const onKey = (e) => {
@@ -76,7 +78,6 @@ export default function ReviewFormModal({ open, product, profile, onClose, onSub
     document.addEventListener('keydown', onKey);
     return () => {
       document.removeEventListener('keydown', onKey);
-      document.body.style.overflow = overflow;
       previous?.focus?.();
     };
   }, [open, busy, onClose]);
@@ -88,9 +89,11 @@ export default function ReviewFormModal({ open, product, profile, onClose, onSub
     event.target.value = '';
     if (!picked.length) return;
     const images = picked.filter((f) => f.type.startsWith('image/'));
-    const small = images.filter((f) => f.size <= MAX_FILE_MB * 1024 * 1024);
+    const compressible = images.filter((f) => ACCEPTED_IMAGE_TYPES.has(f.type));
+    const small = compressible.filter((f) => f.size <= MAX_FILE_MB * 1024 * 1024);
     if (images.length < picked.length) setError('Only image files can be added.');
-    else if (small.length < images.length) setError(`Each photo must be under ${MAX_FILE_MB} MB.`);
+    else if (compressible.length < images.length) setError('Use JPEG, PNG, or WebP photos.');
+    else if (small.length < compressible.length) setError(`Each photo must be under ${MAX_FILE_MB} MB.`);
     else setError('');
     setFiles((current) => [...current, ...small].slice(0, MAX_REVIEW_IMAGES));
   };
@@ -230,7 +233,7 @@ export default function ReviewFormModal({ open, product, profile, onClose, onSub
                     </button>
                   )}
                 </div>
-                <input ref={fileInput} type="file" accept="image/*" multiple hidden onChange={pickFiles} />
+                <input ref={fileInput} type="file" accept="image/jpeg,image/png,image/webp" multiple hidden onChange={pickFiles} />
               </div>
 
               {error && (

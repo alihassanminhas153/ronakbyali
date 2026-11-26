@@ -7,8 +7,13 @@ import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { Link, Navigate, useLocation, useNavigate, useParams } from "react-router";
 import { useDispatch, useSelector } from "react-redux";
 import {
+  ArrowUpRight,
   Check,
   Copy,
+  Heart,
+  Layers,
+  LayoutGrid,
+  Share2,
   ShoppingCart,
   Star,
   Tag,
@@ -16,6 +21,16 @@ import {
   ZoomIn,
   ZoomOut,
 } from "lucide-react";
+import {
+  FaFacebookF,
+  FaInstagram,
+  FaLinkedinIn,
+  FaPinterestP,
+  FaRedditAlien,
+  FaTelegram,
+  FaWhatsapp,
+  FaXTwitter,
+} from "react-icons/fa6";
 
 import {
   fetchProductBySlug,
@@ -45,12 +60,15 @@ import {
 import { selectMe } from "../../../store/slices/userSlice";
 import { selectSalesList } from "../../../store/slices/saleSlice";
 import { getEffectivePricing } from "../../../lib/saleMath";
+import { isProductOutOfStock } from "../../../lib/productStock";
 import ProductCheckoutDrawer from "./ProductCheckoutDrawer";
 import { loadDraft } from "../../../lib/checkoutDraft";
 import PageArt from "../../../ui/art/PageArt";
+import useScrollLock from "../../../ui/custom/motion/useScrollLock";
 import useCopied from "../../../lib/useCopied";
 import ProductCard from "../../../components/shop/ProductCard";
 import ProductReviews from "../../../components/shop/reviews/ProductReviews";
+import { setCanonical, setJsonLd, setMeta } from "../../../lib/seo";
 
 /* ------------------------------------------------------------------ */
 /* helpers                                                             */
@@ -74,11 +92,56 @@ const RESERVED_SHORT_PRODUCT_SLUGS = new Set([
   "welcome-back",
 ]);
 
+const productPathFor = (product) =>
+  RESERVED_SHORT_PRODUCT_SLUGS.has(product.slug)
+    ? PATHS.product(product.category, product.group, product.slug)
+    : PATHS.productShort(product.slug);
+
+const productShareLinks = (product, url, image) => {
+  const encodedUrl = encodeURIComponent(url);
+  const encodedName = encodeURIComponent(product.name || "Product");
+  const encodedMessage = encodeURIComponent(`Check out ${product.name || "this product"}: ${url}`);
+  const encodedImage = encodeURIComponent(image);
+
+  return [
+    { label: "Facebook", icon: FaFacebookF, color: "#1877F2", href: `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}` },
+    { label: "WhatsApp", icon: FaWhatsapp, color: "#25D366", href: `https://wa.me/?text=${encodedMessage}` },
+    { label: "X", icon: FaXTwitter, color: "var(--text)", href: `https://twitter.com/intent/tweet?text=${encodedName}&url=${encodedUrl}` },
+    { label: "Telegram", icon: FaTelegram, color: "#26A5E4", href: `https://t.me/share/url?url=${encodedUrl}&text=${encodedName}` },
+    { label: "LinkedIn", icon: FaLinkedinIn, color: "#0A66C2", href: `https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}` },
+    { label: "Pinterest", icon: FaPinterestP, color: "#E60023", href: `https://pinterest.com/pin/create/button/?url=${encodedUrl}&media=${encodedImage}&description=${encodedName}` },
+    { label: "Reddit", icon: FaRedditAlien, color: "#FF4500", href: `https://www.reddit.com/submit?url=${encodedUrl}&title=${encodedName}` },
+    { label: "Instagram", icon: FaInstagram, color: "#E4405F", href: "https://www.instagram.com/" },
+  ];
+};
+
 const formatRemaining = (count, cap) => {
   const amount = Number(count);
   if (!Number.isFinite(amount)) return "";
   return amount > cap ? `${cap}+` : String(amount);
 };
+
+// Presentation only: icon per detail label and shared button styles.
+const DETAIL_ICONS = { Category: LayoutGrid, Group: Layers };
+
+const ICON_BTN =
+  "grid size-10 place-items-center rounded-full border bg-surface transition-all duration-200 hover:-translate-y-0.5 hover:shadow-soft focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent motion-reduce:transition-none motion-reduce:hover:translate-y-0";
+const ICON_BTN_IDLE = "border-border text-muted hover:border-accent/60 hover:bg-accent-soft hover:text-accent";
+const ICON_BTN_ACTIVE = "border-success/50 bg-success-soft text-success-fg";
+
+function SectionTitle({ id, eyebrow, children }) {
+  return (
+    <div>
+      {eyebrow && (
+        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted">{eyebrow}</p>
+      )}
+      <h2 id={id} className="font-heading text-xl font-semibold tracking-tight text-text">
+        {children}
+      </h2>
+      <span aria-hidden="true" className="mt-2 block h-0.5 w-10 rounded-full bg-thread" />
+    </div>
+  );
+}
 
 /* ------------------------------------------------------------------ */
 /* page                                                                */
@@ -108,7 +171,43 @@ export default function Product({ slug: slugProp }) {
         ? "Product not found"
         : "Product";
     document.title = `${pageTitle} | Ronak By Ali`;
-  }, [product?.name, product?.slug, slug, status]);
+    if (product?.slug === slug) {
+      const url = new URL(productPathFor(product), window.location.origin).toString();
+      const image = getProductImageUrls(product)[0] || "";
+      const description = product.description?.trim()
+        ? `${product.description.trim().replace(/\s+/g, " ").slice(0, 155)} | Ronak By Ali`
+        : `Shop ${product.name} from Ronak By Ali (Ronaq) - ready-made and custom products in Pakistan.`;
+      setCanonical(url.replace(window.location.origin, "https://ronakbyali.com"));
+      setMeta("description", description);
+      setMeta("og:title", `${product.name} | Ronak By Ali`);
+      setMeta("og:description", description, true);
+      setMeta("og:type", "product", true);
+      setMeta("og:url", url.replace(window.location.origin, "https://ronakbyali.com"), true);
+      if (image) setMeta("og:image", image, true);
+      setMeta("twitter:title", `${product.name} | Ronak By Ali`);
+      setMeta("twitter:description", description);
+      if (image) setMeta("twitter:image", image);
+      setJsonLd("product", {
+        "@context": "https://schema.org",
+        "@type": "Product",
+        name: product.name,
+        description,
+        image: image ? [image] : undefined,
+        brand: { "@type": "Brand", name: "Ronak By Ali" },
+        category: [product.category, product.group].filter(Boolean).join(" "),
+        url: url.replace(window.location.origin, "https://ronakbyali.com"),
+        offers: {
+          "@type": "Offer",
+          url: url.replace(window.location.origin, "https://ronakbyali.com"),
+          priceCurrency: "PKR",
+          price: Number(product.price) || 0,
+          availability: isProductOutOfStock(product)
+            ? "https://schema.org/OutOfStock"
+            : "https://schema.org/InStock",
+        },
+      });
+    }
+  }, [product, slug, status]);
 
   useEffect(() => {
     if (!slug) return undefined;
@@ -142,13 +241,13 @@ export default function Product({ slug: slugProp }) {
   return (
     <>
       <AlertPopupHost />
-      <main className="mx-auto w-full max-w-6xl bg-bg px-4 pb-20 pt-6 text-text sm:px-6 lg:px-8">
+      <main className="mx-auto w-full max-w-6xl bg-bg px-4 pb-[calc(9rem+env(safe-area-inset-bottom))] pt-6 text-text sm:px-6 md:pb-20 lg:px-8">
         <Breadcrumb product={product} />
 
         <div className="mt-6 grid gap-8 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] lg:gap-14">
-          <Gallery key={product.$id} product={product} />
+          <Gallery key={`gallery-${product.$id}`} product={product} />
           <Details
-            key={product.$id}
+            key={`details-${product.$id}`}
             product={product}
             ratingSummary={ratingSummary?.productId === product.$id ? ratingSummary : null}
           />
@@ -229,6 +328,7 @@ function Gallery({ product }) {
   const [viewerOpen, setViewerOpen] = useState(false);
   const [zoom, setZoom] = useState(1);
   const viewerRef = useRef(null);
+  useScrollLock(viewerOpen);
 
   const count = images.length;
   const go = useCallback(
@@ -464,15 +564,17 @@ function ProductRating({ product, summary }) {
   const rating = Number(summary ? summary.average : product.ratingAverage) || 0;
 
   return (
-    <div className="mb-3 flex flex-wrap items-center gap-2">
+    <div className="mb-4 inline-flex flex-wrap items-center gap-x-2.5 gap-y-1 self-start rounded-full border border-border bg-surface px-3.5 py-1.5 shadow-soft">
       <StarRating
         rating={rating}
         label={count ? `${rating.toFixed(1)} out of 5 stars` : "No ratings yet"}
-        size={17}
+        size={16}
       />
       {count > 0 ? (
-        <span className="text-sm text-muted">
-          {rating.toFixed(1)} · {count} {count === 1 ? "review" : "reviews"}
+        <span className="flex items-center gap-2 text-sm text-muted">
+          <span className="font-semibold tabular-nums text-text">{rating.toFixed(1)}</span>
+          <span aria-hidden="true" className="h-3.5 w-px bg-border" />
+          <span>{count} {count === 1 ? "review" : "reviews"}</span>
         </span>
       ) : (
         <span className="text-sm text-muted">No reviews yet</span>
@@ -490,7 +592,10 @@ function Details({ product, ratingSummary }) {
   const chooser = useDesignChooser();
   const [draftPicks, setDraftPicks] = useState([]);
   const [added, setAdded] = useState(false);
+  const [reviewsReached, setReviewsReached] = useState(false);
   const [copyError, setCopyError] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
+  const [shareError, setShareError] = useState("");
   const [cartError, setCartError] = useState(null);
   const [checkoutMounted, setCheckoutMounted] = useState(false);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
@@ -498,6 +603,7 @@ function Details({ product, ratingSummary }) {
   const closeTimer = useRef(null);
   const checkoutTrigger = useRef(null);
   const reopened = useRef(false);
+  const shareMenuRef = useRef(null);
   const location = useLocation();
   const { copied, copy } = useCopied();
 
@@ -519,7 +625,7 @@ function Details({ product, ratingSummary }) {
     : 0;
 
   const remaining = product.remaining == null ? null : Number(product.remaining);
-  const inStock = product.isCustom === true || (product.status !== "outOfStock" && (remaining == null || remaining > 0));
+  const inStock = !isProductOutOfStock(product) && (product.isCustom === true || remaining == null || remaining > 0);
   // Units still available after what is already in this person's cart.
   const room = remaining != null ? Math.max(0, remaining - inCart) : MAX_QTY_WITHOUT_LIMIT;
   const maxQty = Math.max(1, room);
@@ -528,6 +634,10 @@ function Details({ product, ratingSummary }) {
   const stockCount = remaining != null && Number.isFinite(remaining)
     ? formatRemaining(remaining, 500)
     : "";
+  const productUrl = new URL(productPathFor(product), window.location.origin).toString();
+  const shareImage = getProductImageUrls(product)[0] || "";
+  const shareLinks = productShareLinks(product, productUrl, shareImage);
+  const canShareFromDevice = typeof navigator !== "undefined" && typeof navigator.share === "function";
 
   const step = (d) => setQty((q) => Math.min(maxQty, Math.max(1, q + d)));
 
@@ -564,18 +674,39 @@ function Details({ product, ratingSummary }) {
   // Optimistic: the heart flips at once and rolls back if saving fails.
   const handleWish = () => dispatch(toggleWishlist({ productId: product.$id }));
   const copyProductLink = async () => {
-    const path = RESERVED_SHORT_PRODUCT_SLUGS.has(product.slug)
-      ? PATHS.product(product.category, product.group, product.slug)
-      : PATHS.productShort(product.slug);
     const success = await copy(
       "product-link",
-      new URL(path, window.location.origin).toString()
+      productUrl
     );
     setCopyError(!success);
+    setShareError(success ? "" : "Could not copy the product link.");
   };
-  const openCustomOrder = () => navigate(PATHS.customize(product.slug));
+  const shareWithDevice = async () => {
+    if (!canShareFromDevice) {
+      await copyProductLink();
+      setShareOpen(false);
+      return;
+    }
+    try {
+      await navigator.share({
+        title: product.name,
+        text: `Check out ${product.name}`,
+        url: productUrl,
+      });
+      setShareOpen(false);
+    } catch (error) {
+      if (error?.name !== "AbortError") {
+        setShareError("Could not open device sharing. Choose a platform below.");
+      }
+    }
+  };
+  const openCustomOrder = () => {
+    if (!inStock) return;
+    navigate(PATHS.customize(product.slug));
+  };
 
   const openCheckout = () => {
+    if (!inStock || qty > room) return;
     checkoutTrigger.current = document.activeElement;
     window.clearTimeout(closeTimer.current);
     setCheckoutSession((session) => session + 1);
@@ -591,6 +722,33 @@ function Details({ product, ratingSummary }) {
   }, []);
 
   useEffect(() => () => window.clearTimeout(closeTimer.current), []);
+
+  useEffect(() => {
+    if (!shareOpen) return undefined;
+    const closeOnOutsideClick = (event) => {
+      if (!shareMenuRef.current?.contains(event.target)) setShareOpen(false);
+    };
+    const closeOnEscape = (event) => {
+      if (event.key === "Escape") setShareOpen(false);
+    };
+    document.addEventListener("pointerdown", closeOnOutsideClick);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("pointerdown", closeOnOutsideClick);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [shareOpen]);
+
+  useEffect(() => {
+    const reviews = document.getElementById("reviews");
+    if (!reviews || typeof IntersectionObserver === "undefined") return undefined;
+    const observer = new IntersectionObserver(
+      ([entry]) => setReviewsReached(entry.isIntersecting),
+      { rootMargin: "0px 0px -96px 0px" }
+    );
+    observer.observe(reviews);
+    return () => observer.disconnect();
+  }, [product.$id]);
 
   // Back from Google login with something still missing: reopen the form.
   useEffect(() => {
@@ -627,15 +785,111 @@ function Details({ product, ratingSummary }) {
         <h1 className="min-w-0 font-display text-4xl font-bold leading-tight text-text sm:text-5xl">
           {product.name}
         </h1>
-        <button
-          type="button"
-          onClick={copyProductLink}
-          aria-label={copied === "product-link" ? "Product link copied" : "Copy product link"}
-          title={copied === "product-link" ? "Copied" : "Copy product link"}
-          className="grid size-10 shrink-0 place-items-center rounded-md border border-border bg-surface text-muted transition-colors hover:border-accent/60 hover:text-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-        >
-          {copied === "product-link" ? <Check size={18} aria-hidden="true" /> : <Copy size={18} aria-hidden="true" />}
-        </button>
+        <div className="relative flex shrink-0 gap-2" ref={shareMenuRef}>
+          <button
+            type="button"
+            onClick={copyProductLink}
+            aria-label={copied === "product-link" ? "Product link copied" : "Copy product link"}
+            title={copied === "product-link" ? "Copied" : "Copy product link"}
+            className={`${ICON_BTN} ${copied === "product-link" ? ICON_BTN_ACTIVE : ICON_BTN_IDLE}`}
+          >
+            {copied === "product-link" ? <Check size={18} aria-hidden="true" /> : <Copy size={18} aria-hidden="true" />}
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setShareError("");
+              setShareOpen((open) => !open);
+            }}
+            aria-label="Share this product"
+            aria-haspopup="dialog"
+            aria-expanded={shareOpen}
+            title="Share this product"
+            className={`${ICON_BTN} ${shareOpen ? "border-accent bg-accent-soft text-accent" : ICON_BTN_IDLE}`}
+          >
+            <Share2 size={18} aria-hidden="true" />
+          </button>
+          {shareOpen && (
+            <div
+              role="dialog"
+              aria-label={`Share ${product.name}`}
+              className="absolute right-0 top-full z-30 mt-3 w-[min(20rem,calc(100vw-2rem))] animate-rise rounded-2xl border border-border bg-surface p-4 shadow-[0_18px_48px_-12px_rgba(0,0,0,0.35)]"
+            >
+              <span
+                aria-hidden="true"
+                className="absolute -top-1.5 right-4 size-3 rotate-45 border-l border-t border-border bg-surface"
+              />
+              <p className="font-heading text-sm font-semibold text-text">Share this product</p>
+              <p className="mt-0.5 line-clamp-1 text-xs text-muted">{product.name}</p>
+
+              <div className="mt-3 flex items-center gap-1 rounded-xl border border-border bg-bg p-1 transition-colors focus-within:border-accent">
+                <input
+                  readOnly
+                  value={productUrl.replace(/^https?:\/\//i, "")}
+                  aria-label="Product link"
+                  onFocus={(event) => event.target.select()}
+                  onCopy={(event) => {
+                    event.preventDefault();
+                    copy("product-link", productUrl);
+                  }}
+                  className="!min-h-0 min-w-0 flex-1 !border-0 !bg-transparent !px-2.5 !py-2 !text-xs text-muted outline-none"
+                />
+                <button
+                  type="button"
+                  onClick={copyProductLink}
+                  aria-label="Copy product link"
+                  title="Copy product link"
+                  className={`inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg px-3 text-xs font-semibold transition-colors ${
+                    copied === "product-link"
+                      ? "bg-success-soft text-success-fg"
+                      : "bg-brown text-on-brown hover:bg-brown-hover"
+                  }`}
+                >
+                  {copied === "product-link" ? <Check size={15} aria-hidden="true" /> : <Copy size={15} aria-hidden="true" />}
+                  {copied === "product-link" ? "Copied" : "Copy"}
+                </button>
+              </div>
+
+              <button
+                type="button"
+                onClick={shareWithDevice}
+                aria-label="Share with device"
+                title="Share with device"
+                className="mt-2.5 flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-accent/40 bg-accent-soft text-sm font-semibold text-accent transition-colors hover:bg-accent hover:text-on-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+              >
+                <Share2 size={18} aria-hidden="true" />
+                Share with device
+              </button>
+
+              <div className="my-3.5 flex items-center gap-3" aria-hidden="true">
+                <span className="h-px flex-1 bg-border" />
+                <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">or share on</span>
+                <span className="h-px flex-1 bg-border" />
+              </div>
+
+              <div className="grid grid-cols-4 gap-x-2 gap-y-3">
+                {shareLinks.map(({ label, icon: Icon, color, href }) => (
+                  <a
+                    key={label}
+                    href={href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={`Share on ${label}`}
+                    title={`Share on ${label}`}
+                    style={{ "--brand": color }}
+                    className="group flex flex-col items-center gap-1.5 rounded-xl text-muted transition-colors hover:text-text focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                  >
+                    <span className="grid size-11 place-items-center rounded-full border border-[color-mix(in_srgb,var(--brand)_28%,transparent)] bg-[color-mix(in_srgb,var(--brand)_10%,transparent)] text-(--brand) transition-all duration-200 group-hover:-translate-y-0.5 group-hover:bg-[color-mix(in_srgb,var(--brand)_20%,transparent)] group-hover:shadow-soft motion-reduce:transition-none motion-reduce:group-hover:translate-y-0">
+                      <Icon size={20} aria-hidden="true" />
+                    </span>
+                    <span className="text-[11px] font-medium leading-none">{label}</span>
+                  </a>
+                ))}
+              </div>
+              {shareError && <p role="alert" className="mt-3 text-xs text-error">{shareError}</p>}
+            </div>
+          )}
+        </div>
       </div>
       <span className="sr-only" aria-live="polite">
         {copied === "product-link" ? "Product link copied." : copyError ? "Could not copy the product link." : ""}
@@ -680,10 +934,10 @@ function Details({ product, ratingSummary }) {
               : "text-success"
         }`}
       >
-        {product.isCustom === true
-          ? "Made to order"
-          : !inStock
+        {!inStock
           ? "Out of stock"
+          : product.isCustom === true
+          ? "Made to order"
           : stockCount
             ? `${lowStock ? "Only " : ""}${stockCount} left in stock`
             : "In stock"}
@@ -691,12 +945,12 @@ function Details({ product, ratingSummary }) {
 
       {/* buy box */}
       {product.isCustom === true ? (
-        <button type="button" onClick={openCustomOrder} className="mt-4 h-12 w-full rounded-md bg-accent px-6 font-semibold text-on-accent transition hover:bg-accent-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent">
-          Customize
+        <button type="button" onClick={openCustomOrder} disabled={!inStock} className="mt-4 hidden h-12 w-full rounded-md bg-accent px-6 font-semibold text-on-accent transition hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent md:block">
+          {inStock ? "Customize" : "Out of stock"}
         </button>
       ) : (
       <>
-      <div className="mt-4 flex flex-wrap items-stretch gap-3">
+      <div className="mt-4 hidden flex-wrap items-stretch gap-3 md:flex">
         {!needsDesign && (
         <div
           className="flex items-center rounded-md border border-border bg-surface"
@@ -759,12 +1013,82 @@ function Details({ product, ratingSummary }) {
         type="button"
         onClick={openCheckout}
         disabled={!inStock || qty > room}
-        className="mt-3 h-12 w-full rounded-md bg-accent px-6 font-semibold text-on-accent transition hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+        className="mt-3 hidden h-12 w-full rounded-md bg-accent px-6 font-semibold text-on-accent transition hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent md:block"
       >
-        Buy now
+        {!inStock ? "Out of stock" : `Buy now · ${pricing.sale ? money(price) : product.priceFormat || money(price)}`}
       </button>
       </>
       )}
+
+      <div
+        aria-hidden={reviewsReached}
+        inert={reviewsReached}
+        className={`fixed inset-x-0 bottom-0 z-[45] border-t border-border bg-surface px-3 pt-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] shadow-[0_-8px_24px_rgba(0,0,0,0.12)] transition-transform duration-300 ease-out motion-reduce:transition-none md:hidden ${
+          reviewsReached ? "pointer-events-none translate-y-full" : "translate-y-0"
+        }`}
+      >
+        <div className="mx-auto flex max-w-lg flex-col gap-2">
+          <div className="flex items-center gap-2">
+            {product.isCustom !== true && !needsDesign && (
+              <div className="flex h-11 shrink-0 items-center rounded-md border border-border bg-bg" role="group" aria-label="Quantity">
+                <button
+                  type="button"
+                  onClick={() => step(-1)}
+                  disabled={!inStock || qty <= 1}
+                  aria-label="Decrease quantity"
+                  className="h-full w-9 text-lg text-text disabled:opacity-40"
+                >
+                  −
+                </button>
+                <span className="w-7 text-center text-sm tabular-nums text-text" aria-live="polite">
+                  {qty}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => step(1)}
+                  disabled={!inStock || qty >= maxQty}
+                  aria-label="Increase quantity"
+                  className="h-full w-9 text-lg text-text disabled:opacity-40"
+                >
+                  +
+                </button>
+              </div>
+            )}
+            <button
+              type="button"
+              onClick={handleWish}
+              aria-pressed={wished}
+              aria-label={wished ? "Remove from wishlist" : "Save to wishlist"}
+              className="grid size-11 shrink-0 place-items-center rounded-md border border-border text-text transition hover:border-accent hover:text-accent"
+            >
+              <Heart size={19} fill={wished ? "currentColor" : "none"} aria-hidden="true" />
+            </button>
+            {product.isCustom !== true && (
+                <button
+                  type="button"
+                  onClick={handleAdd}
+                  disabled={!inStock || atLimit || updating}
+                  aria-label={!inStock ? "Out of stock" : atLimit ? "Maximum in your cart" : updating ? "Adding to cart" : added ? "Added to cart" : "Add to cart"}
+                  className="grid size-11 shrink-0 place-items-center rounded-md bg-brown text-on-brown transition hover:bg-brown-hover disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  <ShoppingCart size={19} aria-hidden="true" />
+                </button>
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={product.isCustom === true ? openCustomOrder : openCheckout}
+            disabled={!inStock || (product.isCustom !== true && qty > room)}
+            className="h-11 w-full min-w-0 rounded-md bg-accent px-3 text-sm font-semibold text-on-accent transition hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+          >
+            {product.isCustom === true
+              ? (inStock ? "Customize" : "Out of stock")
+              : !inStock
+                ? "Out of stock"
+                : `Buy now · ${pricing.sale ? money(price) : product.priceFormat || money(price)}`}
+          </button>
+        </div>
+      </div>
 
       {product.isCustom !== true && inCart > 0 && (
         <p className="mt-3 text-sm text-muted">
@@ -779,47 +1103,66 @@ function Details({ product, ratingSummary }) {
 
       {/* description */}
       {product.description && (
-        <div className="mt-8">
-          <h2 className="text-lg font-semibold text-text">About this product</h2>
-          <p className="mt-2 max-w-prose whitespace-pre-line leading-relaxed text-muted">
+        <section className="mt-10 border-t border-border pt-8" aria-labelledby="product-description-heading">
+          <SectionTitle id="product-description-heading" eyebrow="The story">
+            About this product
+          </SectionTitle>
+          <p className="mt-4 max-w-prose whitespace-pre-line text-[15px] leading-7 text-muted sm:text-base sm:leading-8">
             {product.description}
           </p>
-        </div>
+        </section>
       )}
 
       {/* product categories */}
       {categories.length > 0 && (
-        <section className="mt-8 rounded-2xl border border-border bg-surface p-4 sm:p-5" aria-labelledby="product-details-heading">
-          <h2 id="product-details-heading" className="text-base font-semibold text-text">Product details</h2>
-          <div className="mt-3 grid gap-3 sm:grid-cols-2">
-            {categories.map(({ label, value, to }) => (
-              <div key={label} className="rounded-xl bg-surface-alt/60 p-3">
-                <p className="text-[11px] font-semibold uppercase tracking-wider text-muted">{label}</p>
+        <section className="mt-10 border-t border-border pt-8" aria-labelledby="product-details-heading">
+          <SectionTitle id="product-details-heading" eyebrow="At a glance">
+            Product details
+          </SectionTitle>
+          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            {categories.map(({ label, value, to }) => {
+              const DetailIcon = DETAIL_ICONS[label] || Tag;
+              return (
                 <Link
+                  key={label}
                   to={to}
-                  className="mt-1 inline-flex items-center gap-2 font-medium text-text transition-colors hover:text-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                  className="group flex items-center gap-3 rounded-2xl border border-border bg-surface p-3.5 shadow-soft transition-all duration-200 hover:-translate-y-0.5 hover:border-accent/50 hover:bg-accent-soft focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent motion-reduce:transition-none motion-reduce:hover:translate-y-0"
                 >
-                  <Tag size={15} className="shrink-0 text-accent" aria-hidden="true" />
-                  <span className="break-words">{value}</span>
+                  <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-accent-soft text-accent transition-colors group-hover:bg-accent group-hover:text-on-accent">
+                    <DetailIcon size={20} aria-hidden="true" />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">{label}</span>
+                    <span className="mt-0.5 block break-words font-medium text-text">{value}</span>
+                  </span>
+                  <ArrowUpRight
+                    size={18}
+                    className="shrink-0 text-muted opacity-60 transition-all duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-accent group-hover:opacity-100"
+                    aria-hidden="true"
+                  />
                 </Link>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </section>
       )}
 
       {/* tags */}
       {product.tags?.length > 0 && (
-        <section className="mt-6" aria-labelledby="product-keywords-heading">
-          <h2 id="product-keywords-heading" className="text-sm font-semibold text-text">Explore by keyword</h2>
-          <ul className="mt-3 flex flex-wrap gap-2">
+        <section className="mt-10 border-t border-border pt-8" aria-labelledby="product-keywords-heading">
+          <SectionTitle id="product-keywords-heading" eyebrow="Keep exploring">
+            Explore by keyword
+          </SectionTitle>
+          <ul className="mt-4 flex flex-wrap gap-2">
             {product.tags.map((t, i) => (
               <li key={`${i}-${t}`}>
                 <Link
                   to={`${PATHS.products}?q=${encodeURIComponent(t)}`}
-                  className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface px-3 py-1.5 text-sm text-muted shadow-sm transition hover:border-accent/60 hover:bg-accent-soft hover:text-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                  className="group inline-flex items-center gap-1.5 rounded-full border border-border bg-surface py-1.5 pl-2.5 pr-3.5 text-sm font-medium text-muted transition-all duration-200 hover:-translate-y-0.5 hover:border-accent/60 hover:bg-accent-soft hover:text-accent hover:shadow-soft focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent motion-reduce:transition-none motion-reduce:hover:translate-y-0"
                 >
-                  <Tag size={13} aria-hidden="true" />
+                  <span className="grid size-5 place-items-center rounded-full bg-surface-alt text-muted transition-colors group-hover:bg-accent group-hover:text-on-accent">
+                    <Tag size={11} aria-hidden="true" />
+                  </span>
                   {t}
                 </Link>
               </li>

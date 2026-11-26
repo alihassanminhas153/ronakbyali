@@ -3,6 +3,7 @@ import { BadgeCheck, Clock, Info, PenLine, X } from 'lucide-react';
 
 import reviewService from '../../../lib/appwrite/review';
 import userService from '../../../lib/appwrite/user';
+import useScrollLock from '../../../ui/custom/motion/useScrollLock';
 import { Stars } from './ReviewStars';
 import ReviewFormModal from './ReviewFormModal';
 
@@ -73,21 +74,48 @@ function ReviewAvatar({ review, name }) {
 }
 
 function Lightbox({ src, onClose }) {
+  const dialogRef = useRef(null);
+
   useEffect(() => {
-    if (!src) return undefined;
-    const onKey = (e) => e.key === 'Escape' && onClose();
-    document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
+    const dialog = dialogRef.current;
+    if (!dialog) return undefined;
+    if (src && !dialog.open) dialog.showModal();
+    if (!src && dialog.open) dialog.close();
   }, [src, onClose]);
+
+  useScrollLock(Boolean(src));
 
   if (!src) return null;
   return (
-    <div role="dialog" aria-modal="true" aria-label="Review photo" onClick={onClose} className="fixed inset-0 z-[60] grid place-items-center bg-overlay p-4 backdrop-blur-sm">
-      <button type="button" onClick={onClose} aria-label="Close photo" className="absolute right-4 top-4 grid size-10 place-items-center rounded-full border border-border bg-surface text-text transition hover:border-accent hover:text-accent">
-        <X size={18} aria-hidden="true" />
-      </button>
-      <img src={src} alt="Review photo" onClick={(e) => e.stopPropagation()} className="animate-rise max-h-[88dvh] max-w-full rounded-2xl object-contain shadow-soft" />
-    </div>
+    <dialog
+      ref={dialogRef}
+      aria-label="Review photo"
+      onClose={onClose}
+      onClick={(event) => {
+        if (event.target === event.currentTarget) onClose();
+      }}
+      className="fixed inset-0 m-0 h-dvh max-h-none w-screen max-w-none overflow-hidden border-0 bg-black/95 p-4 text-white backdrop:bg-black/90 sm:p-6"
+    >
+      <div className="flex h-full flex-col">
+        <div className="flex shrink-0 justify-end">
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close photo"
+            className="grid size-10 place-items-center rounded-full bg-white/10 transition hover:bg-white/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-white"
+          >
+            <X size={20} aria-hidden="true" />
+          </button>
+        </div>
+        <div className="grid min-h-0 flex-1 place-items-center overflow-hidden py-3">
+          <img
+            src={src}
+            alt="Review photo"
+            className="max-h-[88dvh] max-w-full object-contain"
+          />
+        </div>
+      </div>
+    </dialog>
   );
 }
 

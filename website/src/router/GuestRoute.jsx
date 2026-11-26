@@ -9,7 +9,7 @@ import useSession from "./useSession";
 //    pressed back, followed an old link) is sent to their own panel:
 //    staff -> /team/:username, everyone else -> /:username.
 //  - Someone who logs in or signs up ON these pages is not redirected here.
-//    Signin / Signup / ProfileStep send them on themselves (staff -> admin panel,
+//    Signin / Signup send them on themselves (staff -> admin panel,
 //    customers -> /products), so the two redirects can never fight each other.
 export default function GuestRoute() {
   const { isReady, isLoggedIn, panel } = useSession();

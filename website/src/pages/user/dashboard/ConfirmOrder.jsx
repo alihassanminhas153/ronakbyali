@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router';
 import {
   BadgeCheck,
@@ -26,7 +26,6 @@ import {
   selectMyOrders,
   selectMyOrdersError,
   selectMyOrdersStatus,
-  selectMyOrdersTotal,
 } from '../../../store/slices/ordersSlice';
 import orderConfirmService from '../../../lib/appwrite/orderConfirm';
 import orderService, { normalizeStatus } from '../../../lib/appwrite/order';
@@ -147,7 +146,7 @@ function OrderCard({ order, busy, onConfirm }) {
           </div>
           <span className="inline-flex items-center gap-1.5 rounded-full bg-accent-tone-3/10 px-3 py-1.5 text-xs font-semibold text-accent-tone-3">
             <Clock size={14} aria-hidden="true" />
-            Awaiting confirmation
+            Before dispatch · awaiting confirmation
           </span>
         </div>
 
@@ -214,7 +213,6 @@ function OrderCard({ order, busy, onConfirm }) {
 export default function ConfirmOrder() {
   const dispatch = useAppDispatch();
   const orders = useAppSelector(selectMyOrders);
-  const total = useAppSelector(selectMyOrdersTotal);
   const status = useAppSelector(selectMyOrdersStatus);
   const error = useAppSelector(selectMyOrdersError);
   const [params, setParams] = useSearchParams();
@@ -228,24 +226,45 @@ export default function ConfirmOrder() {
   const [confirmedIds, setConfirmedIds] = useState(() => new Set());
   const [notice, setNotice] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
-  const [loadedCount, setLoadedCount] = useState(0);
+  const [loadingAll, setLoadingAll] = useState(false);
   const [linkedLookup, setLinkedLookup] = useState('idle'); // idle | loading | missing
+  const initialLoadStarted = useRef(false);
 
-  const fetchPage = useCallback(async (offset = 0) => {
-    const result = await dispatch(fetchMyOrders({ limit: PAGE_SIZE, offset }));
-    if (fetchMyOrders.fulfilled.match(result)) {
-      setLoadedCount((current) => (
-        offset === 0
-          ? Math.max(current, result.payload.rows.length)
-          : offset + result.payload.rows.length
-      ));
+  const fetchAllOrders = useCallback(async () => {
+    let offset = 0;
+    let totalOrders;
+    setLoadingAll(true);
+
+    try {
+      do {
+        const result = await dispatch(fetchMyOrders({ limit: PAGE_SIZE, offset }));
+        if (!fetchMyOrders.fulfilled.match(result)) {
+          setNotice({ ok: false, text: result.payload || 'Could not load all your orders. Please refresh and try again.' });
+          return false;
+        }
+
+        const { rows, total } = result.payload;
+        totalOrders = total;
+        if (!rows.length) {
+          if (offset < totalOrders) {
+            setNotice({ ok: false, text: 'Some orders could not be loaded. Please refresh and try again.' });
+          }
+          break;
+        }
+        offset += rows.length;
+      } while (offset < totalOrders);
+
+      return true;
+    } finally {
+      setLoadingAll(false);
     }
-    return result;
   }, [dispatch]);
 
   useEffect(() => {
-    fetchPage(0);
-  }, [fetchPage]);
+    if (initialLoadStarted.current) return;
+    initialLoadStarted.current = true;
+    fetchAllOrders();
+  }, [fetchAllOrders]);
 
   // The order from the e-mail link. It normally sits in the first page of orders; when it does not,
   // fetch that single order. Another customer's order cannot be read, so it ends as "missing".
@@ -255,7 +274,7 @@ export default function ConfirmOrder() {
   );
 
   useEffect(() => {
-    if (!linkedOrderId || linkedOrder || status === 'idle' || status === 'loading') return undefined;
+    if (!linkedOrderId || linkedOrder || loadingAll || status === 'idle' || status === 'loading') return undefined;
     let alive = true;
     setLinkedLookup('loading');
     dispatch(fetchOrder(linkedOrderId)).then((result) => {
@@ -264,7 +283,7 @@ export default function ConfirmOrder() {
     return () => {
       alive = false;
     };
-  }, [dispatch, linkedOrderId, linkedOrder, status]);
+  }, [dispatch, linkedOrderId, linkedOrder, loadingAll, status]);
 
   // The search bar shows the order number from the link, and while it still says that, ONLY that order is shown.
   // Typing anything else turns the page back into the normal searchable list.
@@ -308,12 +327,15 @@ export default function ConfirmOrder() {
     : null;
   const linkedMissing = linkedMode && !linkedOrder && linkedLookup === 'missing';
   const loadingFirst = status === 'idle' || (status === 'loading' && orders.length === 0) || (linkedMode && !linkedOrder && linkedLookup !== 'missing');
-  const busy = refreshing || Boolean(confirmingId);
+  const busy = loadingAll || refreshing || Boolean(confirmingId);
 
   const refresh = async () => {
     setRefreshing(true);
-    await fetchPage(0);
-    setRefreshing(false);
+    try {
+      await fetchAllOrders();
+    } finally {
+      setRefreshing(false);
+    }
   };
 
   const confirmOrder = async (order) => {
@@ -329,7 +351,7 @@ export default function ConfirmOrder() {
 
       setConfirmedIds((current) => new Set(current).add(order.$id));
       setNotice({ ok: true, text: `Order ${order.orderNumber || ''} confirmed successfully.`.trim() });
-      await fetchPage(0);
+      await fetchAllOrders();
     } catch (confirmError) {
       setNotice({ ok: false, text: confirmError?.message || 'Could not confirm this order.' });
     } finally {
@@ -349,7 +371,7 @@ export default function ConfirmOrder() {
       <PageHeader
         art="orderSuccess"
         title="Confirm orders"
-        subtitle={`${confirmableOrders.length} ${confirmableOrders.length === 1 ? 'order is' : 'orders are'} waiting for your confirmation.`}
+        subtitle={`${confirmableOrders.length} ${confirmableOrders.length === 1 ? 'order is' : 'orders are'} before dispatch and waiting for your confirmation.`}
         actions={(
           <button
             type="button"
@@ -438,10 +460,10 @@ export default function ConfirmOrder() {
         </SelectionGrid>
       </div>
 
-      {loadingFirst ? (
+      {loadingFirst || (loadingAll && filteredOrders.length === 0) ? (
         <div role="status" className="flex items-center gap-2 text-muted">
           <Loader2 size={18} className="animate-spin" aria-hidden="true" />
-          Loading orders to confirm…
+          {loadingAll ? 'Loading all orders to confirm…' : 'Loading orders to confirm…'}
         </div>
       ) : status === 'failed' && orders.length === 0 ? (
         <div role="alert" className="space-y-4">
@@ -476,17 +498,8 @@ export default function ConfirmOrder() {
         </ul>
       )}
 
-      {loadedCount < total && (
-        <div className="flex justify-center">
-          <button
-            type="button"
-            onClick={() => fetchPage(loadedCount)}
-            disabled={status === 'loading'}
-            className="btn btn-ghost"
-          >
-            {status === 'loading' ? 'Loading…' : `Load more orders (${total - loadedCount} remaining)`}
-          </button>
-        </div>
+      {loadingAll && orders.length > 0 && (
+        <p role="status" className="text-center text-sm text-muted">Loading all your orders…</p>
       )}
     </div>
   );

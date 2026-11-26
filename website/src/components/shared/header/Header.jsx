@@ -8,6 +8,7 @@ import { useAppDispatch } from '../../../store/slices/hooks';
 import { PATHS } from '../../../router/path';
 import AppIcon, { resolveAppIconName } from '../../../ui/custom/AppIcon';
 import ThemeToggle from '../../../ui/custom/toggles/ThemeToggle';
+import useScrollLock from '../../../ui/custom/motion/useScrollLock';
 import { tint, toneVar } from '../../../ui/graphs/utils';
 import AlertBell from './AlertBell';
 import useHeaderData from './useHeaderData';
@@ -118,6 +119,7 @@ export default function Header({ logo, pages = [], showOffers = false }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuButtonRef = useRef(null);
   const wasMenuOpen = useRef(false);
+  useScrollLock(menuOpen);
   const { signedIn, name, avatar, accountPath, alertPath, cartPath, ...alertData } = useHeaderData({ showOffers });
   const visibleBar = alertData.bars[0] ?? null;
 

@@ -43,7 +43,6 @@ import AllProductsBanner from '../../../components/shop/AllProductsBanner';
 import FilterDrawer from '../../../components/shop/FilterDrawer';
 import FeaturedCard, { FeaturedCardSkeleton } from '../../../components/shop/FeaturedCard';
 import DiscountedProductCard, { DiscountedProductCardSkeleton } from '../../../components/shop/DiscountedProductCard';
-import { getCardData } from '../../../components/shop/CardShared';
 import ProductRow, { SectionHeading } from '../../../components/shop/ProductRow';
 import { getDiscountedProducts, getPopularProducts } from '../../../components/shop/Showcase';
 import {
@@ -295,11 +294,9 @@ export default function AllProducts({ pages = [] }) {
     onCustomize: customizeProduct,
   });
 
-  const featuredCard = (product, index) => {
-    const data = getCardData(product, sales);
-    const Card = data?.onOffer && !data.outOfStock ? DiscountedProductCard : FeaturedCard;
-    return <Card key={product.$id} {...cardProps(product, index)} />;
-  };
+  const featuredCard = (product, index) => (
+    <FeaturedCard key={product.$id} {...cardProps(product, index)} />
+  );
 
   /* ---------- the blocks of the page ---------- */
 

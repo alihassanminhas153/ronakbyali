@@ -4,6 +4,7 @@ import userService from './user';
 import cartService from './cart';
 import productService from './product';
 import { isAccessDeniedError } from './accessErrors';
+import { optimizeImages, REVIEW_IMAGE_OPTIONS } from '../imageOptimizer';
 
 export const REVIEW_STATUS = { PENDING: 'pending', APPROVED: 'approved', REJECTED: 'rejected' };
 
@@ -125,7 +126,11 @@ export class ReviewService {
 
             const status = await this.getInitialStatus(profile.$id);
 
-            for (const file of Array.from(files || []).slice(0, MAX_REVIEW_IMAGES)) {
+            const optimizedFiles = await optimizeImages(
+                Array.from(files || []).slice(0, MAX_REVIEW_IMAGES),
+                REVIEW_IMAGE_OPTIONS
+            );
+            for (const file of optimizedFiles) {
                 const uploaded = await this.bucket.createFile({
                     bucketId: this.bucketId,
                     fileId: ID.unique(),

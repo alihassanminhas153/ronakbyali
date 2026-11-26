@@ -4,9 +4,8 @@
 //   dispatch(signIn({ email, password, toast: true }));      // toast: true shows an error toast
 //   useEffect(() => { dispatch(initAuth()); }, []);          // or use initApp() from appThunks.js
 //   if (!useAppSelector(selectAuthChecked)) return <Spinner />;
-// SIGNUP (2 steps, see pages/shared/account/Signup.jsx)
-//   dispatch(registerWithEmail({ email, password }));        // step 1: sets selectPendingProfile
-//   dispatch(saveName({ name }));                            // step 2: writes users.name, logs the user in the store
+// SIGNUP (see pages/shared/account/Signup.jsx)
+//   dispatch(registerWithEmail({ email, password }));        // creates the account and profile
 import { createAsyncThunk, createSlice, isAnyOf } from '@reduxjs/toolkit';
 import { authService, userService } from './services';
 import { fail, getUserId, isRow, stripToast } from './utils';
@@ -21,10 +20,6 @@ const flagsFor = (profile) => {
 
 const initialState = {
   profile: null,
-  // Profile of an account that was just created by email but has not picked a
-  // name yet. Kept OUT of `profile` so guest-only routes don't redirect away
-  // from the name step. saveName moves it into `profile`.
-  pendingProfile: null,
   authChecked: false,
   status: 'idle',
   error: null,
@@ -63,7 +58,7 @@ export const authenticateWithEmail = createAsyncThunk('auth/authenticateWithEmai
   }
   return result;
 });
-// Step 1 of email signup: account + session + profile row, but NO name yet.
+// Creates the account, session and profile row.
 export const registerWithEmail = createAsyncThunk('auth/registerWithEmail', async (arg, { rejectWithValue }) => {
   const { email, password } = stripToast(arg);
   const profile = await authService.signUp({ email, password });
@@ -73,12 +68,10 @@ export const registerWithEmail = createAsyncThunk('auth/registerWithEmail', asyn
   return profile;
 });
 
-// Step 2 of email signup: writes the name column of the users table (and the
-// Appwrite auth name, best effort), then the user counts as logged in.
+// Updates the profile name (and the Appwrite auth name, best effort).
 export const saveName = createAsyncThunk('auth/saveName', async (arg, { getState, rejectWithValue }) => {
   const { name, avatarFile } = stripToast(arg);
-  const { pendingProfile, profile: current } = getState().auth;
-  const profile = pendingProfile || current;
+  const profile = getState().auth.profile;
   const userId = getUserId(profile);
   if (!userId) return rejectWithValue('You are not logged in.');
 
@@ -187,7 +180,7 @@ export const updatePassword = actionThunk('auth/updatePassword', (a) => authServ
 /* ---------- slice ---------- */
 
 const profileSetters = [
-  initAuth, signUp, signIn, continueWithEmail, completeLogin,
+  initAuth, signUp, signIn, continueWithEmail, completeLogin, registerWithEmail,
   refreshProfile, updateProfile, changeAvatar, updateName, saveName,
 ];
 const trackedThunks = [
@@ -217,17 +210,10 @@ const authSlice = createSlice({
       .addCase(initAuth.rejected, (state) => {
         state.authChecked = true;
       })
-      .addCase(registerWithEmail.fulfilled, (state, action) => {
-        state.pendingProfile = action.payload || null;
-      })
       .addCase(authenticateWithEmail.fulfilled, (state, action) => {
-        const { profile, created } = action.payload;
-        state.pendingProfile = created ? profile : null;
-        state.profile = created ? null : profile;
+        const { profile } = action.payload;
+        state.profile = profile || null;
         state.roleFlags = flagsFor(state.profile);
-      })
-      .addCase(saveName.fulfilled, (state) => {
-        state.pendingProfile = null;
       })
       .addMatcher(isSessionEnded, () => ({ ...initialState, authChecked: true }))
       .addMatcher(isAnyOf(...profileSetters.map((t) => t.fulfilled)), (state, action) => {
@@ -257,7 +243,6 @@ export default authSlice.reducer;
 /* ---------- selectors ---------- */
 export const selectProfile = (state) => state.auth.profile;
 export const selectIsLoggedIn = (state) => Boolean(state.auth.profile);
-export const selectPendingProfile = (state) => state.auth.pendingProfile;
 export const selectAuthChecked = (state) => state.auth.authChecked;
 export const selectAuthStatus = (state) => state.auth.status;
 export const selectAuthError = (state) => state.auth.error;

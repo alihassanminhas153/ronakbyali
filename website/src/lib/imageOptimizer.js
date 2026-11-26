@@ -42,6 +42,14 @@ export const PRODUCT_IMAGE_OPTIONS = {
   strictMaxBytes: true,
 };
 
+export const REVIEW_IMAGE_OPTIONS = {
+  maxSide: 1600,
+  quality: 0.82,
+  minQuality: 0.4,
+  maxBytes: 1024 * 1024,
+  strictMaxBytes: true,
+};
+
 export const ALL_PRODUCTS_BANNER_IMAGE_OPTIONS = {
   maxSide: 2400,
   quality: 0.9,

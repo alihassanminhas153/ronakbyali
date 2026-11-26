@@ -706,7 +706,9 @@ const ordersSlice = createSlice({
         state.error = null;
       })
       .addCase(fetchMyOrders.fulfilled, (state, action) => {
-        adapter.upsertMany(state, action.payload.rows);
+        const { rows, offset } = action.payload;
+        if (offset === 0) adapter.setAll(state, rows);
+        else adapter.upsertMany(state, rows);
         state.total = action.payload.total;
         state.status = 'succeeded';
       })

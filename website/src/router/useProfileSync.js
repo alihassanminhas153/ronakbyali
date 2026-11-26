@@ -13,9 +13,9 @@ export const toAuthUser = (profile) => ({
 });
 
 // Keeps state.users in step with the auth session, from ONE place:
-//   - a session appears (app start, email login, Google callback, signup name step)
+//   - a session appears (app start, email login, Google callback or signup)
 //       -> loadMyProfile({ user })
-//   - same account, name/email changed (e.g. ProfileStep saved the name)
+//   - same account, name/email changed (e.g. a checkout saved the name)
 //       -> refreshMyProfile()
 //   - session ends (logout, expired session) -> clearUsers()
 // Because every login path ends with state.auth.profile being set, no login page,

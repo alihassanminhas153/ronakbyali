@@ -23,6 +23,7 @@ import { PATHS, PRODUCT_LIST_ALIASES } from "./router/path";
 import NotFound from "./pages/shared/structure/NotFound";
 import ToastViewport from "./ui/custom/toast/ToastViewport";
 import useScrollLock from "./ui/custom/motion/useScrollLock";
+import { setCanonical, setMeta } from "./lib/seo";
 
 // Route pages load only when visited, keeping the initial storefront bundle small.
 const Home = lazy(() => import("./pages/shared/structure/Home"));
@@ -78,6 +79,16 @@ const STATIC_PAGE_TITLES = {
   "/welcome-back": "Sign In",
   "/create-account": "Create Account",
   "/auth/callback": "Signing In",
+};
+
+const STATIC_PAGE_DESCRIPTIONS = {
+  "/": "Shop ready-made denim bags, embroidered pouches, framed art and custom designs from Ronak By Ali (Ronaq), Pakistan.",
+  "/products": "Browse Ronak By Ali ready-made bags, pouches, Islamic wall frames, accessories and custom embroidery products.",
+  "/p/contact": "Contact Ronak By Ali for ready-made products, custom orders, embroidery and delivery support in Pakistan.",
+  "/p/privacy": "Read the Ronak By Ali privacy policy and learn how customer information is collected and protected.",
+  "/p/disclaimer": "Read the Ronak By Ali website and product disclaimers.",
+  "/p/faqs": "Find answers to common questions about Ronak By Ali products, custom orders, payments and delivery.",
+  "/p/custom-studio": "Create a custom Ronak By Ali design for denim bags, pouches, embroidery and personalised gifts.",
 };
 
 const LEGACY_ADMIN_ROUTES = [
@@ -141,14 +152,22 @@ export default function App() {
   useEffect(() => {
     const route = pathname.replace(/\/+$/, "") || "/";
     const pageTitle = STATIC_PAGE_TITLES[route];
-    // if (pageTitle === "Home") document.title = "Ronak By Ali | Handmade & Custom Products"
+    setCanonical(pathname);
+    if (STATIC_PAGE_DESCRIPTIONS[route]) {
+      setMeta("description", STATIC_PAGE_DESCRIPTIONS[route]);
+      setMeta("og:title", `${pageTitle} | Ronak By Ali`, true);
+      setMeta("og:description", STATIC_PAGE_DESCRIPTIONS[route], true);
+      setMeta("twitter:title", `${pageTitle} | Ronak By Ali`);
+      setMeta("twitter:description", STATIC_PAGE_DESCRIPTIONS[route]);
+    }
+    // if (pageTitle === "Home") document.title = "Ronak By Ali | Ready-Made & Custom Products"
     // if (pageTitle !== "Home") document.title = `${pageTitle} | Ronak By Ali`;
     switch (pageTitle) {
       case undefined:
         document.title = "Ronak By Ali"
         break;
       case "Home":
-        document.title = "Ronak By Ali | Handmade & Custom Products"
+        document.title = "Ronak By Ali | Ready-Made & Custom Products"
         break;
       default:
         document.title = `${pageTitle} | Ronak By Ali`

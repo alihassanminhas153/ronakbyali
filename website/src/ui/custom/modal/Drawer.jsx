@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { X } from 'lucide-react';
 import AppIcon, { resolveAppIconName } from '../AppIcon';
+import useScrollLock from '../motion/useScrollLock';
 import { toneVar } from '../../graphs/utils';
 
 // Side panel that slides in from the right (same behaviour as the product form).
@@ -25,6 +26,7 @@ export default function Drawer({
 }) {
   const [shown, setShown] = useState(false);
   const color = toneVar(tone);
+  useScrollLock(open);
 
   useEffect(() => {
     if (!open) { setShown(false); return undefined; }
@@ -36,8 +38,7 @@ export default function Drawer({
     if (!open) return undefined;
     const onKey = (e) => e.key === 'Escape' && !busy && onClose();
     window.addEventListener('keydown', onKey);
-    document.body.style.overflow = 'hidden';
-    return () => { window.removeEventListener('keydown', onKey); document.body.style.overflow = ''; };
+    return () => window.removeEventListener('keydown', onKey);
   }, [open, busy, onClose]);
 
   const Panel = onSubmit ? 'form' : 'div';

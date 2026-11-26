@@ -8,7 +8,6 @@ import {
   authenticateWithEmail,
   continueWithGoogle,
   clearAuthError,
-  saveName,
   selectAuthStatus,
 } from '../../../store/slices/authSlice';
 import { addToast } from '../../../store/slices/uiSlice';
@@ -36,20 +35,6 @@ function passwordScore(pw) {
 }
 
 const SCORE_LABELS = ['Too short', 'Weak', 'Fair', 'Good', 'Strong'];
-
-function displayNameFromEmail(email, username) {
-  const localPart = String(email || '').split('@')[0].split('+')[0];
-  const name = localPart
-    .replace(/[._-]+/g, ' ')
-    .replace(/[^a-zA-Z0-9 ]/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-
-  if (name.length >= 3 && (name.match(/[a-z]/gi) || []).length >= 2) {
-    return name.replace(/\b[a-z]/g, (letter) => letter.toUpperCase());
-  }
-  return String(username || '').trim() || name || 'Customer';
-}
 
 function PasswordMeter({ password }) {
   if (!password) return null;
@@ -120,24 +105,11 @@ function CredentialsStep() {
     if (!authenticateWithEmail.fulfilled.match(result)) return;
 
     const { created } = result.payload;
-    let profile = result.payload.profile;
-    if (!profile?.name?.trim()) {
-      const saved = await dispatch(saveName({
-        name: displayNameFromEmail(email, profile?.username),
-        toast: true,
-      }));
-      if (!saveName.fulfilled.match(saved)) {
-        setFieldErrors({ profile: saved.payload || 'Could not set your display name. Please try again.' });
-        return;
-      }
-      profile = saved.payload;
-    }
-
     dispatch(addToast({
       type: 'success',
       message: created ? 'Account created.' : 'You are now logged in.',
     }));
-    navigate(homePathFor(profile), { replace: true });
+    navigate(homePathFor(result.payload.profile), { replace: true });
   };
 
   const onGoogle = () => {
@@ -207,8 +179,6 @@ function CredentialsStep() {
             />
 
             <PasswordMeter password={password} />
-
-            {fieldErrors.profile && <p role="alert" className="-mt-3 text-sm text-error">{fieldErrors.profile}</p>}
 
             <AuthButton loading={status === 'loading'} disabled={busy}>Create account</AuthButton>
           </form>

@@ -1,6 +1,6 @@
 # Ronak By Ali
 
-Ronak By Ali is an online storefront for handmade and customizable products. It
+Ronak By Ali is an online storefront for ready-made and customizable products. It
 brings product discovery, personalization, ordering, and customer account tools
 together in one place.
 

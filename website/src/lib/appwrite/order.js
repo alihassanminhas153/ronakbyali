@@ -684,7 +684,7 @@ export class OrderService {
             return { rows: res?.rows || [], total: res?.total || 0 };
         } catch (error) {
             console.error(error.message);
-            return { rows: [], total: 0 };
+            return false;
         }
     }
 
@@ -698,8 +698,8 @@ export class OrderService {
     }
 
     async countOrders(filters = {}) {
-        const { total } = await this.getOrdersPage({ ...filters, limit: 1 });
-        return total;
+        const page = await this.getOrdersPage({ ...filters, limit: 1 });
+        return page ? page.total : false;
     }
 
     // Counts for the staff order-status tabs.
@@ -708,6 +708,7 @@ export class OrderService {
             const entries = await Promise.all(
                 ORDER_STATUS.map(async (status) => [status, await this.countOrders({ status })])
             );
+            if (entries.some(([, count]) => count === false)) return false;
             return Object.fromEntries(entries);
         } catch (error) {
             console.error(error.message);

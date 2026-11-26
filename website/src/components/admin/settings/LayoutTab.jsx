@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
-import { ArrowDown, ArrowUp, Check, ChevronDown, Lock, RotateCcw, Save, ShieldCheck, ShieldOff } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { ArrowDown, ArrowUp, ChevronDown, Lock, LogOut, RotateCcw, Save, ShieldCheck, ShieldOff } from 'lucide-react';
 
 import ActionButton from '../../../ui/custom/button/ActionButton';
 import TagInput from '../../../ui/custom/input/TagInput';
@@ -9,68 +9,151 @@ import useUserLabels from '../../../lib/layout/useUserLabels';
 import { STAFF_LABELS, canTarget } from '../../../lib/layout/accessRules';
 import { AREAS, PANEL_PAGES, defaultRow, mergeRows, urlFor, visiblePages } from '../../../lib/layout/layoutRegistry';
 import AllProductsBannerSettings from './AllProductsBannerSettings';
-import { Banner, Chip, Ico } from './SettingsParts';
+import { Banner, Chip } from './SettingsParts';
 import { MAX_EXTRA_LABELS, ROLE_OPTIONS, labelsError } from './settingsMeta';
 
 const ROLES = ROLE_OPTIONS.map((o) => o.value);
 const clone = (v) => JSON.parse(JSON.stringify(v));
 const sig = (r) => `${r.inSidebar}|${r.order}|${[...(r.blockedLabels || [])].sort().join(',')}`;
+const byOrder = (a, b) => a.order - b.order;
 const pageOf = (area, key) => PANEL_PAGES[area].find((p) => p.key === key);
 
 // Customers, loyal customers and new users never get into the admin panel (they are sent to their own panel),
-// so only staff roles can be blocked from admin pages. The user panel lists every role.
-const optionsFor = (area) => (area === 'admin' ? ROLE_OPTIONS.filter((o) => STAFF_LABELS.includes(o.value)) : ROLE_OPTIONS);
+// and admin, manager and support never see the user panel (they are sent to the admin panel).
+// So each panel only offers the roles that can really reach it.
+const optionsFor = (area) => ROLE_OPTIONS.filter((o) => (area === 'admin') === STAFF_LABELS.includes(o.value));
+
+// Roles that can never reach a panel. They are not offered, they cannot be typed in as custom labels,
+// and any old block stored for them is dropped when the rows load.
+const neverReach = (area) => ROLES.filter((r) => !optionsFor(area).some((o) => o.value === r));
+const cleanRows = (area, list) => {
+  const gone = neverReach(area);
+  return list.map((r) => ({ ...r, blockedLabels: (r.blockedLabels || []).filter((l) => !gone.includes(l)) }));
+};
+
+const FOCUS = 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent';
+const iconBtn = `grid size-9 place-items-center rounded-lg border border-border bg-surface text-muted transition-colors hover:border-accent hover:text-accent disabled:cursor-not-allowed disabled:opacity-40 md:size-8 ${FOCUS}`;
 
 /* ---------- small pieces ---------- */
 
-function Tile({ icon, tone, value, label }) {
+// on/off switch. On phones it shows its state as text, from md up the column header says it.
+function SidebarSwitch({ checked, disabled, onChange, label }) {
   return (
-    <div className="flex items-center gap-3 rounded-2xl border border-border bg-surface p-4 shadow-soft">
-      <span className="grid size-12 shrink-0 place-items-center rounded-xl border border-border bg-surface-alt">
-        <Ico name={icon} tone={tone} className="size-8" />
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      aria-label={label}
+      disabled={disabled}
+      onClick={() => onChange(!checked)}
+      className={`inline-flex h-9 items-center gap-2 rounded-full border pl-1.5 pr-3 text-xs font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 md:h-auto md:border-0 md:bg-transparent md:p-0 ${FOCUS} ${
+        checked ? 'border-accent/40 bg-accent-soft text-accent' : 'border-border bg-surface text-muted'
+      }`}
+    >
+      <span className={`relative h-5 w-9 shrink-0 rounded-full transition-colors ${checked ? 'bg-accent' : 'bg-border'}`}>
+        <span
+          className={`absolute left-0.5 top-0.5 size-4 rounded-full bg-white shadow transition-transform ${
+            checked ? 'translate-x-4' : ''
+          }`}
+        />
       </span>
-      <div className="min-w-0">
-        <p className="text-xl font-semibold tabular-nums text-text">{value}</p>
-        <p className="truncate text-xs text-muted">{label}</p>
+      <span className="whitespace-nowrap md:sr-only">{checked ? 'In sidebar' : 'Hidden'}</span>
+    </button>
+  );
+}
+
+// a realistic sidebar: brand header, nav list, user footer
+function SidebarPreview({ panelLabel, pages, roles, role, onRole }) {
+  return (
+    <aside aria-label="Sidebar preview" className="space-y-3 lg:sticky lg:top-4">
+      <div role="group" aria-label="Preview as" className="flex flex-wrap items-center gap-1.5">
+        <span className="mr-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">Preview as</span>
+        {roles.map((r) => (
+          <button
+            key={r}
+            type="button"
+            aria-pressed={role === r}
+            onClick={() => onRole(r)}
+            className={`rounded-full border px-3 py-1 text-xs font-medium capitalize transition-colors ${FOCUS} ${
+              role === r ? 'border-accent bg-accent-soft text-accent' : 'border-border bg-surface text-muted hover:border-accent'
+            }`}
+          >
+            {r}
+          </button>
+        ))}
       </div>
-    </div>
+
+      <div className="mx-auto flex w-full max-w-[18rem] flex-col overflow-hidden rounded-2xl border border-border bg-surface shadow-soft lg:mx-0 lg:max-w-none">
+        {/* brand */}
+        <div className="flex items-center gap-3 border-b border-border px-4 py-4">
+          <img
+            src="/images/icons/branding/logo.webp"
+            alt=""
+            className="size-9 shrink-0 rounded-lg object-contain"
+            onError={(e) => {
+              e.currentTarget.style.visibility = 'hidden';
+            }}
+          />
+          <p className="truncate text-sm font-semibold text-text">{panelLabel}</p>
+        </div>
+
+        {/* navigation */}
+        <nav aria-label="Preview navigation" className="max-h-[28rem] overflow-y-auto p-2">
+          {pages.length === 0 ? (
+            <p className="px-3 py-6 text-center text-xs text-muted">No pages visible</p>
+          ) : (
+            <ul className="space-y-0.5">
+              {pages.map((p, i) => {
+                const Icon = p.icon;
+                return (
+                  <li
+                    key={p.key}
+                    className={`relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm ${
+                      i === 0 ? 'bg-accent-soft font-medium text-accent' : 'text-muted'
+                    }`}
+                  >
+                    {i === 0 && <span aria-hidden="true" className="absolute inset-y-1.5 left-0 w-0.5 rounded-full bg-accent" />}
+                    <Icon size={18} strokeWidth={1.75} className="shrink-0" aria-hidden="true" />
+                    <span className="truncate">{p.label}</span>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </nav>
+
+        {/* user */}
+        <div className="mt-auto flex items-center gap-3 border-t border-border px-4 py-3">
+          <span className="grid size-9 shrink-0 place-items-center rounded-full bg-accent-soft text-sm font-semibold uppercase text-accent">
+            {role.charAt(0)}
+          </span>
+          <p className="min-w-0 flex-1 truncate text-sm font-medium capitalize text-text">{role}</p>
+          <LogOut size={17} className="shrink-0 text-muted" aria-hidden="true" />
+        </div>
+      </div>
+    </aside>
   );
 }
-
-// a real tick box: tick = the page is in the sidebar
-function Tick({ checked, onChange, disabled, label }) {
-  return (
-    <label className={`group inline-flex items-center ${disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}>
-      <input type="checkbox" className="peer sr-only" checked={checked} disabled={disabled} onChange={onChange} aria-label={label} />
-      <span className="grid size-6 place-items-center rounded-md border border-border bg-surface text-transparent transition-colors group-hover:border-accent peer-checked:border-accent peer-checked:bg-accent peer-checked:text-on-accent peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-accent">
-        <Check size={14} strokeWidth={3} aria-hidden="true" />
-      </span>
-    </label>
-  );
-}
-
-const iconBtn =
-  'grid size-8 place-items-center rounded-md border border-border bg-surface text-muted transition-colors hover:border-accent hover:text-accent disabled:cursor-not-allowed disabled:opacity-40';
 
 /* ---------- the tab ---------- */
 
 // Settings > Layout & access. One row per page.
-//   In sidebar  (admin only)  : untick a page and it leaves the sidebar, its URL still opens
-//   Access      (any staff)   : labels that can NEVER open the page; they see "Access denied"
+//   Sidebar  (admin only)  : switch a page off and it leaves the sidebar, its URL still opens
+//   Access   (any staff)   : labels that can NEVER open the page; they see "Access denied"
 // Who can block whom: admin -> manager and support; manager -> support; support -> nobody on staff.
 // Custom labels (e.g. vip) can be blocked by every staff role. Nobody can block their own label or a higher one.
+// Every changed row has its own Discard / Save. Order is relative: saving a row that moved also saves
+// the rows it swapped with, so the saved order never has duplicates.
 export default function LayoutTab() {
   const myLabels = useUserLabels();
   const isAdmin = myLabels.includes('admin');
-  const myRole = STAFF_LABELS.find((r) => myLabels.includes(r)) || 'staff';
 
   const [area, setArea] = useState('admin');
   const [saved, setSaved] = useState(null); // { admin: rows, user: rows } as stored
   const [draft, setDraft] = useState(null); // what is on screen
   const [open, setOpen] = useState(null); // row key whose access editor is open
   const [previewAs, setPreviewAs] = useState('support');
-  const [saving, setSaving] = useState(false);
-  const [savingAccessKey, setSavingAccessKey] = useState(null);
+  const [savingKey, setSavingKey] = useState(null);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
 
@@ -80,7 +163,7 @@ export default function LayoutTab() {
       if (!live) return;
       const rows = res.ok ? res.rows : [];
       if (!res.ok) setError(`Could not read the layout table (${res.message}). Showing the defaults.`);
-      const merged = { admin: mergeRows('admin', rows), user: mergeRows('user', rows) };
+      const merged = { admin: cleanRows('admin', mergeRows('admin', rows)), user: cleanRows('user', mergeRows('user', rows)) };
       setSaved(merged);
       setDraft(clone(merged));
     });
@@ -98,17 +181,8 @@ export default function LayoutTab() {
   const rows = draft?.[area] || [];
   const options = optionsFor(area);
   const optionValues = options.map((o) => o.value);
-  const blockable = options.filter((o) => canTarget(myLabels, o.value)).map((o) => o.value);
-
-  const changed = useMemo(() => {
-    if (!draft || !saved) return [];
-    return AREAS.flatMap(({ id }) => draft[id].filter((r) => sig(r) !== sig(saved[id].find((s) => s.key === r.key) || {})));
-  }, [draft, saved]);
-
-  const invalid = useMemo(
-    () => (draft ? AREAS.some(({ id }) => draft[id].some((r) => labelsError(r.blockedLabels.filter((l) => !ROLES.includes(l))))) : false),
-    [draft]
-  );
+  const busy = Boolean(savingKey);
+  const savedOf = (key) => saved?.[area]?.find((s) => s.key === key);
 
   const patch = (key, changes) =>
     setDraft((d) => ({ ...d, [area]: d[area].map((r) => (r.key === key ? { ...r, ...changes } : r)) }));
@@ -133,57 +207,62 @@ export default function LayoutTab() {
     setOpen(null);
   };
 
-  const save = async () => {
-    setSaving(true);
-    setError('');
-    const res = await navLayoutService.saveRows(changed);
-    setSaving(false);
-    if (!res.ok) return setError(`Could not save: ${res.message}`);
-    setSaved(clone(draft));
-    setPanelRows([...draft.admin, ...draft.user]); // sidebar and page guard update right away
-    setNotice('Saved. The sidebar and page access are updated.');
+  // put one row back to what is stored (if it moved, the order of the whole list goes back, other edits stay)
+  const discardRow = (row) => {
+    const base = savedOf(row.key);
+    if (!base) return;
+    const moved = row.order !== base.order;
+    setDraft((d) => {
+      const list = d[area].map((r) => {
+        if (r.key === row.key) return clone(base);
+        const s = savedOf(r.key);
+        return moved && s ? { ...r, order: s.order } : r;
+      });
+      return { ...d, [area]: moved ? list.sort(byOrder) : list };
+    });
   };
 
-  const saveAccess = async (row) => {
-    const baseline = saved?.[area]?.find((item) => item.key === row.key);
-    if (!baseline || saving || savingAccessKey) return;
-
-    setSavingAccessKey(row.key);
+  const saveRow = async (row) => {
+    const base = savedOf(row.key);
+    if (!base || busy) return;
+    const payload = [clone(row)];
+    if (row.order !== base.order) {
+      // the rows this one swapped with: save only their new position
+      for (const r of draft[area]) {
+        const s = savedOf(r.key);
+        if (r.key !== row.key && s && s.order !== r.order) payload.push({ ...clone(s), order: r.order });
+      }
+    }
+    setSavingKey(row.key);
     setError('');
     setNotice('');
-    const result = await navLayoutService.saveRows([{ ...baseline, blockedLabels: [...row.blockedLabels] }]);
-    setSavingAccessKey(null);
-    if (!result.ok) {
-      setError(`Could not save page access: ${result.message}`);
-      return;
-    }
-
-    const nextSaved = {
-      ...saved,
-      [area]: saved[area].map((item) =>
-        item.key === row.key ? { ...item, blockedLabels: [...row.blockedLabels] } : item
-      ),
-    };
-    setSaved(nextSaved);
-    setPanelRows([...nextSaved.admin, ...nextSaved.user]);
-    setNotice(`Access for ${row.label} saved.`);
+    const res = await navLayoutService.saveRows(payload);
+    setSavingKey(null);
+    if (!res.ok) return setError(`Could not save: ${res.message}`);
+    const next = { ...saved, [area]: saved[area].map((s) => payload.find((p) => p.key === s.key) || s).sort(byOrder) };
+    setSaved(next);
+    setPanelRows([...next.admin, ...next.user]); // sidebar and page guard update right away
+    setNotice(`${row.label} saved.`);
   };
 
   if (!draft) return <p className="text-sm text-muted">Loading the layout…</p>;
 
-  const previewRoles = area === 'admin' ? STAFF_LABELS : ROLES;
+  const panelLabel = AREAS.find((a) => a.id === area)?.label || 'Panel';
+  const previewRoles = optionValues;
   const shown = visiblePages(area, rows, [previewAs]);
-  const inSidebarCount = rows.filter((r) => r.inSidebar).length;
-  const restrictedCount = rows.filter((r) => r.blockedLabels.length).length;
 
   return (
     <div className="space-y-4">
       {notice && <Banner kind="success" onDismiss={() => setNotice('')}>{notice}</Banner>}
       {error && <Banner kind="error" onDismiss={() => setError('')}>{error}</Banner>}
 
-      {/* toolbar */}
-      <div className="flex flex-col gap-3 rounded-2xl border border-border bg-surface p-3 shadow-soft sm:flex-row sm:items-center sm:justify-between sm:p-4">
-        <div role="tablist" aria-label="Panel" className="inline-flex rounded-xl border border-border bg-surface-alt p-1">
+      {/* panel switch (full width on phones) + defaults */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div
+          role="tablist"
+          aria-label="Panel"
+          className="grid w-full grid-cols-2 gap-1 rounded-xl border border-border bg-surface-alt p-1 sm:inline-grid sm:w-auto sm:min-w-[18rem]"
+        >
           {AREAS.map(({ id, label }) => (
             <button
               key={id}
@@ -195,7 +274,7 @@ export default function LayoutTab() {
                 setOpen(null);
                 setPreviewAs(id === 'admin' ? 'support' : 'customer');
               }}
-              className={`rounded-lg px-4 py-1.5 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-accent ${
+              className={`truncate rounded-lg px-3 py-2 text-center text-sm font-medium transition-colors sm:px-5 sm:py-1.5 ${FOCUS} ${
                 area === id ? 'bg-accent text-on-accent shadow-soft' : 'text-muted hover:text-text'
               }`}
             >
@@ -203,174 +282,140 @@ export default function LayoutTab() {
             </button>
           ))}
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <span
-            className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${
-              changed.length ? 'bg-accent-soft text-accent' : 'bg-surface-alt text-muted'
-            }`}
-          >
-            <span aria-hidden="true" className={`size-1.5 rounded-full ${changed.length ? 'bg-accent' : 'bg-muted'}`} />
-            {changed.length ? `${changed.length} unsaved ${changed.length === 1 ? 'change' : 'changes'}` : 'All changes saved'}
-          </span>
-          {isAdmin && <ActionButton variant="secondary" size="sm" icon={RotateCcw} onClick={restoreDefaults} disabled={saving || Boolean(savingAccessKey)}>Defaults</ActionButton>}
-          <ActionButton
-            variant="secondary"
-            size="sm"
-            onClick={() => setDraft(clone(saved))}
-            disabled={!changed.length || saving || Boolean(savingAccessKey)}
-          >
-            Discard
-          </ActionButton>
-          <ActionButton
-            variant="primary"
-            size="sm"
-            icon={Save}
-            onClick={save}
-            disabled={!changed.length || invalid || Boolean(savingAccessKey)}
-            loading={saving}
-          >
-            Save changes
-          </ActionButton>
-        </div>
-      </div>
-
-      {/* numbers */}
-      <div className="grid gap-3 sm:grid-cols-3">
-        <Tile icon="list" tone={3} value={rows.length} label="Pages in this panel" />
-        <Tile icon="layers" tone={6} value={inSidebarCount} label="Shown in the sidebar" />
-        <Tile icon="disclaimer" tone={4} value={restrictedCount} label="Pages with blocked labels" />
-      </div>
-
-      {/* how it works */}
-      <div className="grid gap-3 rounded-2xl border border-border bg-surface p-4 shadow-soft sm:grid-cols-2 sm:p-5">
-        <div className="flex gap-3">
-          <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-surface-alt"><Ico name="layers" tone={6} className="size-6" /></span>
-          <div>
-            <p className="text-sm font-semibold text-text">In sidebar</p>
-            <p className="mt-0.5 text-xs leading-relaxed text-muted">
-              Untick a page to remove it from the sidebar. It still opens from its URL.{!isAdmin && ' Only admins can change this.'}
-            </p>
+        {isAdmin && (
+          <div className="sm:shrink-0">
+            <ActionButton variant="secondary" size="sm" icon={RotateCcw} onClick={restoreDefaults} disabled={busy}>
+              Reset to defaults
+            </ActionButton>
           </div>
-        </div>
-        <div className="flex gap-3">
-          <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-surface-alt"><Ico name="crown" tone={8} className="size-6" /></span>
-          <div>
-            <p className="text-sm font-semibold text-text">Access</p>
-            <p className="mt-0.5 text-xs leading-relaxed text-muted">
-              Blocked labels see “Access denied” instead of the page. Ranks: admin, then manager, then support.
-              You are <span className="font-medium capitalize text-text">{myRole}</span>
-              {blockable.length ? <>, so you can block {blockable.join(' and ')} (and custom labels).</> : <>, so you can only block custom labels.</>}
-              {area === 'admin' && ' Customers, loyal and new users never reach the admin panel, so they are not listed here.'}
-            </p>
-          </div>
-        </div>
+        )}
       </div>
 
-      {/* the pages */}
-      <section className="overflow-hidden rounded-2xl border border-border bg-surface shadow-soft">
-        <div className="hidden grid-cols-[minmax(0,1.5fr)_5.5rem_minmax(0,1.2fr)_5.5rem] gap-3 bg-surface-alt/60 px-5 py-2.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted md:grid">
-          <span>Page</span>
-          <span className="text-center">In sidebar</span>
-          <span>Access</span>
-          <span className="text-right">Order</span>
-        </div>
+      <div className="space-y-4 lg:grid lg:grid-cols-[minmax(0,1fr)_17rem] lg:items-start lg:gap-5 lg:space-y-0">
+        {/* the pages: cards on phones, a table from md up */}
+        <section className="md:overflow-hidden md:rounded-2xl md:border md:border-border md:bg-surface md:shadow-soft">
+          <div className="hidden grid-cols-[minmax(0,1.6fr)_6rem_minmax(0,1.3fr)_5rem] gap-4 bg-surface-alt/60 px-5 py-2.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted md:grid">
+            <span>Page</span>
+            <span className="text-center">Sidebar</span>
+            <span>Access</span>
+            <span className="text-right">Order</span>
+          </div>
 
-        <ul>
-          {rows.map((row, index) => {
-            const page = pageOf(area, row.key);
-            if (!page) return null;
-            const Icon = page.icon;
-            const extras = row.blockedLabels.filter((l) => !optionValues.includes(l));
-            const extrasError = labelsError(extras);
-            const savedRow = saved?.[area]?.find((item) => item.key === row.key);
-            const accessChanged =
-              savedRow &&
-              JSON.stringify([...row.blockedLabels].sort()) !== JSON.stringify([...(savedRow.blockedLabels || [])].sort());
-            const isOpen = open === row.key && !page.locked;
-            return (
-              <li key={row.key} className="border-t border-border first:border-t-0 md:first:border-t">
-                <div className={`flex flex-wrap items-center gap-x-4 gap-y-3 px-4 py-3 transition-colors sm:px-5 md:grid md:grid-cols-[minmax(0,1.5fr)_5.5rem_minmax(0,1.2fr)_5.5rem] ${row.inSidebar ? '' : 'bg-surface-alt/40'}`}>
-                  {/* page */}
-                  <div className="flex min-w-0 flex-1 items-center gap-3 md:flex-none">
-                    <span
-                      className={`grid size-10 shrink-0 place-items-center rounded-xl border transition-colors ${
-                        row.inSidebar ? 'border-accent/30 bg-accent-soft text-accent' : 'border-border bg-surface-alt text-muted'
-                      }`}
-                    >
-                      <Icon size={19} strokeWidth={1.75} aria-hidden="true" />
-                    </span>
-                    <div className="min-w-0">
-                      <p className={`truncate text-sm font-medium ${row.inSidebar ? 'text-text' : 'text-muted'}`}>{row.label}</p>
-                      <p className="truncate font-mono text-[11px] text-muted">{urlFor(area, page)}</p>
-                    </div>
-                  </div>
+          <ul className="space-y-2.5 md:space-y-0">
+            {rows.map((row, index) => {
+              const page = pageOf(area, row.key);
+              if (!page) return null;
+              const Icon = page.icon;
+              const extras = row.blockedLabels.filter((l) => !optionValues.includes(l));
+              const unreachable = extras.filter((l) => neverReach(area).includes(String(l).toLowerCase()));
+              const extrasError =
+                labelsError(extras) ||
+                (unreachable.length ? `${unreachable.join(', ')} can never open the ${panelLabel}, so it cannot be blocked here.` : '');
+              const base = savedOf(row.key);
+              const changed = Boolean(base) && sig(row) !== sig(base);
+              const isOpen = open === row.key && !page.locked;
+              const saving = savingKey === row.key;
+              const url = urlFor(area, page);
 
-                  {/* in sidebar */}
-                  <div className="flex items-center gap-2 md:justify-center">
-                    {page.locked ? (
-                      <span title="Always shown" className="inline-flex items-center gap-1.5 text-xs text-muted">
-                        <Lock size={14} aria-hidden="true" /> <span className="md:sr-only">Always shown</span>
-                      </span>
-                    ) : (
-                      <>
-                        <Tick
-                          checked={row.inSidebar}
-                          disabled={!isAdmin}
-                          onChange={(e) => patch(row.key, { inSidebar: e.target.checked })}
-                          label={`Show ${row.label} in the sidebar`}
-                        />
-                        <span className="text-xs text-muted md:sr-only">In sidebar</span>
-                      </>
-                    )}
-                  </div>
+              return (
+                <li
+                  key={row.key}
+                  className={`relative overflow-hidden rounded-2xl border bg-surface shadow-soft md:rounded-none md:border-x-0 md:border-b-0 md:border-t md:shadow-none ${
+                    changed ? 'border-accent/50' : 'border-border'
+                  } ${row.inSidebar ? '' : 'bg-surface-alt/40'}`}
+                >
+                  {changed && <span aria-hidden="true" className="absolute inset-y-0 left-0 w-0.5 bg-accent" />}
 
-                  {/* access */}
-                  <div className="min-w-0">
-                    {page.locked ? (
-                      <Chip>Always open</Chip>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() => setOpen(isOpen ? null : row.key)}
-                        aria-expanded={isOpen}
-                        className={`inline-flex max-w-full items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors focus-visible:outline-2 focus-visible:outline-accent ${
-                          isOpen ? 'border-accent bg-accent-soft text-accent' : 'border-border bg-surface text-text hover:border-accent'
+                  <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-2 gap-y-3 px-3.5 py-3.5 md:grid-cols-[minmax(0,1.6fr)_6rem_minmax(0,1.3fr)_5rem] md:items-center md:gap-x-4 md:px-5 md:py-3">
+                    {/* page: name on top, link small underneath */}
+                    <div className="col-start-1 row-start-1 flex min-w-0 items-center gap-3">
+                      <span
+                        className={`grid size-10 shrink-0 place-items-center rounded-xl border transition-colors ${
+                          row.inSidebar ? 'border-accent/30 bg-accent-soft text-accent' : 'border-border bg-surface-alt text-muted'
                         }`}
                       >
-                        {row.blockedLabels.length === 0 ? (
-                          <>
-                            <ShieldCheck size={14} className="text-accent" aria-hidden="true" /> Open to all
-                          </>
-                        ) : (
-                          <>
-                            <ShieldOff size={14} className="text-error" aria-hidden="true" />
-                            <span className="truncate capitalize">
-                              {row.blockedLabels.slice(0, 2).join(', ')}
-                              {row.blockedLabels.length > 2 && ` +${row.blockedLabels.length - 2}`}
-                            </span>
-                          </>
-                        )}
-                        <ChevronDown size={14} className={`shrink-0 transition-transform ${isOpen ? 'rotate-180' : ''}`} aria-hidden="true" />
+                        <Icon size={19} strokeWidth={1.75} aria-hidden="true" />
+                      </span>
+                      <div className="min-w-0">
+                        <p className={`truncate text-[15px] font-semibold md:text-sm ${row.inSidebar ? 'text-text' : 'text-muted'}`}>
+                          {row.label}
+                        </p>
+                        <p className="hidden truncate font-mono text-[11px] text-muted md:block">{url}</p>
+                      </div>
+                    </div>
+
+                    {/* order */}
+                    <div className="col-start-2 row-start-1 flex justify-end gap-1 md:col-start-4">
+                      <button type="button" onClick={() => move(index, -1)} disabled={!isAdmin || index === 0} aria-label={`Move ${row.label} up`} className={iconBtn}>
+                        <ArrowUp size={15} />
                       </button>
-                    )}
+                      <button type="button" onClick={() => move(index, 1)} disabled={!isAdmin || index === rows.length - 1} aria-label={`Move ${row.label} down`} className={iconBtn}>
+                        <ArrowDown size={15} />
+                      </button>
+                    </div>
+
+                    {/* sidebar switch + access (one line on phones, two columns from md) */}
+                    <div className="col-span-2 row-start-2 flex items-center gap-2 md:contents">
+                      <div className="shrink-0 md:col-start-2 md:row-start-1 md:flex md:justify-center">
+                        {page.locked ? (
+                          <span
+                            title="Always shown"
+                            className="inline-flex h-9 items-center gap-1.5 rounded-full border border-border bg-surface-alt px-3 text-xs text-muted md:h-auto md:border-0 md:bg-transparent md:px-0"
+                          >
+                            <Lock size={14} aria-hidden="true" />
+                            <span className="md:sr-only">Always shown</span>
+                          </span>
+                        ) : (
+                          <SidebarSwitch
+                            checked={row.inSidebar}
+                            disabled={!isAdmin}
+                            onChange={(v) => patch(row.key, { inSidebar: v })}
+                            label={`Show ${row.label} in the sidebar`}
+                          />
+                        )}
+                      </div>
+
+                      <div className="min-w-0 flex-1 md:col-start-3 md:row-start-1 md:flex-none">
+                        {page.locked ? (
+                          <Chip>Always open</Chip>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => setOpen(isOpen ? null : row.key)}
+                            aria-expanded={isOpen}
+                            className={`inline-flex h-9 w-full max-w-full items-center justify-between gap-2 rounded-full border px-3 text-xs font-medium transition-colors md:w-auto md:justify-start md:py-0 ${FOCUS} ${
+                              isOpen ? 'border-accent bg-accent-soft text-accent' : 'border-border bg-surface text-text hover:border-accent'
+                            }`}
+                          >
+                            <span className="flex min-w-0 items-center gap-2">
+                              {row.blockedLabels.length === 0 ? (
+                                <>
+                                  <ShieldCheck size={14} className="shrink-0 text-accent" aria-hidden="true" />
+                                  <span className="truncate">Open to all</span>
+                                </>
+                              ) : (
+                                <>
+                                  <ShieldOff size={14} className="shrink-0 text-error" aria-hidden="true" />
+                                  <span className="truncate capitalize">
+                                    {row.blockedLabels.slice(0, 2).join(', ')}
+                                    {row.blockedLabels.length > 2 && ` +${row.blockedLabels.length - 2}`}
+                                  </span>
+                                </>
+                              )}
+                            </span>
+                            <ChevronDown size={14} className={`shrink-0 transition-transform ${isOpen ? 'rotate-180' : ''}`} aria-hidden="true" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* link, small, at the bottom (phones only) */}
+                    <p className="col-span-2 row-start-3 truncate font-mono text-[11px] text-muted md:hidden">{url}</p>
                   </div>
 
-                  {/* order */}
-                  <div className="ml-auto flex justify-end gap-1 md:ml-0">
-                    <button type="button" onClick={() => move(index, -1)} disabled={!isAdmin || index === 0} aria-label={`Move ${row.label} up`} className={iconBtn}>
-                      <ArrowUp size={14} />
-                    </button>
-                    <button type="button" onClick={() => move(index, 1)} disabled={!isAdmin || index === rows.length - 1} aria-label={`Move ${row.label} down`} className={iconBtn}>
-                      <ArrowDown size={14} />
-                    </button>
-                  </div>
-                </div>
-
-                {/* access editor */}
-                {isOpen && (
-                  <div className="space-y-4 border-t border-border bg-surface-alt/40 px-4 py-4 sm:px-5">
-                    <div>
-                      <p className="mb-2 text-xs font-medium text-muted">Who can open “{row.label}”</p>
+                  {/* access editor */}
+                  {isOpen && (
+                    <div className="space-y-3 border-t border-border bg-surface-alt/40 px-3.5 py-3.5 md:px-5">
                       <div className="grid gap-2 sm:grid-cols-3">
                         {options.map(({ value }) => {
                           const blocked = row.blockedLabels.includes(value);
@@ -383,104 +428,71 @@ export default function LayoutTab() {
                               disabled={!allowed}
                               title={allowed ? undefined : 'You cannot change this label'}
                               onClick={() => toggleBlocked(row, value)}
-                              className={`flex items-center gap-3 rounded-xl border p-3 text-left transition-colors focus-visible:outline-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-55 ${
+                              className={`flex items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-55 ${FOCUS} ${
                                 blocked ? 'border-error/50 bg-error/10 text-error' : 'border-border bg-surface text-text enabled:hover:border-accent'
                               }`}
                             >
                               {!allowed ? (
-                                <Lock size={18} className="shrink-0 text-muted" aria-hidden="true" />
+                                <Lock size={17} className="shrink-0 text-muted" aria-hidden="true" />
                               ) : blocked ? (
-                                <ShieldOff size={18} className="shrink-0" aria-hidden="true" />
+                                <ShieldOff size={17} className="shrink-0" aria-hidden="true" />
                               ) : (
-                                <ShieldCheck size={18} className="shrink-0 text-accent" aria-hidden="true" />
+                                <ShieldCheck size={17} className="shrink-0 text-accent" aria-hidden="true" />
                               )}
                               <span className="min-w-0">
                                 <span className="block truncate text-sm font-medium capitalize">{value}</span>
                                 <span className="block truncate text-xs opacity-80">
-                                  {!allowed ? 'Cannot be changed by you' : blocked ? 'Blocked' : 'Can open'}
+                                  {!allowed ? 'Locked' : blocked ? 'Blocked' : 'Can open'}
                                 </span>
                               </span>
                             </button>
                           );
                         })}
                       </div>
+                      <TagInput
+                        label="Other labels"
+                        value={extras}
+                        onChange={(next) => patch(row.key, { blockedLabels: [...row.blockedLabels.filter((l) => optionValues.includes(l)), ...next] })}
+                        max={MAX_EXTRA_LABELS}
+                        maxLength={36}
+                        placeholder="e.g. vip, wholesale"
+                        error={extrasError}
+                      />
                     </div>
-                    <TagInput
-                      label="Other labels"
-                      value={extras}
-                      onChange={(next) => patch(row.key, { blockedLabels: [...row.blockedLabels.filter((l) => optionValues.includes(l)), ...next] })}
-                      max={MAX_EXTRA_LABELS}
-                      maxLength={36}
-                      placeholder="e.g. vip, wholesale"
-                      error={extrasError}
-                      hint="Custom Appwrite labels. Leave everything open so every label can see the page. Admins are never blocked."
-                    />
-                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                      <p className="text-xs text-muted">
-                        {accessChanged ? 'Page access has unsaved label changes.' : 'Page access is up to date.'}
-                      </p>
-                      <ActionButton
-                        variant="primary"
-                        size="sm"
-                        icon={Save}
-                        onClick={() => saveAccess(row)}
-                        disabled={!accessChanged || Boolean(extrasError) || saving || Boolean(savingAccessKey)}
-                        loading={savingAccessKey === row.key}
-                      >
-                        Save access
-                      </ActionButton>
+                  )}
+
+                  {/* save / discard: only on a row that changed */}
+                  {changed && (
+                    <div className="flex items-center justify-between gap-3 border-t border-accent/20 bg-accent-soft/60 px-3.5 py-2.5 md:px-5">
+                      <span className="inline-flex items-center gap-1.5 text-xs font-medium text-accent">
+                        <span aria-hidden="true" className="size-1.5 rounded-full bg-accent" />
+                        Unsaved
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <ActionButton variant="secondary" size="sm" onClick={() => discardRow(row)} disabled={busy}>
+                          Discard
+                        </ActionButton>
+                        <ActionButton
+                          variant="primary"
+                          size="sm"
+                          icon={Save}
+                          onClick={() => saveRow(row)}
+                          disabled={Boolean(extrasError) || (busy && !saving)}
+                          loading={saving}
+                        >
+                          Save
+                        </ActionButton>
+                      </div>
                     </div>
-                  </div>
-                )}
-              </li>
-            );
-          })}
-        </ul>
-      </section>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        </section>
 
-      {/* sidebar preview */}
-      <section className="rounded-2xl border border-border bg-surface p-4 shadow-soft sm:p-5">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-3">
-            <span className="grid size-11 shrink-0 place-items-center rounded-xl border border-border bg-surface-alt">
-              <Ico name="user" tone={3} className="size-7" />
-            </span>
-            <div>
-              <h3 className="text-sm font-semibold text-text">Sidebar preview</h3>
-              <p className="text-xs text-muted">What someone with this label sees, unsaved changes included.</p>
-            </div>
-          </div>
-          <div className="flex flex-wrap gap-1.5">
-            {previewRoles.map((r) => (
-              <button
-                key={r}
-                type="button"
-                aria-pressed={previewAs === r}
-                onClick={() => setPreviewAs(r)}
-                className={`rounded-full border px-3 py-1 text-xs font-medium capitalize transition-colors focus-visible:outline-2 focus-visible:outline-accent ${
-                  previewAs === r ? 'border-accent bg-accent-soft text-accent' : 'border-border bg-surface text-muted hover:border-accent'
-                }`}
-              >
-                {r}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <ul className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-          {shown.map((p) => {
-            const Icon = p.icon;
-            return (
-              <li key={p.key} className="flex items-center gap-3 rounded-xl border border-border bg-surface-alt/60 px-3 py-2 text-sm text-text">
-                <span className="grid size-8 place-items-center rounded-lg bg-surface text-accent">
-                  <Icon size={16} strokeWidth={1.75} aria-hidden="true" />
-                </span>
-                {p.label}
-              </li>
-            );
-          })}
-        </ul>
-      </section>
+        <SidebarPreview panelLabel={panelLabel} pages={shown} roles={previewRoles} role={previewAs} onRole={setPreviewAs} />
+      </div>
 
       {isAdmin && <AllProductsBannerSettings />}
     </div>

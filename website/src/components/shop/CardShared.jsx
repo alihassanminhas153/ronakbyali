@@ -11,6 +11,7 @@ import { Check, Clock, Heart, ImageOff, MessageSquare, Palette, ShoppingCart, St
 
 import productService from '../../lib/appwrite/product';
 import { getEffectivePricing } from '../../lib/saleMath';
+import { isProductOutOfStock } from '../../lib/productStock';
 import { getMainImageUrl } from '../../store/slices/productsSlice';
 import { PATHS } from '../../router/path';
 
@@ -58,7 +59,7 @@ export function getCardData(product, sales) {
   const remaining = product.remaining == null ? null : Number(product.remaining);
   const hasRemaining = remaining !== null && Number.isFinite(remaining);
   const isCustom = product.isCustom === true;
-  const outOfStock = !isCustom && (product.status === 'outOfStock' || (hasRemaining && remaining <= 0));
+  const outOfStock = isProductOutOfStock(product);
 
   // `price` is the final price, `originalPrice` the one before the discount
   const pricing = getEffectivePricing(product, sales);
@@ -137,10 +138,10 @@ export function RoundAction({ label, active, busy, onClick, children, activeCls,
   );
 }
 
-// Top-right tag: "Out of stock" or "3 left". Renders nothing for custom products.
+// Top-right tag: "Out of stock" or "3 left". Custom products only show an out-of-stock tag.
 export function StockTag({ data }) {
   const { isCustom, outOfStock, hasRemaining, remaining } = data;
-  if (isCustom || !(outOfStock || (hasRemaining && remaining > 0))) return null;
+  if ((isCustom && !outOfStock) || (!outOfStock && !(hasRemaining && remaining > 0))) return null;
   return (
     <span
       aria-label={outOfStock ? 'Out of stock' : `${remaining} left in stock`}
@@ -262,9 +263,10 @@ export function ActionRow({
           <button
             type="button"
             onClick={() => onCustomize(product)}
-            aria-label="Customize"
-            title="Customize"
-            className={`grid size-9 place-items-center rounded-full ${t.custom}`}
+            disabled={outOfStock}
+            aria-label={outOfStock ? 'Out of stock' : 'Customize'}
+            title={outOfStock ? 'Out of stock' : 'Customize'}
+            className={`grid size-9 place-items-center disabled:cursor-not-allowed disabled:opacity-50 ${t.custom}`}
           >
             <Palette size={16} aria-hidden="true" />
           </button>
@@ -293,7 +295,9 @@ export function ActionRow({
         <button
           type="button"
           onClick={() => onCustomize(product)}
-          className={`inline-flex h-10 min-w-0 flex-1 items-center justify-center gap-2 rounded-xl px-3 text-sm font-semibold transition-colors ${t.custom}`}
+          disabled={outOfStock}
+          aria-label={outOfStock ? 'Out of stock' : 'Customize'}
+          className={`inline-flex h-10 min-w-0 flex-1 items-center justify-center gap-2 rounded-xl px-3 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${t.custom}`}
         >
           <Palette size={16} className="shrink-0" aria-hidden="true" />
           Customize

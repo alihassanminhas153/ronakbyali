@@ -111,10 +111,12 @@ export class AlertService {
     hasSeen(alert, userId) {
         if (userId && (alert.seenBy || []).includes(userId)) return true;
         const remembered = this._readSeen(userId)[alert.$id];
-        if (remembered === undefined) return false;
+        const guestRemembered = userId ? this._readSeen(null)[alert.$id] : undefined;
+        if (remembered === undefined && guestRemembered === undefined) return false;
         // If the admin pressed "reset seen", seenCount fell below what this browser
         // recorded, so the popup is allowed to show again.
-        return (Number(alert.seenCount) || 0) >= remembered;
+        const rememberedCount = remembered !== undefined ? remembered : guestRemembered;
+        return (Number(alert.seenCount) || 0) >= rememberedCount;
     }
 
     // ---------- Visitor actions ----------
@@ -170,6 +172,11 @@ export class AlertService {
             if (!ids.includes(alertId)) ids.push(alertId);
             if (ids.length > SEEN_CAP) ids.splice(0, ids.length - SEEN_CAP);
             window.localStorage.setItem(key, JSON.stringify(ids));
+            if (userId) {
+                const guestIds = this._readDismissed(null);
+                if (!guestIds.includes(alertId)) guestIds.push(alertId);
+                window.localStorage.setItem(`${DISMISSED_KEY}:guest`, JSON.stringify(guestIds));
+            }
         } catch {
             // Keep the current-session behavior if persistent storage is unavailable.
             this._sessionSet(`dismissed_${alertId}`, '1');
@@ -452,7 +459,9 @@ export class AlertService {
     }
 
     _isDismissed(alertId, userId) {
-        return this._readDismissed(userId).includes(alertId) || !!this._sessionGet(`dismissed_${alertId}`);
+        const dismissedForUser = this._readDismissed(userId).includes(alertId);
+        const dismissedAsGuest = userId ? this._readDismissed(null).includes(alertId) : false;
+        return dismissedForUser || dismissedAsGuest || !!this._sessionGet(`dismissed_${alertId}`);
     }
 
     // Browser storage helpers (safe if storage is blocked).
@@ -491,6 +500,12 @@ export class AlertService {
             const keys = Object.keys(map);
             if (keys.length > SEEN_CAP) keys.slice(0, keys.length - SEEN_CAP).forEach((k) => delete map[k]);
             window.localStorage.setItem(`${SEEN_KEY}:${userId || 'guest'}`, JSON.stringify(map));
+            if (userId) {
+                const guestMap = this._readSeen(null);
+                delete guestMap[alertId];
+                guestMap[alertId] = Number(count) || 0;
+                window.localStorage.setItem(`${SEEN_KEY}:guest`, JSON.stringify(guestMap));
+            }
         } catch {
             /* ignore */
         }

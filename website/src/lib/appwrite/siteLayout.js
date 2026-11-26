@@ -31,7 +31,7 @@ export class SiteLayoutService {
     }
   }
 
-  async saveAllProductsBanner(imageIds) {
+  async saveAllProductsBanner(imageIds, content = '') {
     this.lastError = null;
     const current = await this.getAllProductsBanner();
     if (!current.ok) return current;
@@ -45,6 +45,7 @@ export class SiteLayoutService {
         type: 'banner',
         title: 'All Products banner',
         imageIds: [...new Set((imageIds || []).filter((id) => typeof id === 'string' && id.trim()))],
+        content: typeof content === 'string' ? content : '',
       },
     };
 

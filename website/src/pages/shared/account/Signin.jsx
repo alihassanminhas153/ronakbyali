@@ -9,14 +9,12 @@ import {
   continueWithGoogle,
   clearAuthError,
   selectAuthStatus,
-  selectPendingProfile,
 } from '../../../store/slices/authSlice';
 import { addToast } from '../../../store/slices/uiSlice';
 import AuthShell, { EmailChip, OrDivider } from '../auth/AuthShell';
 import AuthField from '../auth/AuthField';
 import AuthButton from '../auth/AuthButton';
 import GoogleButton from '../auth/GoogleButton';
-import ProfileStep from '../auth/ProfileStep';
 import { homePathFor } from './authRedirect';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -28,7 +26,6 @@ export default function Signin() {
   const location = useLocation();
 
   const status = useAppSelector(selectAuthStatus);
-  const pendingProfile = useAppSelector(selectPendingProfile);
 
   const [step, setStep] = useState('email'); // 'email' | 'password'
   const [email, setEmail] = useState('');
@@ -90,11 +87,11 @@ export default function Signin() {
     if (authenticateWithEmail.fulfilled.match(result)) {
       const { profile, created } = result.payload;
       if (created) {
-        dispatch(addToast({ type: 'success', message: 'Account created. Finish setting up your profile.' }));
+        dispatch(addToast({ type: 'success', message: 'Account created. You are now logged in.' }));
       } else {
         dispatch(addToast({ type: 'success', message: 'You are now logged in.' }));
-        navigate(homePathFor(profile, from), { replace: true });
       }
+      navigate(homePathFor(profile, from), { replace: true });
     }
   };
 
@@ -102,15 +99,6 @@ export default function Signin() {
     setGoogleBusy(true);
     dispatch(continueWithGoogle()); // the browser leaves for Google
   };
-
-  if (pendingProfile) {
-    return (
-      <ProfileStep
-        profile={pendingProfile}
-        onDone={(profile) => navigate(homePathFor(profile, from), { replace: true })}
-      />
-    );
-  }
 
   return (
     <AuthShell

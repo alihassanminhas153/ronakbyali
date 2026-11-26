@@ -14,23 +14,24 @@
 //   />
 //   <DiscountedProductCardSkeleton /> // loading placeholder, also an <li>
 //
-// DESIGN: white rounded card with an inset square photo and an "On sale" / offer-name pill on it.
-// The details use a three-column grid: name, savings, old price/discount and final price span two columns,
-// while the cart/customize and wishlist icon buttons sit at the bottom of the third column.
-// The pill and the savings only show while the product really is discounted.
-// The whole card is a link; the buttons sit above it. costPrice is never shown.
+// DESIGN: compact, no empty space. A 5:4 photo carries everything about the offer: the "-25%" badge
+// (top left) and a "Save Rs 500" chip (bottom left). Under it there is only the name (one line), the
+// struck-through old price over the sale price, and small heart + shopping-cart buttons on the same
+// row. For custom products the Customize button takes its own full-width row under the price.
+// Sizes step up from phones to desktop, so the card holds together down to ~130px wide.
+// The badge and the saving only show while the product really is discounted. costPrice is never shown.
 
 import { memo } from 'react';
 import { Link } from 'react-router';
 import { useSelector } from 'react-redux';
-import { Tag } from 'lucide-react';
 
 import { selectSalesList } from '../../store/slices/saleSlice';
 import useEntered from '../../ui/custom/motion/useEntered';
+import { getEffectivePricing } from '../../lib/saleMath';
 import { PAGE_SIZE } from './shopFilters';
 import { useDesignAddToCart } from './DesignChooser';
-import { CardImage, StockTag, getCardData } from './CardShared';
-import { CardBottom, ProductCardSkeleton } from './CardParts';
+import { CardImage, StockTag, getCardData, money } from './CardShared';
+import { CartButton, ProductCardSkeleton, WishlistButton } from './CardParts';
 
 function DiscountedProductCard({
   product,
@@ -52,10 +53,16 @@ function DiscountedProductCard({
   if (!d) return null;
 
   const showOffer = d.onOffer && !d.outOfStock;
+  const isCustom = product.isCustom === true;
   // the offer name is only worth showing when it says more than "25% off"
-  const offerLabel = d.offerName && d.offerName !== `${d.percent}% off` && d.offerName !== 'Offer' ? d.offerName : 'On sale';
+  const offerLabel = d.offerName && d.offerName !== `${d.percent}% off` && d.offerName !== 'Offer' ? d.offerName : '';
 
-  const saved = d.outOfStock ? 0 : d.saved;
+  // how much the customer saves: old price minus the price they pay now
+  const pricing = getEffectivePricing(product, sales);
+  const saved =
+    !d.outOfStock && pricing.price > 0 && pricing.originalPrice > pricing.price
+      ? pricing.originalPrice - pricing.price
+      : 0;
 
   return (
     <li
@@ -64,7 +71,7 @@ function DiscountedProductCard({
       }`}
     >
       <article
-        className={`group/card relative isolate flex w-full min-w-0 flex-col rounded-2xl border bg-surface px-2 pb-1 pt-2 shadow-soft transition-all duration-300 ease-out hover:-translate-y-1 hover:border-accent/60 hover:shadow-lg focus-within:border-accent/60 motion-reduce:transition-none sm:px-2.5 sm:pt-2.5 ${
+        className={`group/card relative isolate flex h-full w-full min-w-0 flex-col rounded-2xl border bg-surface p-1.5 shadow-soft transition-all duration-300 ease-out hover:-translate-y-1 hover:border-accent/60 hover:shadow-lg focus-within:border-accent/60 motion-reduce:transition-none sm:p-2 ${
           showOffer ? 'border-accent/30' : 'border-border'
         }`}
       >
@@ -78,14 +85,28 @@ function DiscountedProductCard({
           <span className="sr-only">View {product.name}</span>
         </Link>
 
-        {/* photo */}
-        <div className="relative aspect-square w-full shrink-0 overflow-hidden rounded-xl bg-surface-alt group-hover/card:[&_img]:scale-105 [&_img]:transition-transform [&_img]:duration-500 motion-reduce:[&_img]:transition-none">
+        {/* photo: badge top left, saving bottom left */}
+        <div className="relative aspect-[5/4] w-full shrink-0 overflow-hidden rounded-xl bg-surface-alt group-hover/card:[&_img]:scale-105 [&_img]:transition-transform [&_img]:duration-500 motion-reduce:[&_img]:transition-none">
           <CardImage src={d.image} alt={product.name} dimmed={d.outOfStock} />
 
+          {/* soft shade so the chips stay readable on any photo */}
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black/45 to-transparent"
+          />
+
           {showOffer && (
-            <span className="pointer-events-none absolute left-2 top-2 z-[5] inline-flex max-w-[75%] items-center gap-1 rounded-full bg-accent px-2.5 py-1 text-[11px] font-semibold text-on-accent shadow-sm sm:text-xs">
-              <Tag size={12} className="shrink-0" aria-hidden="true" />
-              <span className="truncate">{offerLabel}</span>
+            <span
+              title={offerLabel || undefined}
+              className="pointer-events-none absolute left-1.5 top-1.5 z-[5] rounded-full bg-accent px-2 py-0.5 font-heading text-[11px] font-bold leading-5 tabular-nums text-on-accent shadow-sm sm:left-2 sm:top-2 sm:px-2.5 sm:text-sm"
+            >
+              {d.percent > 0 ? `-${d.percent}%` : 'Sale'}
+            </span>
+          )}
+
+          {saved > 0 && (
+            <span className="pointer-events-none absolute bottom-1.5 left-1.5 z-[5] max-w-[calc(100%-0.75rem)] truncate rounded-full bg-black/55 px-2 py-0.5 text-[10px] font-semibold leading-4 tabular-nums text-white backdrop-blur-sm sm:bottom-2 sm:left-2 sm:text-xs">
+              Save {money(saved)}
             </span>
           )}
 
@@ -93,20 +114,49 @@ function DiscountedProductCard({
         </div>
 
         {/* details */}
-        <div className="pointer-events-none px-1.5 pt-3 sm:px-2">
-          <CardBottom
-            product={product}
-            data={d}
-            saved={saved}
-            accent={showOffer}
-            inCart={inCart}
-            inWishlist={inWishlist}
-            cartBusy={cartBusy}
-            wishBusy={wishBusy}
-            onAddToCart={onAddToCart}
-            onToggleWishlist={onToggleWishlist}
-            onCustomize={onCustomize}
-          />
+        <div className="pointer-events-none flex flex-1 flex-col px-1 pb-0.5 pt-2 sm:px-1.5">
+          <h3
+            title={product.name}
+            className="line-clamp-1 break-words font-heading text-[13px] font-medium leading-5 text-text [overflow-wrap:anywhere] sm:text-sm"
+          >
+            {product.name}
+          </h3>
+
+          <div className={`mt-auto flex gap-1.5 pt-1.5 ${isCustom ? 'flex-col' : 'items-end justify-between'}`}>
+            <div className="min-w-0">
+              {d.hasDrop && (
+                <p className="text-[11px] leading-none tabular-nums text-muted line-through sm:text-xs">
+                  {money(d.originalPrice)}
+                </p>
+              )}
+              <p
+                className={`break-words font-heading text-[15px] font-bold leading-tight tabular-nums sm:text-lg ${
+                  d.hasDrop ? 'mt-0.5' : ''
+                } ${showOffer ? 'text-accent' : 'text-text'}`}
+              >
+                {d.priceText}
+              </p>
+            </div>
+
+            <div className={`flex items-center gap-1.5 ${isCustom ? 'w-full' : 'shrink-0'}`}>
+              <WishlistButton
+                product={product}
+                active={inWishlist}
+                busy={wishBusy}
+                onToggle={onToggleWishlist}
+                compact
+              />
+              <CartButton
+                product={product}
+                data={d}
+                inCart={inCart}
+                busy={cartBusy}
+                onAddToCart={onAddToCart}
+                onCustomize={onCustomize}
+                compact
+              />
+            </div>
+          </div>
         </div>
       </article>
       {design.element}

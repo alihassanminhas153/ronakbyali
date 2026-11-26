@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Check, X } from 'lucide-react';
 
 import ActionButton from '../../ui/custom/button/ActionButton';
+import useScrollLock from '../../ui/custom/motion/useScrollLock';
 import { FILTER_KEYS as K, SORT_OPTIONS, STATUS_OPTIONS, isSet } from './shopMeta';
 
 const FOCUS = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent';
@@ -75,6 +77,7 @@ function PriceField({ id, label, value, placeholder, onChange }) {
 export default function FilterDrawer({ open, onClose, filters, priceRange, onApply, onReset }) {
   const [draft, setDraft] = useState(() => toDraft(filters));
   const panelRef = useRef(null);
+  useScrollLock(open);
 
   // Each time the panel opens, start from what is currently applied.
   useEffect(() => {
@@ -87,13 +90,8 @@ export default function FilterDrawer({ open, onClose, filters, priceRange, onApp
   useEffect(() => {
     if (!open) return undefined;
     const onKey = (event) => event.key === 'Escape' && onClose();
-    const previous = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
     document.addEventListener('keydown', onKey);
-    return () => {
-      document.body.style.overflow = previous;
-      document.removeEventListener('keydown', onKey);
-    };
+    return () => document.removeEventListener('keydown', onKey);
   }, [open, onClose]);
 
   const set = (patch) => setDraft((current) => ({ ...current, ...patch }));
@@ -106,9 +104,9 @@ export default function FilterDrawer({ open, onClose, filters, priceRange, onApp
     onApply({ [K.status]: draft.status, [K.sort]: draft.sort, [K.min]: min, [K.max]: max });
   };
 
-  return (
+  return createPortal(
     <div
-      className={`fixed inset-0 z-50 transition-[visibility] duration-300 ${open ? 'visible' : 'invisible'}`}
+      className={`fixed inset-0 z-[60] transition-[visibility] duration-300 ${open ? 'visible' : 'invisible'}`}
       aria-hidden={!open}
     >
       <div
@@ -195,5 +193,6 @@ export default function FilterDrawer({ open, onClose, filters, priceRange, onApp
         </div>
       </aside>
     </div>
+    , document.body
   );
 }

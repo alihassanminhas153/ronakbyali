@@ -16,6 +16,7 @@ import {
 import usePageAlerts from './usePageAlerts';
 import AppIcon, { resolveAppIconName } from '../../ui/custom/AppIcon';
 import { tint, toneVar } from '../../ui/graphs/utils';
+import useScrollLock from '../../ui/custom/motion/useScrollLock';
 
 const REFRESH_INTERVAL = 60_000;
 
@@ -60,6 +61,7 @@ export default function AlertPopupHost() {
 
   const popupId = visiblePopup?.$id;
   const popupEndsAt = visiblePopup?.endsAt;
+  useScrollLock(Boolean(popupId));
 
   useEffect(() => {
     if (!popupId) return undefined;
@@ -78,15 +80,12 @@ export default function AlertPopupHost() {
   useEffect(() => {
     if (!popupId) return undefined;
     const previousFocus = document.activeElement;
-    const previousOverflow = document.body.style.overflow;
     const onKeyDown = (event) => {
       if (event.key === 'Escape') dispatch(dismissAlert(popupId));
     };
-    document.body.style.overflow = 'hidden';
     dialogRef.current?.focus();
     document.addEventListener('keydown', onKeyDown);
     return () => {
-      document.body.style.overflow = previousOverflow;
       document.removeEventListener('keydown', onKeyDown);
       if (previousFocus instanceof HTMLElement) previousFocus.focus();
     };

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
+import useScrollLock from '../motion/useScrollLock';
 
 const FOCUSABLE =
   'a[href],button:not([disabled]),textarea:not([disabled]),input:not([disabled]),select:not([disabled]),[tabindex]:not([tabindex="-1"])';
@@ -33,6 +34,7 @@ export default function Modal({
   // mounted: stays true while the closing animation plays. shown: drives the CSS transition.
   const [mounted, setMounted] = useState(open);
   const [shown, setShown] = useState(false);
+  useScrollLock(open);
 
   useEffect(() => {
     if (open) {
@@ -54,11 +56,8 @@ export default function Modal({
   useEffect(() => {
     if (!open) return undefined;
     returnFocus.current = document.activeElement;
-    const previous = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
     panelRef.current?.focus();
     return () => {
-      document.body.style.overflow = previous;
       returnFocus.current?.focus?.();
     };
   }, [open]);

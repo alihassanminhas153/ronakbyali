@@ -4,6 +4,7 @@ import { ChevronsRight, Menu } from 'lucide-react';
 
 import Sidebar from './Sidebar';
 import AccessGate from './AccessGate';
+import useScrollLock from '../../ui/custom/motion/useScrollLock';
 
 const STORAGE_KEY = 'dashboard-sidebar-collapsed';
 const DURATION = 300; // ms: sidebar width, drawer slide and backdrop fade (matches duration-300 in SidebarFold)
@@ -43,6 +44,7 @@ export default function DashboardShell({ area = 'user', children }) {
   const [shown, setShown] = useState(false); // drives the slide / fade
   const [collapsed, setCollapsed] = useState(readCollapsed);
   const panelRef = useRef(null);
+  useScrollLock(open);
   const { pathname } = useLocation();
   const panelTitle = area === 'admin' ? 'Admin panel' : 'My account';
   const pathSegments = pathname.split('/').filter(Boolean);
@@ -106,12 +108,9 @@ export default function DashboardShell({ area = 'user', children }) {
   useEffect(() => {
     if (!open) return undefined;
     const onKey = (e) => e.key === 'Escape' && setOpen(false);
-    const previous = document.body.style.overflow;
     document.addEventListener('keydown', onKey);
-    document.body.style.overflow = 'hidden';
     return () => {
       document.removeEventListener('keydown', onKey);
-      document.body.style.overflow = previous;
     };
   }, [open]);
 

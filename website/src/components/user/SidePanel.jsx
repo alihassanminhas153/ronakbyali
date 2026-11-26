@@ -2,20 +2,19 @@ import { useEffect } from 'react';
 import { X } from 'lucide-react';
 
 import useEntered from '../../ui/custom/motion/useEntered';
+import useScrollLock from '../../ui/custom/motion/useScrollLock';
 
 // Panel that slides in from the LEFT. Mount it only while open, so the form
 // inside starts fresh every time and the slide-in plays on mount.
 export default function SidePanel({ title, onClose, children }) {
   const entered = useEntered();
+  useScrollLock(true);
 
   useEffect(() => {
     const onKey = (event) => event.key === 'Escape' && onClose();
-    const previous = document.body.style.overflow;
     document.addEventListener('keydown', onKey);
-    document.body.style.overflow = 'hidden';
     return () => {
       document.removeEventListener('keydown', onKey);
-      document.body.style.overflow = previous;
     };
   }, [onClose]);
 

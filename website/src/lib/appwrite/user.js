@@ -293,29 +293,20 @@ export class UserService {
         }
     }
 
-    // "Ali Raza" -> "aliraza4821". `longer` adds more random digits.
+    // The unique username index is enforced when createProfile writes the row;
+    // this candidate is retried there if another account generated it first.
     async generateUniqueUsername(seed, longer = false) {
-        try {
-            const base =
-                String(seed || '')
-                    .split('@')[0]
-                    .toLowerCase()
-                    .replace(/[^a-z0-9]/g, '')
-                    .slice(0, 12) || 'user';
-
-            for (let i = 0; i < 8; i++) {
-                const digits = longer ? 6 : 4;
-                const num = Math.floor(Math.random() * 10 ** digits)
-                    .toString()
-                    .padStart(digits, '0');
-                const candidate = `${base}${num}`;
-                if (await this.isUsernameAvailable(candidate)) return candidate;
-            }
-            return false;
-        } catch (error) {
-            console.error(error.message);
-            return false;
-        }
+        const base =
+            String(seed || '')
+                .split('@')[0]
+                .toLowerCase()
+                .replace(/[^a-z0-9]/g, '')
+                .slice(0, 12) || 'user';
+        const digits = longer ? 6 : 4;
+        const num = Math.floor(Math.random() * 10 ** digits)
+            .toString()
+            .padStart(digits, '0');
+        return `${base}${num}`;
     }
 
     // ---------- Roles & orders ----------
@@ -358,7 +349,7 @@ export class UserService {
     // Admin only (needs table permission for the admin label).
     // NOTE: a profile row is updatable by its owner (see createProfile
     // permissions), so a blocked user could in theory flip isBlocked back with a
-    // hand-made API call. For hard enforcement also disable the account
+    // direct API call. For hard enforcement also disable the account
     // server-side (Appwrite Function calling Users.updateStatus) or drop the
     // owner's update permission on this column.
     async setBlocked({ userId, isBlocked }) {
