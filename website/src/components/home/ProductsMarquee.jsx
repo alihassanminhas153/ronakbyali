@@ -4,7 +4,7 @@
 //   <ProductsMarquee />
 //
 // Loads the featured products from productsSlice, keeps ONE product per category
-// (at most 6) and shows them with the shared ProductCard in an endless,
+// (at most 6) and shows them with the shared FeaturedCard in an endless,
 // auto-scrolling marquee that repeats the cards to fill any screen width. It is a marquee on EVERY
 // screen size (cards never stack into one column on narrow screens).
 //   - The section animates in when it scrolls into view, and the cards play
@@ -18,7 +18,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { Link } from 'react-router';
 import { ArrowUpRight } from 'lucide-react';
 
-import ProductCard, { ProductCardSkeleton } from '../shop/ProductCard';
+import FeaturedCard, { FeaturedCardSkeleton } from '../shop/FeaturedCard';
 import {
   fetchFeaturedProducts,
   selectFeaturedProducts,
@@ -132,7 +132,7 @@ function MarqueeRow({ products, speed = SPEED, reverse = false }) {
             className={`flex shrink-0 gap-4 pr-4 ${ITEM_WIDTH}`}
           >
             {products.map((product, i) => (
-              <ProductCard key={product.$id} product={product} index={i} isDuplicate={c !== 0} />
+              <FeaturedCard key={product.$id} product={product} index={i} isDuplicate={c !== 0} />
             ))}
           </ul>
         ))}
@@ -147,7 +147,7 @@ function SkeletonRow() {
     <div className="overflow-hidden py-6">
       <ul className={`flex gap-4 px-4 sm:px-6 ${ITEM_WIDTH}`} aria-hidden="true">
         {Array.from({ length: 8 }).map((_, i) => (
-          <ProductCardSkeleton key={i} />
+          <FeaturedCardSkeleton key={i} />
         ))}
       </ul>
     </div>
